@@ -1,52 +1,181 @@
-﻿<!DOCTYPE html>
+@inject ApplicationDbContext Db
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject INotificationService NotificationService
+@{
+    var setting = await Db.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
+    var brandName = setting?.RestaurantName ?? "RROMS";
+    var unreadCount = 0;
+    if (SignInManager.IsSignedIn(User))
+    {
+        var uid = UserManager.GetUserId(User);
+        if (uid != null) unreadCount = await NotificationService.GetUnreadCountAsync(uid);
+    }
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - RROMS</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/RROMS.styles.css" asp-append-version="true" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - @brandName</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark rroms-navbar sticky-top">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">RROMS</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand" asp-page="/Index"><span>&#9670;</span> @brandName</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
+                <div class="collapse navbar-collapse" id="mainNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" asp-page="/Index">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Menu/Index">Menu</a></li>
+
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            @if (User.IsInRole(Roles.Customer))
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-page="/Reservations/Index">My Reservations</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-page="/Orders/Index">My Orders</a></li>
+                                <li class="nav-item"><a class="nav-link" asp-page="/Feedback/Index">Feedback</a></li>
+                            }
+                            @if (User.IsInRole(Roles.Staff) || User.IsInRole(Roles.Administrator))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Staff</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" asp-page="/Staff/Dashboard">Dashboard</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Staff/Reservations">Reservations</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Staff/Orders">Orders</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Staff/Billing">Billing</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" asp-page="/Account/Profile">My Profile</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            @if (User.IsInRole(Roles.Administrator))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Admin</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" asp-page="/Admin/Dashboard">Dashboard</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Venue">Dining Areas &amp; Tables</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/MenuManagement">Menu Management</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Promotions">Promotions</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Announcements">Announcements</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Users">Users &amp; Roles</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Monitoring">Monitoring</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Reports">Reports</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Settings">Settings</a></li>
+                                    </ul>
+                                </li>
+                            }
+                        }
+                    </ul>
+
+                    <ul class="navbar-nav align-items-lg-center">
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            @if (User.IsInRole(Roles.Customer))
+                            {
+                                <li class="nav-item"><a class="nav-link" asp-page="/Orders/Cart" title="Cart"><i class="bi bi-basket3"></i> Cart</a></li>
+                            }
+                            <li class="nav-item dropdown">
+                                <a class="nav-link position-relative" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-bell"></i>
+                                    @if (unreadCount > 0)
+                                    {
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">@unreadCount</span>
+                                    }
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 260px;">
+                                    <li><h6 class="dropdown-header">Notifications</h6></li>
+                                    <li><a class="dropdown-item small" asp-page="/Notifications/Index">View all notifications @(unreadCount > 0 ? $"({unreadCount} unread)" : "")</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle"></i> @User.Identity?.Name
+                                    <span class="rroms-badge-role">@(User.IsInRole(Roles.Administrator) ? "Admin" : User.IsInRole(Roles.Staff) ? "Staff" : "Customer")</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-page="/Account/Profile">My Profile</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form id="logoutForm" method="post" asp-page="/Account/Logout">
+                                            <button type="submit" class="dropdown-item">Log out</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-page="/Account/Login">Log in</a></li>
+                            <li class="nav-item">
+                                <a class="btn btn-primary btn-sm ms-lg-2" asp-page="/Account/Register">Register</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - RROMS - <a asp-area="" asp-page="/Privacy">Privacy</a>
+    <main class="container">
+        @if (TempData["StatusMessage"] is string statusMessage && !string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="alert alert-success alert-dismissible alert-auto-dismiss mt-3" role="alert">
+                @statusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible mt-3" role="alert">
+                @errorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    <footer class="rroms-footer">
+        <div class="container d-flex flex-wrap justify-content-between gap-3">
+            <div>
+                <div class="display-font fs-5 text-white mb-1">@brandName</div>
+                <div>@setting?.Address</div>
+                <div>@setting?.Phone &middot; @setting?.Email</div>
+            </div>
+            <div>
+                <div class="text-white mb-1">Quick links</div>
+                <div><a asp-page="/Menu/Index">Menu</a></div>
+                <div><a asp-page="/Reservations/Create">Book a table</a></div>
+            </div>
+            <div class="small">&copy; @DateTime.Now.Year @brandName. Coursework project - Web-Based Restaurant Reservation and Order Management System.</div>
         </div>
     </footer>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <button id="rroms-chat-toggle" title="Chat with us"><i class="bi bi-chat-dots-fill"></i></button>
+    <div id="rroms-chat-panel">
+        <div id="rroms-chat-header"><i class="bi bi-stars"></i> Ask us anything</div>
+        <div id="rroms-chat-messages">
+            <div class="chat-bubble bot">Hi! I can help with hours, reservations, menu questions and order status. What would you like to know?</div>
+        </div>
+        <form id="rroms-chat-form">
+            <input id="rroms-chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
+            <button type="submit"><i class="bi bi-send-fill"></i></button>
+        </form>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/chatbot.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
