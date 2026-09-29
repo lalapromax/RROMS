@@ -1,10 +1,131 @@
-﻿@page
-@model IndexModel
+@page
+@model RROMS.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
+    Layout = "_Layout";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="rroms-hero mb-5" style="margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-top: -1.75rem;">
+    <div class="container position-relative">
+        <p class="rroms-section-eyebrow mb-2" style="color:#e3c481;">@(Model.Setting?.RestaurantName ?? "RROMS")</p>
+        <h1>Book a table, order ahead, and skip the wait.</h1>
+        <p class="lead mb-4">@(Model.Setting?.Description ?? "Modern seasonal cooking, served in a warm dining room built for long, unhurried meals.")</p>
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-page="/Reservations/Create" class="btn btn-primary btn-lg">Reserve a table</a>
+            <a asp-page="/Menu/Index" class="btn btn-outline-light btn-lg">View the menu</a>
+        </div>
+
+        <svg class="rroms-plate d-none d-lg-block" width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="110" cy="110" r="95" stroke="#8f691f" stroke-width="1.5" opacity="0.55" />
+            <circle cx="110" cy="110" r="70" stroke="#bd8b2e" stroke-width="1.5" opacity="0.75" />
+            <line x1="45" y1="60" x2="45" y2="160" stroke="#e3c481" stroke-width="2" opacity="0.7" />
+            <line x1="38" y1="60" x2="38" y2="95" stroke="#e3c481" stroke-width="2" opacity="0.7" />
+            <line x1="52" y1="60" x2="52" y2="95" stroke="#e3c481" stroke-width="2" opacity="0.7" />
+            <path d="M172 60 C 160 80, 160 110, 172 130 L 172 160" stroke="#e3c481" stroke-width="2" fill="none" opacity="0.7" />
+        </svg>
+    </div>
 </div>
+
+<section class="mb-5">
+    <p class="rroms-section-eyebrow mb-1">Get started</p>
+    <h2 class="h4 mb-3">How would you like to visit us?</h2>
+    <div class="visit-path-grid">
+        <a asp-page="/Reservations/Create" class="visit-path-card">
+            <span class="vp-icon">&#x1F4C5;</span>
+            <span class="vp-title">Book a table</span>
+            <span class="vp-desc">Reserve a table for later - no food order required. Pick a date, time and party size and we'll confirm it instantly.</span>
+        </a>
+        <a asp-page="/Menu/Index" class="visit-path-card featured">
+            <span class="vp-icon">&#x1F37D;&#xFE0F;</span>
+            <span class="vp-title">Book &amp; order together</span>
+            <span class="vp-desc">Browse the menu, add what you'd like, then reserve your table right there at checkout - one flow, nothing to repeat.</span>
+        </a>
+        <a asp-page="/Menu/Index" class="visit-path-card">
+            <span class="vp-icon">&#x1F961;</span>
+            <span class="vp-title">Order for takeaway</span>
+            <span class="vp-desc">Just here for the food? Order ahead and choose Takeaway at checkout - no table needed.</span>
+        </a>
+    </div>
+</section>
+
+@if (Model.Announcements.Any())
+{
+    <div class="mb-4">
+        @foreach (var a in Model.Announcements)
+        {
+            <div class="alert" style="background:var(--sand); border:1px solid var(--sand-dark);">
+                <strong>@a.Title</strong> &mdash; @a.Content
+            </div>
+        }
+    </div>
+}
+
+@if (Model.ActivePromotions.Any())
+{
+    <section class="mb-5">
+        <p class="rroms-section-eyebrow mb-1">Right now</p>
+        <h2 class="h4 mb-3">Current promotions</h2>
+        <div class="row g-3">
+            @foreach (var promo in Model.ActivePromotions)
+            {
+                <div class="col-md-6">
+                    <div class="rroms-card p-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">@promo.Title</div>
+                            <div class="small text-muted-warm">@promo.Description</div>
+                        </div>
+                        <span class="status-badge status-confirmed">@promo.DiscountPercent% off</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+<section class="mb-5">
+    <p class="rroms-section-eyebrow mb-1">Guest favourites</p>
+    <h2 class="h4 mb-3">Popular dishes</h2>
+    <div class="dish-grid">
+        @foreach (var item in Model.FeaturedItems)
+        {
+            @await Html.PartialAsync("_DishCard", new DishCardVM(item, Model.ActivePromotionDiscounts))
+        }
+    </div>
+    <div class="text-center mt-3">
+        <a asp-page="/Menu/Index" class="btn btn-outline-primary">See full menu</a>
+    </div>
+</section>
+
+@await Html.PartialAsync("_DishDetailOffcanvas")
+
+<section class="row g-4">
+    <div class="col-md-6">
+        <div class="rroms-card p-4 h-100">
+            <h2 class="h5 mb-3">Opening hours</h2>
+            <table class="table table-sm mb-0">
+                <tbody>
+                    @foreach (var h in Model.Hours)
+                    {
+                        <tr>
+                            <td>@h.DayOfWeek</td>
+                            <td class="text-end">@(h.IsClosed ? "Closed" : $"{DateTime.Today.Add(h.OpenTime):h:mm tt} – {DateTime.Today.Add(h.CloseTime):h:mm tt}")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="rroms-card p-4 h-100">
+            <h2 class="h5 mb-3">Find us</h2>
+            <p class="mb-1"><i class="bi bi-geo-alt"></i> @Model.Setting?.Address</p>
+            <p class="mb-1"><i class="bi bi-telephone"></i> @Model.Setting?.Phone</p>
+            <p class="mb-3"><i class="bi bi-envelope"></i> @Model.Setting?.Email</p>
+            <a asp-page="/Reservations/Create" class="btn btn-herb">Reserve a table</a>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/menu.js" asp-append-version="true"></script>
+}

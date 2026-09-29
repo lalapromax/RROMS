@@ -1,0 +1,73 @@
+@page
+@model RROMS.Pages.Staff.DashboardModel
+@{
+    ViewData["Title"] = "Staff Dashboard";
+}
+<h1 class="h3 mb-4">Staff Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.TodayReservations.Count</div><div class="stat-label">Reservations today</div></div></div>
+    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.ActiveOrders.Count</div><div class="stat-label">Active orders</div></div></div>
+    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.PendingPayments</div><div class="stat-label">Payments pending</div></div></div>
+    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.TodayReservations.Sum(r => r.PartySize)</div><div class="stat-label">Guests expected today</div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="rroms-card p-4">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Today's reservations</h2>
+                <a asp-page="/Staff/Reservations" class="small">Manage all &rarr;</a>
+            </div>
+            @if (!Model.TodayReservations.Any())
+            {
+                <p class="text-muted-warm mb-0">No reservations today.</p>
+            }
+            else
+            {
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        @foreach (var r in Model.TodayReservations)
+                        {
+                            <tr>
+                                <td>@r.ReservationDateTime.ToString("h:mm tt")</td>
+                                <td>@r.Customer?.FullName</td>
+                                <td>Party @r.PartySize</td>
+                                <td>@(r.Table?.TableNumber ?? "-")</td>
+                                <td><span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="rroms-card p-4">
+            <div class="d-flex justify-content-between mb-3">
+                <h2 class="h5 mb-0">Active orders</h2>
+                <a asp-page="/Staff/Orders" class="small">Manage all &rarr;</a>
+            </div>
+            @if (!Model.ActiveOrders.Any())
+            {
+                <p class="text-muted-warm mb-0">No active orders.</p>
+            }
+            else
+            {
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        @foreach (var o in Model.ActiveOrders)
+                        {
+                            <tr>
+                                <td>#@o.Id</td>
+                                <td>@o.Customer?.FullName</td>
+                                <td>@o.OrderItems.Sum(i => i.Quantity) item(s)</td>
+                                <td><span class="status-badge status-@o.Status.ToString().ToLower()">@o.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
