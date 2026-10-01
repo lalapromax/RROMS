@@ -1,0 +1,96 @@
+@using RROMS.Models
+@using RROMS.Services
+@model List<Collaboration>
+@{
+    // Four or more partners scroll slowly; fewer would look sparse and repetitive when looped, so they sit still.
+    var animate = Model.Count >= 4;
+    var passes = animate ? 2 : 1;
+    var trackClass = animate ? "collab-track is-animated" : "collab-track";
+
+    // Entries with a usable social link (re-checked here, not trusted from the database) - at most three, to keep the page light.
+    var socials = new List<(Collaboration Item, SocialPost Post)>();
+    foreach (var candidate in Model)
+    {
+        if (SocialEmbed.TryParse(candidate.SocialUrl, out var parsed) && parsed != null)
+        {
+            socials.Add((candidate, parsed));
+        }
+        if (socials.Count == 3) break;
+    }
+}
+
+<h2 class="h-lg" id="collabHeading">Our friends in the trade</h2>
+<p class="collab-intro">The growers, makers and musicians we cook and pour alongside.</p>
+
+<div class="collab-marquee">
+    <ul class="@trackClass" role="list">
+        @for (var pass = 0; pass < passes; pass++)
+        {
+            var ariaHidden = pass == 1 ? "true" : null;
+            var tabValue = pass == 1 ? "-1" : null;
+            foreach (var c in Model)
+            {
+                var initial = string.IsNullOrEmpty(c.Name) ? "?" : c.Name.Substring(0, 1).ToUpperInvariant();
+                var hasSite = UrlSafety.IsHttpUrl(c.WebsiteUrl);
+                var hasImage = !string.IsNullOrEmpty(c.ImageUrl) && UrlSafety.IsAcceptableImageUrl(c.ImageUrl);
+                var statusText = c.IsOngoing ? "Ongoing" : "Past";
+                var yearText = c.Year.HasValue ? ", " + c.Year.Value : "";
+                <li class="collab-card" aria-hidden="@ariaHidden">
+                    <div class="collab-logo">
+                        <span class="collab-initial" aria-hidden="true">@initial</span>
+                        @if (hasImage)
+                        {
+                            <img src="@c.ImageUrl" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-collab-img />
+                        }
+                    </div>
+                    <div class="collab-body">
+                        @if (hasSite)
+                        {
+                            <a class="collab-name" href="@c.WebsiteUrl" target="_blank" rel="noopener noreferrer" tabindex="@tabValue">@c.Name<span class="sr-only"> (opens in a new tab)</span></a>
+                        }
+                        else
+                        {
+                            <span class="collab-name">@c.Name</span>
+                        }
+                        @if (!string.IsNullOrEmpty(c.Summary))
+                        {
+                            <span class="collab-summary">@c.Summary</span>
+                        }
+                        <span class="collab-meta"><span class="collab-dot @(c.IsOngoing ? "is-ongoing" : "")" aria-hidden="true"></span>@(statusText + yearText)</span>
+                    </div>
+                </li>
+            }
+        }
+    </ul>
+</div>
+
+@if (socials.Count > 0)
+{
+    <div class="collab-social-grid">
+        @foreach (var entry in socials)
+        {
+            var post = entry.Post;
+            var isInstagram = post.Platform == "Instagram";
+            var frameClass = isInstagram ? "collab-embed is-instagram" : "collab-embed is-youtube";
+            var playLabel = isInstagram ? "Play reel" : "Play video";
+            var openLabel = isInstagram ? "Open on Instagram" : "Open on YouTube";
+            var playAria = playLabel + " from " + entry.Item.Name;
+            <article class="collab-social">
+                <div class="@frameClass" data-embed-frame>
+                    <button type="button" class="collab-embed-play" data-embed-src="@post.EmbedUrl" data-embed-title="@playAria" aria-label="@playAria">
+                        @Ui.Icon("play", 18, 1.8)
+                        <span>@playLabel</span>
+                    </button>
+                </div>
+                <div class="collab-social-foot">
+                    <span class="collab-social-name">@entry.Item.Name</span>
+                    <a href="@post.PostUrl" target="_blank" rel="noopener noreferrer">@openLabel<span class="sr-only"> (opens in a new tab)</span></a>
+                </div>
+                <p class="collab-embed-note" hidden>
+                    This couldn't load here, which can happen if a blocker or the network stops it. You can still watch it on @post.Platform using the link above.
+                </p>
+            </article>
+        }
+    </div>
+    <p class="collab-fine">Videos load from @(string.Join(" and ", socials.Select(s => s.Post.Platform).Distinct())) only when you press play.</p>
+}
