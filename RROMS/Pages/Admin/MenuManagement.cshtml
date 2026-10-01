@@ -1,0 +1,163 @@
+@page
+@model RROMS.Pages.Admin.MenuManagementModel
+@{
+    ViewData["Title"] = "Menu Management";
+}
+<h1 class="h3 mb-4">Menu Management</h1>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#catsTab">Categories</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#itemsTab">Menu Items</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="catsTab">
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCatModal"><i class="bi bi-plus-lg"></i> Add category</button>
+        </div>
+        <div class="rroms-card p-2">
+            <table class="table rroms-table mb-0 align-middle">
+                <thead><tr><th>Order</th><th>Name</th><th>Description</th><th>Items</th><th>Active</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var c in Model.Categories)
+                    {
+                        <tr>
+                            <td>@c.DisplayOrder</td>
+                            <td>@c.Name</td>
+                            <td class="small text-muted-warm">@c.Description</td>
+                            <td>@Model.Items.Count(i => i.MenuCategoryId == c.Id)</td>
+                            <td>@(c.IsActive ? "Yes" : "No")</td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editCatModal"
+                                        data-edit-modal="editCatModal" data-fields="id,name,description,displayorder,isactive"
+                                        data-id="@c.Id" data-name="@c.Name" data-description="@c.Description" data-displayorder="@c.DisplayOrder" data-isactive="@c.IsActive.ToString().ToLower()">Edit</button>
+                                <form method="post" asp-page-handler="DeleteCategory" asp-route-id="@c.Id" class="d-inline" onsubmit="return confirm('Delete this category?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="itemsTab">
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addItemModal"><i class="bi bi-plus-lg"></i> Add menu item</button>
+        </div>
+        <div class="rroms-card p-2">
+            <table class="table rroms-table mb-0 align-middle">
+                <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Flags</th><th>Available</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var i in Model.Items)
+                    {
+                        <tr>
+                            <td>@i.Name</td>
+                            <td>@i.MenuCategory?.Name</td>
+                            <td>@i.Price.ToString("C")</td>
+                            <td>
+                                @if (i.IsVegetarian) { <span class="menu-tag veg">Veg</span> }
+                                @if (i.IsSpicy) { <span class="menu-tag spicy">Spicy</span> }
+                            </td>
+                            <td>@(i.IsAvailable ? "Yes" : "No")</td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editItemModal"
+                                        data-edit-modal="editItemModal"
+                                        data-fields="id,name,description,price,menucategoryid,imageurl,isavailable,isvegetarian,isspicy,calories"
+                                        data-id="@i.Id" data-name="@i.Name" data-description="@i.Description" data-price="@i.Price"
+                                        data-menucategoryid="@i.MenuCategoryId" data-imageurl="@i.ImageUrl"
+                                        data-isavailable="@i.IsAvailable.ToString().ToLower()" data-isvegetarian="@i.IsVegetarian.ToString().ToLower()"
+                                        data-isspicy="@i.IsSpicy.ToString().ToLower()" data-calories="@i.Calories">Edit</button>
+                                <form method="post" asp-page-handler="DeleteItem" asp-route-id="@i.Id" class="d-inline" onsubmit="return confirm('Delete this menu item?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCatModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="AddCategory">
+        <div class="modal-header"><h5 class="modal-title">Add category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-2"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
+            <div class="mb-2"><label class="form-label">Display order</label><input type="number" name="displayOrder" value="0" class="form-control" /></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+    </form>
+</div></div></div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCatModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="EditCategory">
+        <div class="modal-header"><h5 class="modal-title">Edit category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" name="id" id="editCatModal_id" />
+            <div class="mb-2"><label class="form-label">Name</label><input name="name" id="editCatModal_name" class="form-control" required /></div>
+            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" id="editCatModal_description" class="form-control"></textarea></div>
+            <div class="mb-2"><label class="form-label">Display order</label><input type="number" name="displayOrder" id="editCatModal_displayorder" class="form-control" /></div>
+            <div class="form-check"><input type="checkbox" name="isActive" value="true" id="editCatModal_isactive" class="form-check-input" /><label class="form-check-label">Active</label></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+    </form>
+</div></div></div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <form method="post" asp-page-handler="AddItem">
+        <div class="modal-header"><h5 class="modal-title">Add menu item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body row g-2">
+            <div class="col-md-6"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+            <div class="col-md-3"><label class="form-label">Price</label><input type="number" step="0.01" min="0" name="price" class="form-control" required /></div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="menuCategoryId" class="form-select" required>
+                    @foreach (var c in Model.Categories) { <option value="@c.Id">@c.Name</option> }
+                </select>
+            </div>
+            <div class="col-12"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
+            <div class="col-md-6"><label class="form-label">Image URL (optional)</label><input name="imageUrl" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label">Calories (optional)</label><input type="number" name="calories" class="form-control" /></div>
+            <div class="col-md-3 d-flex align-items-end gap-3">
+                <div class="form-check"><input type="checkbox" name="isAvailable" value="true" checked class="form-check-input" id="addItemAvail" /><label class="form-check-label" for="addItemAvail">Available</label></div>
+            </div>
+            <div class="col-md-6 form-check"><input type="checkbox" name="isVegetarian" value="true" class="form-check-input" id="addItemVeg" /><label class="form-check-label" for="addItemVeg">Vegetarian</label></div>
+            <div class="col-md-6 form-check"><input type="checkbox" name="isSpicy" value="true" class="form-check-input" id="addItemSpicy" /><label class="form-check-label" for="addItemSpicy">Spicy</label></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+    </form>
+</div></div></div>
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editItemModal"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <form method="post" asp-page-handler="EditItem">
+        <div class="modal-header"><h5 class="modal-title">Edit menu item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body row g-2">
+            <input type="hidden" name="id" id="editItemModal_id" />
+            <div class="col-md-6"><label class="form-label">Name</label><input name="name" id="editItemModal_name" class="form-control" required /></div>
+            <div class="col-md-3"><label class="form-label">Price</label><input type="number" step="0.01" min="0" name="price" id="editItemModal_price" class="form-control" required /></div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="menuCategoryId" id="editItemModal_menucategoryid" class="form-select" required>
+                    @foreach (var c in Model.Categories) { <option value="@c.Id">@c.Name</option> }
+                </select>
+            </div>
+            <div class="col-12"><label class="form-label">Description</label><textarea name="description" id="editItemModal_description" class="form-control"></textarea></div>
+            <div class="col-md-6"><label class="form-label">Image URL</label><input name="imageUrl" id="editItemModal_imageurl" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label">Calories</label><input type="number" name="calories" id="editItemModal_calories" class="form-control" /></div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check"><input type="checkbox" name="isAvailable" value="true" id="editItemModal_isavailable" class="form-check-input" /><label class="form-check-label">Available</label></div>
+            </div>
+            <div class="col-md-6 form-check"><input type="checkbox" name="isVegetarian" value="true" id="editItemModal_isvegetarian" class="form-check-input" /><label class="form-check-label">Vegetarian</label></div>
+            <div class="col-md-6 form-check"><input type="checkbox" name="isSpicy" value="true" id="editItemModal_isspicy" class="form-check-input" /><label class="form-check-label">Spicy</label></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+    </form>
+</div></div></div>

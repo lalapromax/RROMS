@@ -1,0 +1,80 @@
+@page
+@model RROMS.Pages.Menu.IndexModel
+@{
+    ViewData["Title"] = "Menu";
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <p class="rroms-section-eyebrow mb-1">Our menu</p>
+        <h1 class="h3 mb-0">Browse &amp; order</h1>
+    </div>
+    <a asp-page="/Orders/Cart" class="btn btn-primary">
+        <i class="bi bi-basket3"></i> Cart @(Model.CartItemCount > 0 ? $"({Model.CartItemCount})" : "")
+    </a>
+</div>
+
+<form method="get" class="rroms-card p-3 mb-4">
+    <div class="bento-filter-bar">
+        <div>
+            <label class="form-label small">Search</label>
+            <input type="text" name="Search" value="@Model.Search" class="form-control" placeholder="Search dishes..." />
+        </div>
+        <div>
+            <label class="form-label small">Category</label>
+            <select name="CategoryId" class="form-select" onchange="this.form.submit()">
+                <option value="">All categories</option>
+                @foreach (var c in Model.Categories)
+                {
+                    <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-check pb-2">
+            <input type="checkbox" class="form-check-input" name="VegetarianOnly" value="true" id="vegOnly" checked="@Model.VegetarianOnly" onchange="this.form.submit()" />
+            <label class="form-check-label" for="vegOnly">@RROMS.Models.DishPresentation.VegetarianEmoji Vegetarian only</label>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-outline-primary w-100">Go</button>
+        </div>
+    </div>
+</form>
+
+@if (Model.Recommended.Any())
+{
+    <section class="mb-4">
+        <p class="rroms-section-eyebrow mb-1">Just for you</p>
+        <h2 class="h5 mb-3">You might like</h2>
+        <div class="foryou-rail">
+            @foreach (var item in Model.Recommended)
+            {
+                @await Html.PartialAsync("_DishCard", new DishCardVM(item, Model.ActivePromotionDiscounts))
+            }
+        </div>
+    </section>
+    <hr class="rroms-divider" />
+}
+
+@if (!Model.Items.Any())
+{
+    <div class="rroms-card p-5 text-center text-muted-warm">No dishes match your filters right now.</div>
+}
+
+@foreach (var categoryGroup in Model.Items.GroupBy(i => i.MenuCategory!.Name))
+{
+    <section class="mb-4">
+        <h2 class="h5 mb-3">@categoryGroup.Key</h2>
+        <div class="dish-grid">
+            @foreach (var item in categoryGroup)
+            {
+                @await Html.PartialAsync("_DishCard", new DishCardVM(item, Model.ActivePromotionDiscounts))
+            }
+        </div>
+    </section>
+}
+
+@await Html.PartialAsync("_DishDetailOffcanvas")
+
+@section Scripts {
+    <script src="~/js/menu.js" asp-append-version="true"></script>
+}
