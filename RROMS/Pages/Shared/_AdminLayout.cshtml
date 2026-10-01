@@ -1,0 +1,81 @@
+@inject IChromeService Chrome
+@{
+    // Administrator shell: the cocoa bar. Seven links, the rest under "More". Administrators manage; they do not take
+    // orders or reservations (guests place them, staff run service).
+    var c = await Chrome.GetAsync();
+    var path = Context.Request.Path;
+    string Cur(params string[] prefixes) => prefixes.Any(x => path.StartsWithSegments(x)) ? "page" : null!;
+    var inMore = Cur("/Admin/Collaborations", "/Admin/Monitoring", "/Admin/Integrations", "/Admin/Settings") != null;
+    var inOverview = Cur("/Admin/Dashboard", "/Admin/Reviews") != null;
+    var homeHref = Url.Page("/Admin/Dashboard")!;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <partial name="_Head" />
+    <link rel="stylesheet" href="~/css/blm-app.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="app admin-area">
+    <a class="skip" href="#main">Skip to the page</a>
+    <partial name="_Sprite" />
+
+    <header class="app-bar">
+        <button type="button" class="burger" aria-label="Open menu" aria-controls="navSheet" data-dialog-open="navSheet">@Ui.Icon("burger", 20, 1.7)</button>
+        <partial name="_Seal" model="@(new SealVM(homeHref, "admin home", c.HasLogo))" />
+        <nav class="nav-main" aria-label="Admin">
+            <a asp-page="/Admin/Dashboard" aria-current="@(inOverview ? "page" : null)">Overview</a>
+            <a asp-page="/Admin/Team" aria-current="@Cur("/Admin/Team")">Team</a>
+            <a asp-page="/Admin/MenuManagement" aria-current="@Cur("/Admin/MenuManagement")">Menu and sets</a>
+            <a asp-page="/Admin/Venue" aria-current="@Cur("/Admin/Venue")">Floor plan</a>
+            <a asp-page="/Admin/Promotions" aria-current="@Cur("/Admin/Promotions")">Promotions</a>
+            <a asp-page="/Admin/Rewards" aria-current="@Cur("/Admin/Rewards")">Rewards@if (c.WaitingClaims > 0) { <span class="badge" title="@c.WaitingClaims reward claims waiting">@(c.WaitingClaims > 9 ? "9+" : c.WaitingClaims.ToString())</span> }</a>
+            <a asp-page="/Admin/Announcements" aria-current="@Cur("/Admin/Announcements")">Announcements</a>
+            <div class="more" data-menu>
+                <button type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu" data-menu-toggle aria-current="@(inMore ? "page" : null)">More @Ui.Icon("chev", 14, 2)</button>
+                <div class="menu-pop" id="moreMenu" role="menu" aria-label="More" hidden>
+                    <a asp-page="/Admin/Collaborations" role="menuitem" aria-current="@Cur("/Admin/Collaborations")">Collaborations</a>
+                    <a asp-page="/Admin/Monitoring" role="menuitem" aria-current="@Cur("/Admin/Monitoring")">Monitoring</a>
+                    <a asp-page="/Admin/Integrations" role="menuitem" aria-current="@Cur("/Admin/Integrations")">Integrations</a>
+                    <a asp-page="/Admin/Settings" role="menuitem" aria-current="@Cur("/Admin/Settings")">Settings</a>
+                </div>
+            </div>
+        </nav>
+        <span class="role-pill">Admin</span>
+        <partial name="_AccountMenu" />
+    </header>
+
+    <dialog class="sheet dark" id="navSheet" aria-label="Menu">
+        <div class="sheet-head">
+            <partial name="_Seal" model="@(new SealVM(homeHref, "admin home", c.HasLogo))" />
+            <button type="button" class="x-btn" aria-label="Close menu" data-dialog-close style="color:var(--batter);border-color:rgba(232,209,167,.4)">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <nav aria-label="Admin menu">
+            <a asp-page="/Admin/Dashboard" aria-current="@(inOverview ? "page" : null)">Overview</a>
+            <a asp-page="/Admin/Team" aria-current="@Cur("/Admin/Team")">Team</a>
+            <a asp-page="/Admin/MenuManagement" aria-current="@Cur("/Admin/MenuManagement")">Menu and sets</a>
+            <a asp-page="/Admin/Venue" aria-current="@Cur("/Admin/Venue")">Floor plan</a>
+            <a asp-page="/Admin/Promotions" aria-current="@Cur("/Admin/Promotions")">Promotions</a>
+            <a asp-page="/Admin/Rewards" aria-current="@Cur("/Admin/Rewards")">Rewards@if (c.WaitingClaims > 0) { <span class="badge-n">@c.WaitingClaims</span> }</a>
+            <a asp-page="/Admin/Announcements" aria-current="@Cur("/Admin/Announcements")">Announcements</a>
+            <span class="sheet-label">More</span>
+            <a asp-page="/Admin/Collaborations" aria-current="@Cur("/Admin/Collaborations")">Collaborations</a>
+            <a asp-page="/Admin/Monitoring" aria-current="@Cur("/Admin/Monitoring")">Monitoring</a>
+            <a asp-page="/Admin/Integrations" aria-current="@Cur("/Admin/Integrations")">Integrations</a>
+            <a asp-page="/Admin/Settings" aria-current="@Cur("/Admin/Settings")">Settings</a>
+            <hr />
+            <a asp-page="/Account/Profile">Your profile</a>
+            <a asp-page="/Notifications/Index">Notifications@if (c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+            <form method="post" asp-page="/Account/Logout"><button type="submit">Sign out</button></form>
+        </nav>
+    </dialog>
+
+    <main id="main" tabindex="-1">
+        <partial name="_Flash" />
+        @RenderBody()
+    </main>
+
+    <script src="~/js/blm.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
