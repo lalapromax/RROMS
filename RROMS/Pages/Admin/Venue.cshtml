@@ -1,0 +1,137 @@
+@page
+@model RROMS.Pages.Admin.VenueModel
+@{
+    ViewData["Title"] = "Dining Areas & Tables";
+}
+<h1 class="h3 mb-4">Dining Areas &amp; Tables</h1>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#areasTab">Dining Areas</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tablesTab">Tables</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="areasTab">
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAreaModal"><i class="bi bi-plus-lg"></i> Add dining area</button>
+        </div>
+        <div class="rroms-card p-2">
+            <table class="table rroms-table mb-0 align-middle">
+                <thead><tr><th>Name</th><th>Description</th><th>Tables</th><th>Active</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.DiningAreas)
+                    {
+                        <tr>
+                            <td>@a.Name</td>
+                            <td class="small text-muted-warm">@a.Description</td>
+                            <td>@Model.Tables.Count(t => t.DiningAreaId == a.Id)</td>
+                            <td>@(a.IsActive ? "Yes" : "No")</td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editAreaModal"
+                                        data-edit-modal="editAreaModal" data-fields="id,name,description,isActive"
+                                        data-id="@a.Id" data-name="@a.Name" data-description="@a.Description" data-isactive="@a.IsActive.ToString().ToLower()">Edit</button>
+                                <form method="post" asp-page-handler="DeleteArea" asp-route-id="@a.Id" class="d-inline" onsubmit="return confirm('Delete this dining area?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="tablesTab">
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTableModal"><i class="bi bi-plus-lg"></i> Add table</button>
+        </div>
+        <div class="rroms-card p-2">
+            <table class="table rroms-table mb-0 align-middle">
+                <thead><tr><th>Table #</th><th>Dining area</th><th>Capacity</th><th>Active</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var t in Model.Tables)
+                    {
+                        <tr>
+                            <td>@t.TableNumber</td>
+                            <td>@t.DiningArea?.Name</td>
+                            <td>@t.Capacity</td>
+                            <td>@(t.IsActive ? "Yes" : "No")</td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTableModal"
+                                        data-edit-modal="editTableModal" data-fields="id,tablenumber,diningareaid,capacity,isactive"
+                                        data-id="@t.Id" data-tablenumber="@t.TableNumber" data-diningareaid="@t.DiningAreaId" data-capacity="@t.Capacity" data-isactive="@t.IsActive.ToString().ToLower()">Edit</button>
+                                <form method="post" asp-page-handler="DeleteTable" asp-route-id="@t.Id" class="d-inline" onsubmit="return confirm('Delete this table?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Area Modal -->
+<div class="modal fade" id="addAreaModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="AddArea">
+        <div class="modal-header"><h5 class="modal-title">Add dining area</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-2"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+    </form>
+</div></div></div>
+
+<!-- Edit Area Modal -->
+<div class="modal fade" id="editAreaModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="EditArea">
+        <div class="modal-header"><h5 class="modal-title">Edit dining area</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" name="id" id="editAreaModal_id" />
+            <div class="mb-2"><label class="form-label">Name</label><input name="name" id="editAreaModal_name" class="form-control" required /></div>
+            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" id="editAreaModal_description" class="form-control"></textarea></div>
+            <div class="form-check"><input type="checkbox" name="isActive" value="true" id="editAreaModal_isActive" class="form-check-input" /><label class="form-check-label" for="editAreaModal_isActive">Active</label></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+    </form>
+</div></div></div>
+
+<!-- Add Table Modal -->
+<div class="modal fade" id="addTableModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="AddTable">
+        <div class="modal-header"><h5 class="modal-title">Add table</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-2"><label class="form-label">Table number</label><input name="tableNumber" class="form-control" required /></div>
+            <div class="mb-2">
+                <label class="form-label">Dining area</label>
+                <select name="diningAreaId" class="form-select" required>
+                    @foreach (var a in Model.DiningAreas) { <option value="@a.Id">@a.Name</option> }
+                </select>
+            </div>
+            <div class="mb-2"><label class="form-label">Capacity</label><input type="number" name="capacity" min="1" max="30" value="2" class="form-control" required /></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+    </form>
+</div></div></div>
+
+<!-- Edit Table Modal -->
+<div class="modal fade" id="editTableModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="EditTable">
+        <div class="modal-header"><h5 class="modal-title">Edit table</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" name="id" id="editTableModal_id" />
+            <div class="mb-2"><label class="form-label">Table number</label><input name="tableNumber" id="editTableModal_tablenumber" class="form-control" required /></div>
+            <div class="mb-2">
+                <label class="form-label">Dining area</label>
+                <select name="diningAreaId" id="editTableModal_diningareaid" class="form-select" required>
+                    @foreach (var a in Model.DiningAreas) { <option value="@a.Id">@a.Name</option> }
+                </select>
+            </div>
+            <div class="mb-2"><label class="form-label">Capacity</label><input type="number" name="capacity" id="editTableModal_capacity" min="1" max="30" class="form-control" required /></div>
+            <div class="form-check"><input type="checkbox" name="isActive" value="true" id="editTableModal_isactive" class="form-check-input" /><label class="form-check-label">Active</label></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+    </form>
+</div></div></div>
