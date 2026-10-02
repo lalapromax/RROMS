@@ -1,0 +1,61 @@
+@page
+@model RROMS.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "Users & Roles";
+}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="h3 mb-0">Users &amp; Roles</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal"><i class="bi bi-plus-lg"></i> Create staff/admin account</button>
+</div>
+
+<div class="rroms-card p-2">
+    <table class="table rroms-table mb-0 align-middle">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var u in Model.Users)
+            {
+                <tr>
+                    <td>@u.FullName</td>
+                    <td>@u.Email</td>
+                    <td>
+                        <form method="post" asp-page-handler="ChangeRole" class="d-flex gap-1">
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <select name="newRole" class="form-select form-select-sm" style="width:130px;" onchange="this.form.submit()">
+                                <option value="Customer" selected="@(u.Role == "Customer")">Customer</option>
+                                <option value="Staff" selected="@(u.Role == "Staff")">Staff</option>
+                                <option value="Administrator" selected="@(u.Role == "Administrator")">Administrator</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td class="small">@u.DateJoined.ToString("dd MMM yyyy")</td>
+                    <td><span class="status-badge @(u.IsActive ? "status-confirmed" : "status-cancelled")">@(u.IsActive ? "Active" : "Deactivated")</span></td>
+                    <td>
+                        <form method="post" asp-page-handler="ToggleActive" asp-route-id="@u.Id">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">@(u.IsActive ? "Deactivate" : "Reactivate")</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Staff/Admin Modal -->
+<div class="modal fade" id="addStaffModal"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" asp-page-handler="CreateStaff">
+        <div class="modal-header"><h5 class="modal-title">Create staff/admin account</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-2"><label class="form-label">Full name</label><input name="fullName" class="form-control" required /></div>
+            <div class="mb-2"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required /></div>
+            <div class="mb-2"><label class="form-label">Temporary password</label><input type="text" name="password" class="form-control" required minlength="8" /></div>
+            <div class="mb-2">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-select">
+                    <option value="Staff">Staff</option>
+                    <option value="Administrator">Administrator</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary">Create account</button></div>
+    </form>
+</div></div></div>
