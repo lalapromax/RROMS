@@ -11,6 +11,7 @@ namespace RROMS.Data
         }
 
         public DbSet<DiningArea> DiningAreas => Set<DiningArea>();
+        public DbSet<RestaurantSetting> RestaurantSettings => Set<RestaurantSetting>();
         public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
 
