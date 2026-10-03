@@ -1,0 +1,88 @@
+@page
+@model RROMS.Pages.Reservations.CreateModel
+@{
+    ViewData["Title"] = "New Reservation";
+}
+<h1 class="h3 mb-4">Book a table</h1>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="rroms-card p-4">
+            <form method="post" asp-page-handler="CheckAvailability">
+                <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Form.ReservationDate" class="form-label"></label>
+                    <input asp-for="Form.ReservationDate" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Form.ReservationTime" class="form-label"></label>
+                    <input asp-for="Form.ReservationTime" type="time" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Form.PartySize" class="form-label"></label>
+                    <input asp-for="Form.PartySize" type="number" min="1" max="30" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Form.DiningAreaId" class="form-label">Preferred area (optional)</label>
+                    <select asp-for="Form.DiningAreaId" class="form-select">
+                        <option value="">No preference</option>
+                        @foreach (var area in Model.DiningAreas)
+                        {
+                            <option value="@area.Id">@area.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label asp-for="Form.SpecialRequests" class="form-label"></label>
+                    <textarea asp-for="Form.SpecialRequests" class="form-control" rows="2" placeholder="Allergies, occasion, seating preference..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-outline-primary w-100">Check availability</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        @if (Model.HasSearched)
+        {
+            <div class="rroms-card p-4">
+                <h2 class="h5 mb-3">Available tables</h2>
+                @if (Model.AvailableTables.Any())
+                {
+                    <form method="post" asp-page-handler="Book">
+                        <input type="hidden" asp-for="Form.ReservationDate" />
+                        <input type="hidden" asp-for="Form.ReservationTime" />
+                        <input type="hidden" asp-for="Form.PartySize" />
+                        <input type="hidden" asp-for="Form.DiningAreaId" />
+                        <input type="hidden" asp-for="Form.SpecialRequests" />
+
+                        <div class="list-group mb-3">
+                            @foreach (var table in Model.AvailableTables)
+                            {
+                                <label class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <input type="radio" asp-for="Form.SelectedTableId" value="@table.Id" class="form-check-input me-2" checked="@(table == Model.AvailableTables.First())" />
+                                        Table @table.TableNumber &middot; @table.DiningArea?.Name
+                                    </span>
+                                    <span class="text-muted-warm small">Seats up to @table.Capacity</span>
+                                </label>
+                            }
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Confirm reservation</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="text-muted-warm mb-0">No tables free for that slot - try a different time or party size.</p>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="rroms-card p-4 text-center text-muted-warm">
+                Choose a date, time and party size, then check availability to see open tables.
+            </div>
+        }
+    </div>
+</div>
