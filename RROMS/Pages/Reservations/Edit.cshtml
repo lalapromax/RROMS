@@ -1,0 +1,74 @@
+@page "{id:int}"
+@model RROMS.Pages.Reservations.EditModel
+@{
+    ViewData["Title"] = "Modify Reservation";
+}
+<h1 class="h3 mb-4">Modify reservation</h1>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="rroms-card p-4">
+            <form method="post" asp-page-handler="CheckAvailability" asp-route-id="@Model.Reservation?.Id">
+                <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+                <input type="hidden" asp-for="Form.ReservationId" />
+
+                <div class="mb-3">
+                    <label asp-for="Form.ReservationDate" class="form-label"></label>
+                    <input asp-for="Form.ReservationDate" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Form.ReservationTime" class="form-label"></label>
+                    <input asp-for="Form.ReservationTime" type="time" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Form.PartySize" class="form-label"></label>
+                    <input asp-for="Form.PartySize" type="number" min="1" max="30" class="form-control" />
+                </div>
+                <div class="mb-4">
+                    <label asp-for="Form.SpecialRequests" class="form-label"></label>
+                    <textarea asp-for="Form.SpecialRequests" class="form-control" rows="2"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-outline-primary w-100">Check availability</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        @if (Model.HasSearched)
+        {
+            <div class="rroms-card p-4">
+                <h2 class="h5 mb-3">Available tables for the new slot</h2>
+                @if (Model.AvailableTables.Any())
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var table in Model.AvailableTables)
+                        {
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Table @table.TableNumber &middot; @table.DiningArea?.Name</span>
+                                <span class="text-muted-warm small">Seats up to @table.Capacity</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted-warm">No tables free for that slot - try a different time.</p>
+                }
+                <form method="post" asp-page-handler="Save" asp-route-id="@Model.Reservation?.Id">
+                    <input type="hidden" asp-for="Form.ReservationDate" />
+                    <input type="hidden" asp-for="Form.ReservationTime" />
+                    <input type="hidden" asp-for="Form.PartySize" />
+                    <input type="hidden" asp-for="Form.SpecialRequests" />
+                    <button type="submit" class="btn btn-primary w-100" @(Model.AvailableTables.Any() ? "" : "disabled")>Save changes</button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <div class="rroms-card p-4 text-center text-muted-warm">
+                Adjust the details on the left, then check availability before saving.
+            </div>
+        }
+    </div>
+</div>
