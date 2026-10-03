@@ -1,0 +1,265 @@
+@page
+@model RROMS.Pages.Staff.ReservationsModel
+@using RROMS.Models
+@{
+    ViewData["Title"] = "Reservations";
+    var day = Model.Day;
+    var keep = new Dictionary<string, string?>();
+    if (day != DateTime.Today) keep["date"] = day.ToString("yyyy-MM-dd");
+    if (!string.IsNullOrEmpty(Model.Status)) keep["status"] = Model.Status;
+    if (!string.IsNullOrWhiteSpace(Model.Q)) keep["q"] = Model.Q;
+    if (Model.TableId.HasValue) keep["tableId"] = Model.TableId.ToString();
+
+    string Pill(ReservationStatus s) => s switch
+    {
+        ReservationStatus.Completed => "Finished", ReservationStatus.NoShow => "No-show", _ => s.ToString()
+    };
+    string Css(ReservationStatus s) => "st-" + s.ToString().ToLowerInvariant();
+    var newErr = ViewData.ModelState["New"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var editErr = ViewData.ModelState["Edit"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var times = new List<string>();
+    for (var m = 11 * 60; m <= 23 * 60; m += 30) times.Add($"{m / 60:00}:{m % 60:00}");
+    var tableFilter = Model.TableId.HasValue ? Model.AllTables.FirstOrDefault(t => t.Id == Model.TableId.Value)?.TableNumber : null;
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Reservations</h1>
+            <p>Seat guests, confirm requests and change tables.</p>
+        </div>
+        <div class="row-acts">
+            <button type="button" class="btn btn-line" data-dialog-open="newDlg" data-fields="seat" data-seat="true">Add a walk-in</button>
+            <button type="button" class="btn btn-wine" data-dialog-open="newDlg" data-fields="seat" data-seat="false">New reservation</button>
+        </div>
+    </div>
+
+    <form method="get" class="filter" data-autosubmit role="search" aria-label="Filter the day">
+        <div class="field">
+            <label for="fd">Date</label>
+            <input class="in" id="fd" name="date" type="date" value="@day.ToString("yyyy-MM-dd")" style="width:170px" />
+        </div>
+        <div class="field">
+            <label for="fs">Status</label>
+            <select class="in" id="fs" name="status" style="width:170px">
+                @foreach (var (v, l) in ReservationsModel.StatusChoices)
+                {
+                    <option value="@v" selected="@(string.Equals(Model.Status ?? "", v, StringComparison.OrdinalIgnoreCase))">@l</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="fq">Search</label>
+            <input class="in" id="fq" name="q" type="search" value="@Model.Q" placeholder="Guest name, phone or table" style="width:260px" />
+        </div>
+        @if (Model.TableId.HasValue) { <input type="hidden" name="tableId" value="@Model.TableId" /> }
+        <button type="submit" class="btn btn-line btn-sm2" data-no-js-only style="min-height:44px">Show</button>
+        <span class="sp"></span>
+        <span class="muted" role="status">@Model.Rows.Count @(Model.Rows.Count == 1 ? "reservation" : "reservations") · @Model.GuestCount @(Model.GuestCount == 1 ? "guest" : "guests")</span>
+    </form>
+    @if (tableFilter != null)
+    {
+        <p class="tbl-filter">Showing table <b>@tableFilter</b> only. <a class="link" asp-page="/Staff/Reservations" asp-route-date="@keep.GetValueOrDefault("date")" asp-route-status="@Model.Status" asp-route-q="@Model.Q">Show every table</a></p>
+    }
+
+    <section class="panel" aria-label="Reservations on @day.ToString("dddd d MMMM")">
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="empty-card" style="box-shadow:none;border:0">
+                <h2>@(string.IsNullOrEmpty(Model.Status) && string.IsNullOrWhiteSpace(Model.Q) && !Model.TableId.HasValue ? "A quiet day so far" : "Nothing matches")</h2>
+                <p>@(string.IsNullOrEmpty(Model.Status) && string.IsNullOrWhiteSpace(Model.Q) && !Model.TableId.HasValue ? "No one is booked for " + day.ToString("dddd d MMMM") + ". A guest who walks in can be added above." : "Try a different status, or clear the search.")</p>
+            </div>
+        }
+        else
+        {
+            <div class="t-scroll">
+                <table class="t t-cards">
+                    <thead>
+                        <tr>
+                            <th scope="col">Time</th>
+                            <th scope="col">Guest</th>
+                            <th scope="col" class="n">Guests</th>
+                            <th scope="col">Table</th>
+                            <th scope="col">Allergies and diet</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            var r = row.R;
+                            var open = r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed or ReservationStatus.Seated;
+                            <tr>
+                                <td data-l="Time"><b>@r.ReservationDateTime.ToString("HH:mm")</b></td>
+                                <td data-l="" class="c-guest">
+                                    <div class="who">
+                                        <b>@row.Name</b>
+                                        @if (!string.IsNullOrEmpty(row.Detail)) { <small>@row.Detail</small> }
+                                        @if (!string.IsNullOrWhiteSpace(row.Phone)) { <small><a class="link" href="tel:@(new string(row.Phone.Where(ch => char.IsDigit(ch) || ch == '+').ToArray()))">@row.Phone</a></small> }
+                                    </div>
+                                </td>
+                                <td class="n" data-l="Guests">@r.PartySize</td>
+                                <td data-l="Table">
+                                    @if (open && row.TableChoices.Count > 1)
+                                    {
+                                        <form method="post" asp-page-handler="Move" asp-all-route-data="keep" class="inl">
+                                            <input type="hidden" name="id" value="@r.Id" />
+                                            <select class="in tbl-pick" name="tableId" aria-label="Table for @row.Name" data-autosubmit>
+                                                @foreach (var t in row.TableChoices)
+                                                {
+                                                    <option value="@t.Id" selected="@(t.Id == r.TableId)">@t.TableNumber (@t.Capacity)</option>
+                                                }
+                                            </select>
+                                        </form>
+                                    }
+                                    else { <span>@(r.Table?.TableNumber ?? "None")</span> }
+                                </td>
+                                <td data-l="Allergies">
+                                    @if (row.Allergies.Count > 0)
+                                    {
+                                        <span class="flag">@Ui.Icon("warn", 13, 2.2) @string.Join(", ", row.Allergies)</span>
+                                    }
+                                    @foreach (var n in row.Needs) { <span class="flag soft">@n</span> }
+                                    @if (row.Allergies.Count == 0 && row.Needs.Count == 0) { <span class="muted">None</span> }
+                                </td>
+                                <td data-l="Status"><span class="st @Css(r.Status)">@Pill(r.Status)</span></td>
+                                <td data-l="" class="c-acts">
+                                    <div class="row-acts">
+                                        @switch (r.Status)
+                                        {
+                                            case ReservationStatus.Pending:
+                                                <form method="post" asp-page-handler="Confirm" asp-all-route-data="keep" class="inl"><input type="hidden" name="id" value="@r.Id" /><button class="btn btn-wine btn-sm2">Confirm</button></form>
+                                                <button type="button" class="btn btn-danger btn-sm2" data-dialog-open="declineDlg" data-fields="id,name,title,action" data-id="@r.Id" data-name="@row.Name, @r.ReservationDateTime.ToString("HH:mm")" data-title="Decline this request" data-action="Decline">Decline</button>
+                                                break;
+                                            case ReservationStatus.Confirmed:
+                                                <form method="post" asp-page-handler="Seat" asp-all-route-data="keep" class="inl"><input type="hidden" name="id" value="@r.Id" /><button class="btn @(row.Due ? "btn-wine" : "btn-line") btn-sm2">@(row.Due ? "Seat" : "Seat early")</button></form>
+                                                <button type="button" class="btn btn-line btn-sm2" data-dialog-open="editDlg" data-fields="id,name,date,time,party,notes" data-id="@r.Id" data-name="@row.Name" data-date="@r.ReservationDateTime.ToString("yyyy-MM-dd")" data-time="@r.ReservationDateTime.ToString("HH:mm")" data-party="@r.PartySize" data-notes="@r.SpecialRequests">Edit</button>
+                                                break;
+                                            case ReservationStatus.Seated:
+                                                <form method="post" asp-page-handler="Finish" asp-all-route-data="keep" class="inl"><input type="hidden" name="id" value="@r.Id" /><button class="btn btn-line btn-sm2">Finished</button></form>
+                                                break;
+                                            case ReservationStatus.Cancelled:
+                                            case ReservationStatus.NoShow:
+                                                if (r.ReservationEndDateTime > DateTime.Now)
+                                                {
+                                                    <form method="post" asp-page-handler="Reopen" asp-all-route-data="keep" class="inl"><input type="hidden" name="id" value="@r.Id" /><button class="btn btn-line btn-sm2">Reopen</button></form>
+                                                }
+                                                break;
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@* ---- a guest who has no account, or is on the phone ---- *@
+<dialog class="modal" id="newDlg" style="--w:560px" aria-labelledby="newT" data-open-on-load="@(Model.OpenNew ? "true" : null)">
+    <form method="post" asp-page-handler="Create" asp-all-route-data="keep" autocomplete="off" class="form">
+        <div class="modal-head">
+            <h2 id="newT">New reservation</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            @if (newErr != null) { <div class="form-alert" role="alert">@Ui.Icon("warn", 18, 2)<div><p>@newErr</p></div></div> }
+            <p class="muted" style="margin-bottom:14px">For a guest who has no account, or who is on the phone. They are noted by name and number only.</p>
+            <div class="f-row f-2">
+                <div class="field"><label for="nn">Guest name</label><input class="in" id="nn" name="New.GuestName" value="@Model.New.GuestName" maxlength="80" required /></div>
+                <div class="field"><label for="np">Phone</label><input class="in" id="np" name="New.Phone" value="@Model.New.Phone" maxlength="30" inputmode="tel" /></div>
+            </div>
+            <label class="ckb" style="margin:6px 0 14px"><input type="checkbox" id="newDlg_seat" name="New.SeatNow" value="true" checked="@Model.New.SeatNow" data-seat-toggle /><i>@Ui.Icon("check", 13, 3)</i> They have arrived. Seat them now.</label>
+            <div class="f-row f-2" data-when>
+                <div class="field"><label for="nd">Day</label><input class="in" id="nd" type="date" name="New.Date" value="@((Model.New.Date ?? DateTime.Today).ToString("yyyy-MM-dd"))" /></div>
+                <div class="field"><label for="nt">Time</label>
+                    <select class="in" id="nt" name="New.Time">
+                        @foreach (var t in times) { <option value="@t" selected="@(Model.New.Time == t)">@t</option> }
+                    </select>
+                </div>
+            </div>
+            <div class="f-row f-2">
+                <div class="field"><label for="ng">Guests</label><input class="in" id="ng" type="number" min="1" max="30" name="New.PartySize" value="@Model.New.PartySize" /></div>
+                <div class="field"><label for="ntb">Table</label>
+                    <select class="in" id="ntb" name="New.TableId">
+                        <option value="">Any free table</option>
+                        @foreach (var g in Model.AllTables.GroupBy(t => t.DiningArea?.Name ?? "Tables"))
+                        {
+                            <optgroup label="@g.Key">
+                                @foreach (var t in g) { <option value="@t.Id" selected="@(Model.New.TableId == t.Id)">@t.TableNumber (seats @t.Capacity)</option> }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="field"><label for="no">Occasion</label><input class="in" id="no" name="New.Occasion" value="@Model.New.Occasion" maxlength="40" placeholder="Birthday, anniversary, business" /></div>
+            <div class="field"><label for="nz">Notes for the kitchen and the floor</label><textarea class="in" id="nz" name="New.Notes" rows="3" maxlength="400" placeholder="Allergies, a high chair, a quiet corner">@Model.New.Notes</textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Close</button>
+            <button type="submit" class="btn btn-wine">Add to the day</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- change the day, time, party or notes of a booking ---- *@
+<dialog class="modal" id="editDlg" style="--w:520px" aria-labelledby="editT" data-open-on-load="@(Model.OpenEdit ? "true" : null)">
+    <form method="post" asp-page-handler="Edit" asp-all-route-data="keep" autocomplete="off" class="form">
+        <input type="hidden" id="editDlg_id" name="Edit.Id" value="@Model.Edit.Id" />
+        <div class="modal-head">
+            <div>
+                <h2 id="editT">Change this booking</h2>
+                <p class="muted" id="editDlg_name" style="margin-top:2px">@Model.Edit.GuestName</p>
+            </div>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            @if (editErr != null) { <div class="form-alert" role="alert">@Ui.Icon("warn", 18, 2)<div><p>@editErr</p></div></div> }
+            <div class="f-row f-2">
+                <div class="field"><label for="editDlg_date">Day</label><input class="in" id="editDlg_date" type="date" name="Edit.Date" value="@(Model.Edit.Date?.ToString("yyyy-MM-dd"))" /></div>
+                <div class="field"><label for="editDlg_time">Time</label>
+                    <select class="in" id="editDlg_time" name="Edit.Time">
+                        @foreach (var t in times) { <option value="@t" selected="@(Model.Edit.Time == t)">@t</option> }
+                    </select>
+                </div>
+            </div>
+            <div class="field"><label for="editDlg_party">Guests</label><input class="in" id="editDlg_party" type="number" min="1" max="30" name="Edit.PartySize" value="@Model.Edit.PartySize" style="width:120px" /></div>
+            <div class="field"><label for="editDlg_notes">Notes</label><textarea class="in" id="editDlg_notes" name="Edit.Notes" rows="3" maxlength="400">@Model.Edit.Notes</textarea></div>
+            <p class="muted" style="font-size:13.5px">The guest is told about the change. The table stays the same if it is free at the new time, otherwise another one is chosen.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-danger" data-from-edit="declineDlg">Cancel the booking</button>
+            <span class="sp"></span>
+            <button type="button" class="btn btn-line" data-dialog-close>Close</button>
+            <button type="submit" class="btn btn-wine">Save changes</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- say no, or cancel, and (optionally) why. The guest is told. ---- *@
+<dialog class="modal" id="declineDlg" style="--w:480px" aria-labelledby="decT">
+    <form method="post" asp-page-handler="Decline" asp-all-route-data="keep" class="form">
+        <input type="hidden" id="declineDlg_id" name="id" />
+        <div class="modal-head">
+            <div>
+                <h2 id="decT" data-dialog-title>Decline this request</h2>
+                <p class="muted" id="declineDlg_name" style="margin-top:2px"></p>
+            </div>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <div class="field"><label for="declineDlg_reason">A line for the guest (optional)</label><textarea class="in" id="declineDlg_reason" name="reason" rows="3" maxlength="300" placeholder="For example: we are full that evening. Would the next day suit you?"></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-danger" id="declineDlg_action">Decline</button>
+        </div>
+    </form>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/staff-reservations.js" asp-append-version="true"></script>
+}
