@@ -1,43 +1,73 @@
 @page
 @model RROMS.Pages.Account.LoginModel
+@inject IWebHostEnvironment Env
 @{
-    ViewData["Title"] = "Log in";
+    ViewData["Title"] = "Sign in";
+    var googleVm = new GoogleSignInVM(Model.GoogleClientId, Url.Page("/Account/Login", "Google")!, Model.ReturnUrl, "signin_with");
+    var formErrors = ViewData.ModelState.TryGetValue(string.Empty, out var e) ? e.Errors.Select(x => x.ErrorMessage).ToList() : new List<string>();
 }
-<div class="rroms-card auth-card p-4 p-md-5">
-    <h1 class="h3 mb-1">Welcome back</h1>
-    <p class="text-muted-warm mb-4">Log in to manage your reservations and orders.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Login.css" asp-append-version="true" />
+}
 
-    <form method="post">
-        <input type="hidden" asp-for="ReturnUrl" />
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-        <div class="mb-3">
-            <label asp-for="Input.Email" class="form-label"></label>
-            <input asp-for="Input.Email" class="form-control" autofocus />
-            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+<div class="auth">
+    <aside class="auth-art">
+        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+        @Ui.Plate("d-house", "wine", "arch", "arch")
+        <h2>Your table is waiting.</h2>
+        <p>Sign in to book, order ahead and collect your points.</p>
+    </aside>
+    <section class="auth-form">
+        <div class="auth-card">
+            <h1>Sign in</h1>
+            <p class="lead-it">Good to see you again.</p>
+            @if (formErrors.Count > 0)
+            {
+                <div class="banner" role="alert">
+                    @Ui.Icon("warn", 20, 1.6)
+                    <div>
+                        <b>We could not sign you in.</b><br />
+                        @string.Join(" ", formErrors)
+                    </div>
+                </div>
+            }
+            <form method="post" class="form" novalidate>
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div class="field">
+                    <label asp-for="Input.Email">Email</label>
+                    <input asp-for="Input.Email" class="in@(Ui.Err(ViewData.ModelState, "Input.Email"))" type="email" autocomplete="username" autofocus />
+                    <span asp-validation-for="Input.Email" class="err-msg"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Input.Password">Password</label>
+                    <div class="pw">
+                        <input asp-for="Input.Password" class="in@(Ui.Err(ViewData.ModelState, "Input.Password"))" autocomplete="current-password" />
+                        <button type="button" class="show" data-toggle-password="Input_Password" aria-pressed="false">Show</button>
+                    </div>
+                    <span asp-validation-for="Input.Password" class="err-msg"></span>
+                </div>
+                <div class="row-sp">
+                    <label class="ckb"><input asp-for="Input.RememberMe" type="checkbox" /><i>@Ui.Icon("check", 13, 3)</i> Keep me signed in on this device</label>
+                    <a class="link" asp-page="/Account/ForgotPassword">Forgot your password?</a>
+                </div>
+                <button type="submit" class="btn btn-wine btn-lg" style="width:100%">Sign in</button>
+            </form>
+            <div class="or">or</div>
+            <partial name="_GoogleSignIn" model="googleVm" />
+            <p class="alt">New to La Mélancolie? <a class="link" asp-page="/Account/Register" asp-route-returnUrl="@Model.ReturnUrl">Create an account</a></p>
+            @if (Env.IsDevelopment())
+            {
+                <details class="demo-accounts">
+                    <summary>Demo accounts (development only)</summary>
+                    <ul>
+                        <li>Administrator: admin@rroms.local / Admin@12345</li>
+                        <li>Staff: staff@rroms.local / Staff@12345</li>
+                        <li>Customer: customer@rroms.local / Customer@12345</li>
+                    </ul>
+                </details>
+            }
         </div>
-        <div class="mb-3">
-            <label asp-for="Input.Password" class="form-label"></label>
-            <input asp-for="Input.Password" class="form-control" />
-            <span asp-validation-for="Input.Password" class="text-danger small"></span>
-        </div>
-        <div class="form-check mb-4">
-            <input asp-for="Input.RememberMe" class="form-check-input" />
-            <label asp-for="Input.RememberMe" class="form-check-label"></label>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100">Log in</button>
-    </form>
-
-    <p class="text-center mt-4 mb-0 small">New here? <a asp-page="/Account/Register">Create an account</a></p>
-
-    <div class="rroms-divider"></div>
-    <p class="small text-muted-warm mb-1"><strong>Demo accounts</strong> (seeded automatically):</p>
-    <ul class="small text-muted-warm mb-0">
-        <li>Administrator: admin@rroms.local / Admin@12345</li>
-        <li>Staff: staff@rroms.local / Staff@12345</li>
-        <li>Customer: customer@rroms.local / Customer@12345</li>
-    </ul>
+    </section>
 </div>
 
 @section Scripts {
