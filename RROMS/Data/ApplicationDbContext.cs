@@ -32,6 +32,63 @@ namespace RROMS.Data
                 .HasForeignKey(m => m.MenuCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ---- Reservation ----
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Customer)
+                .WithMany(u => u.Reservations)
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Table)
+                .WithMany(t => t.Reservations)
+                .HasForeignKey(r => r.TableId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Reservation>()
+                .HasOne(r => r.ConfirmedByStaff)
+                .WithMany()
+                .HasForeignKey(r => r.ConfirmedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- Order ----
+            builder.Entity<Order>()
+                .HasOne(o => o.Customer)
+                .WithMany(u => u.Orders)
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.Reservation)
+                .WithMany(r => r.Orders)
+                .HasForeignKey(o => o.ReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.Table)
+                .WithMany(t => t.Orders)
+                .HasForeignKey(o => o.TableId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.HandledByStaff)
+                .WithMany()
+                .HasForeignKey(o => o.HandledByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- OrderItem ----
+            builder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<OrderItem>()
+                .HasOne(oi => oi.MenuItem)
+                .WithMany(m => m.OrderItems)
+                .HasForeignKey(oi => oi.MenuItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }
