@@ -1,0 +1,27 @@
+@page
+@model RROMS.Pages.Account.ConfirmEmailModel
+@{
+    ViewData["Title"] = Model.Done ? "Email confirmed" : "Email not confirmed";
+}
+<section class="wrap page-top">
+    <div>
+        <h1>@(Model.Done ? "Email confirmed" : "We could not confirm that")</h1>
+        <p class="lead-it">@(Model.Done ? "Use it to sign in from now on." : "Nothing has changed on your account.")</p>
+    </div>
+</section>
+<div class="wrap main">
+    <div class="empty-card">
+        @if (Model.Done)
+        {
+            <h2>@Model.NewEmail</h2>
+            <p>Your sign-in email is updated. Please sign in again with the new address.</p>
+            <a class="btn btn-wine" asp-page="/Account/Login">Sign in</a>
+        }
+        else
+        {
+            <h2>This link did not work</h2>
+            <p>@Model.Message</p>
+            <a class="btn btn-wine" asp-page="/Account/Profile">Go to my profile</a>
+        }
+    </div>
+</div>
