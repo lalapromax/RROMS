@@ -11,6 +11,7 @@ namespace RROMS.Data
         }
 
         public DbSet<DiningArea> DiningAreas => Set<DiningArea>();
+        public DbSet<OperatingHours> OperatingHours => Set<OperatingHours>();
         public DbSet<RestaurantSetting> RestaurantSettings => Set<RestaurantSetting>();
         public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
@@ -88,7 +89,7 @@ namespace RROMS.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ---- Collaboration ----
-
+            
             builder.Entity<Collaboration>().HasIndex(c => new { c.IsPublished, c.DisplayOrder });
         }
     }
