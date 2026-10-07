@@ -1,0 +1,29 @@
+@model ErrorCardVM
+@* The card from the design: a house plate, a short code, plain words, a way forward. Used by the Error page and by Access denied. *@
+@{
+    var surface = Model.Kind switch { "missing" => "linen", "denied" => "olive", _ => "wine" };
+}
+<article class="ec" aria-labelledby="ecTitle">
+    @Ui.Plate("d-house", surface, "round")
+    <span class="code">@Model.Code</span>
+    <h1 id="ecTitle">@Model.Title</h1>
+    <p>@Model.Text</p>
+    <div class="acts">
+        @foreach (var a in Model.Acts)
+        {
+            var cls = "btn btn-sm " + (a.Primary ? "btn-wine" : "btn-line");
+            if (a.SignOutFirst)
+            {
+                <form method="post" asp-page="/Account/Logout" asp-route-returnUrl="@a.Href"><button type="submit" class="@cls">@a.Text</button></form>
+            }
+            else
+            {
+                <a class="@cls" href="@a.Href">@a.Text</a>
+            }
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Model.Reference))
+    {
+        <p class="ref">Reference <b>@Model.Reference</b>, if you call.</p>
+    }
+</article>

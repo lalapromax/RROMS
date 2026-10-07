@@ -1,0 +1,52 @@
+@page "/Error"
+@model RROMS.Pages.Shared.ErrorModel
+@using RROMS.ViewModels
+@{
+    var audience = ViewData["Audience"] as string ?? "guest";
+    var app = audience != "guest";
+    ViewData["Title"] = Model.Kind switch { "missing" => "Page not found", "denied" => "Not for this account", _ => "Something went wrong" };
+    // "Our side" may well be a database problem, and the normal layout asks the database for the bar. It gets a bar that asks for nothing.
+    if (Model.Kind == "ours") { Layout = "_ErrorLayout"; }
+
+    var home = audience == "admin" ? "/Admin/Dashboard" : audience == "staff" ? "/Staff/Dashboard" : "/Index";
+    var homeText = app ? "Back to my area" : "Home";
+
+    ErrorCardVM card;
+    switch (Model.Kind)
+    {
+        case "missing":
+            card = new ErrorCardVM("missing", "404", "We cannot find that page",
+                app ? "It may have moved, or the link may be old. Everything you work with is one click away."
+                    : "It may have moved, or the link may be old. The menu and your bookings are one click away.",
+                app ? new[] { new ErrorAct("Back to my area", home, true) }
+                    : new[] { new ErrorAct("Go to the menu", "/Menu", true), new ErrorAct("Home", "/Index") });
+            break;
+        case "denied":
+            card = new ErrorCardVM("denied", "Not for this account", "You cannot open this page",
+                audience == "guest" ? "This area is for the restaurant team. Your own bookings, orders and rewards are all still here."
+                : audience == "staff" ? "This page belongs to the administrators. Everything for your own shifts is still in your area."
+                : "This page belongs to the team on the floor. Everything for running the house is still in your area.",
+                new[] { new ErrorAct(app ? "Back to my area" : "My account", app ? home : "/Account/Profile", true), new ErrorAct("Sign in as someone else", "/Account/Login", false, Model.Signed) });
+            break;
+        default:
+            card = new ErrorCardVM("ours", "Our side", "Something went wrong",
+                "Nothing you did. Your booking and order are safe. Please try again in a moment, or call us.",
+                new[] { new ErrorAct("Try again", Model.RetryUrl, true) }
+                    .Concat(Model.Phone != null ? new[] { new ErrorAct("Call " + Model.Phone, "tel:" + new string(Model.Phone.Where(ch => char.IsDigit(ch) || ch == '+').ToArray())) }
+                                                : new[] { new ErrorAct(homeText, home) }).ToList(),
+                Model.Reference);
+            break;
+    }
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/ErrorPages.css" asp-append-version="true" />
+}
+
+@if (app)
+{
+    <div class="wrap main stage er-one"><partial name="_ErrorCard" model="card" /></div>
+}
+else
+{
+    <div class="wrap er-one"><partial name="_ErrorCard" model="card" /></div>
+}
