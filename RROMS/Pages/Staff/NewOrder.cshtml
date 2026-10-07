@@ -1,0 +1,84 @@
+@page
+@model RROMS.Pages.Staff.NewOrderModel
+@using RROMS.Models
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Add an order";
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <p class="crumb"><a asp-page="/Staff/Orders">Orders</a> / Add an order</p>
+            <h1>Add an order</h1>
+            <p>For a table that is seated, or for someone at the counter. It reaches the kitchen straight away.</p>
+        </div>
+    </div>
+
+    <form method="post" class="neworder">
+        @if (Model.Error != null)
+        {
+            <div class="form-alert" role="alert">@Ui.Icon("warn", 18, 2)<div><p>@Model.Error</p></div></div>
+        }
+        <div class="no-grid">
+            <div>
+                <section class="panel" aria-labelledby="forT">
+                    <h2 id="forT" style="font-size:28px;font-weight:500">Who is it for?</h2>
+                    <div class="field" style="margin-top:12px">
+                        <label for="res">Table</label>
+                        <select class="in" id="res" name="ReservationId">
+                            <option value="0" selected="@(Model.ReservationId == 0)">Takeaway at the counter</option>
+                            @foreach (var r in Model.Open)
+                            {
+                                <option value="@r.Id" selected="@(Model.ReservationId == r.Id)">
+                                    @(r.Table?.TableNumber ?? "No table") · @(r.ContactName ?? r.Customer?.FullName), @r.PartySize @(r.PartySize == 1 ? "guest" : "guests") (@(r.Status == ReservationStatus.Seated ? "seated" : "booked for " + r.ReservationDateTime.ToString("HH:mm")))
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="cn">Name for the counter (optional)</label>
+                        <input class="in" id="cn" name="CounterName" value="@Model.CounterName" maxlength="60" />
+                    </div>
+                    <div class="field">
+                        <label for="nt">Note for the kitchen</label>
+                        <textarea class="in" id="nt" name="Notes" rows="3" maxlength="400" placeholder="No coriander. One guest cannot have nuts.">@Model.Notes</textarea>
+                    </div>
+                </section>
+            </div>
+
+            <div>
+                @foreach (var cat in Model.Categories.Where(c => c.MenuItems.Count > 0))
+                {
+                    <section class="panel no-cat" aria-label="@cat.Name">
+                        <h2 style="font-size:26px;font-weight:500">@cat.Name</h2>
+                        @foreach (var m in cat.MenuItems.OrderBy(i => i.Name))
+                        {
+                            <div class="opt-row no-row">
+                                <div><b>@m.Name</b><small>@(cat.IsWine ? m.WineNote : null)</small></div>
+                                <div class="no-qty">
+                                    @if (cat.IsWine)
+                                    {
+                                        @if (m.GlassPrice > 0)
+                                        {
+                                            <label>Glass @Ui.Rm(m.GlassPrice.Value)<input class="in" type="number" min="0" max="20" name="Glass[@m.Id]" value="0" inputmode="numeric" /></label>
+                                        }
+                                        <label>Bottle @Ui.Rm(m.Price)<input class="in" type="number" min="0" max="20" name="Bottle[@m.Id]" value="0" inputmode="numeric" /></label>
+                                    }
+                                    else
+                                    {
+                                        <label>@Ui.Rm(m.Price)<input class="in" type="number" min="0" max="20" name="Dish[@m.Id]" value="0" inputmode="numeric" /></label>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </section>
+                }
+            </div>
+        </div>
+        <div class="form-acts" style="margin-top:24px">
+            <button type="submit" class="btn btn-wine btn-lg">Send to the kitchen</button>
+            <a class="btn btn-line btn-lg" asp-page="/Staff/Orders">Cancel</a>
+        </div>
+    </form>
+</div>

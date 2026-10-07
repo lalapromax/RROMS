@@ -14,12 +14,10 @@ namespace RROMS.Data
         public DbSet<RestaurantSetting> RestaurantSettings => Set<RestaurantSetting>();
         public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
-
         public DbSet<Reservation> Reservations => Set<Reservation>();
-
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
-
+        public DbSet<Collaboration> Collaborations => Set<Collaboration>();
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -89,6 +87,9 @@ namespace RROMS.Data
                 .HasForeignKey(oi => oi.MenuItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ---- Collaboration ----
+
+            builder.Entity<Collaboration>().HasIndex(c => new { c.IsPublished, c.DisplayOrder });
         }
     }
 }
