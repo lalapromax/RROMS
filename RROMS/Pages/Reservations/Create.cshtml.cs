@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -5,81 +7,221 @@ using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
 using RROMS.Services;
-using RROMS.ViewModels;
 
 namespace RROMS.Pages.Reservations;
 
+/// <summary>What the booking form posts. Date, time and month travel as plain text so the page works without scripts.</summary>
+public class BookForm
+{
+    [Range(1, CreateModel.MaxParty, ErrorMessage = "Choose between 1 and 8 guests. For more, please call us.")]
+    public int PartySize { get; set; } = 2;
+
+    /// <summary>yyyy-MM-dd</summary>
+    public string? Date { get; set; }
+
+    /// <summary>HH:mm</summary>
+    public string? Time { get; set; }
+
+    /// <summary>The month shown in the calendar, yyyy-MM.</summary>
+    public string? Month { get; set; }
+
+    [Required(ErrorMessage = "Please tell us who to ask for."), StringLength(80)]
+    public string? Name { get; set; }
+
+    [Required(ErrorMessage = "Please add a number we can reach you on."), StringLength(30), RegularExpression(@"^[0-9+()\-\s]{6,30}$", ErrorMessage = "Use digits only, for example +60 12 345 6789.")]
+    public string? Phone { get; set; }
+
+    [StringLength(40)]
+    public string? Occasion { get; set; }
+
+    [StringLength(400)]
+    public string? Notes { get; set; }
+
+    public int? DiningAreaId { get; set; }
+    public int? SetMenuId { get; set; }
+}
+
+/// <summary>One cell of the calendar: a date a guest can pick, or a blank/closed/past one.</summary>
+public record CalendarDay(DateTime? Date, bool Open);
+
 public class CreateModel : PageModel
 {
-    private readonly IReservationService _reservationService;
+    public const int MaxParty = 8;
+    public static readonly string[] Occasions = { "A birthday", "An anniversary", "Business", "Just dinner" };
+
+    private readonly IReservationService _reservations;
+    private readonly ISetMenuService _setMenus;
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public CreateModel(IReservationService reservationService, ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    public CreateModel(IReservationService reservations, ISetMenuService setMenus, ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
-        _reservationService = reservationService;
+        _reservations = reservations;
+        _setMenus = setMenus;
         _context = context;
         _userManager = userManager;
     }
 
     [BindProperty]
-    public ReservationFormVM Form { get; set; } = new();
+    public BookForm Form { get; set; } = new();
 
-    public List<DiningArea> DiningAreas { get; set; } = new();
-    public List<RestaurantTable> AvailableTables { get; set; } = new();
-    public bool HasSearched { get; set; }
+    public DateTime Month { get; private set; }
+    public DateTime? SelectedDate { get; private set; }
+    public List<CalendarDay> Calendar { get; private set; } = new();
+    public bool CanGoBack { get; private set; }
+    public bool CanGoForward { get; private set; }
+    public DaySlots Slots { get; private set; } = new(false, Array.Empty<SlotInfo>());
+    public List<DiningArea> DiningAreas { get; private set; } = new();
+    public List<SetMenu> SetMenus { get; private set; } = new();
+    public List<string> AllergiesOnFile { get; private set; } = new();
+    public List<DayOfWeek> ClosedDays { get; private set; } = new();
+    public int HoldMinutes { get; private set; } = 15;
+    public string? Phone { get; private set; }
+    public string? SelectedSlotNote { get; private set; }
 
-    public async Task OnGetAsync()
+    public bool SelectedSlotIsFull => Form.Time != null && Slots.Slots.Any(s => s.Time == Form.Time && s.Full);
+    public SetMenu? SelectedSetMenu => SetMenus.FirstOrDefault(m => m.Id == Form.SetMenuId);
+
+    public async Task OnGetAsync(int? party, string? date)
     {
-        await LoadDiningAreasAsync();
+        var user = await _userManager.GetUserAsync(User);
+        Form.Name = user?.FullName;
+        Form.Phone = user?.PhoneNumber;
+        if (party is >= 1 and <= MaxParty) Form.PartySize = party.Value;
+        if (DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) Form.Date = d.ToString("yyyy-MM-dd");
+        await PrepareAsync(user);
     }
 
-    public async Task<IActionResult> OnPostCheckAvailabilityAsync()
+    /// <summary>Used by the page's script: the start times for one day and party size, without reloading the page.</summary>
+    public async Task<IActionResult> OnGetSlotsAsync(string date, int party, int? area)
     {
-        await LoadDiningAreasAsync();
-        HasSearched = true;
+        if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) || party < 1 || party > MaxParty)
+            return BadRequest();
+        var slots = await _reservations.GetSlotsAsync(d, party, area);
+        return new JsonResult(new { closed = slots.Closed, slots = slots.Slots.Select(s => new { time = s.Time, full = s.Full }) });
+    }
 
-        if (!TimeSpan.TryParse(Form.ReservationTime, out var time))
+    /// <summary>Re-draws the page with what has been entered so far (month arrows, and the "show times" button when scripts are off).</summary>
+    public async Task<IActionResult> OnPostRefreshAsync(string? nav)
+    {
+        ModelState.Clear();
+        if (nav is "prev" or "next" && DateTime.TryParseExact(Form.Month, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var shown))
         {
-            ModelState.AddModelError("Form.ReservationTime", "Please choose a valid time.");
-            return Page();
+            Form.Month = shown.AddMonths(nav == "next" ? 1 : -1).ToString("yyyy-MM");
+            Form.Date = null; // the month changed, so the old day is no longer on screen
         }
-
-        AvailableTables = await _reservationService.GetAvailableTablesAsync(Form.ReservationDate, time, Form.PartySize, Form.DiningAreaId);
-        if (AvailableTables.Count == 0)
-            ModelState.AddModelError(string.Empty, "No tables are available for that date, time, and party size. Try a different time, or a different party size.");
-
+        await PrepareAsync(await _userManager.GetUserAsync(User));
         return Page();
     }
 
     public async Task<IActionResult> OnPostBookAsync()
     {
-        await LoadDiningAreasAsync();
-        HasSearched = true;
+        var user = await _userManager.GetUserAsync(User);
+        if (!TryReadSlot(out var date, out var time))
+            ModelState.AddModelError(string.Empty, "Please choose a day and a time.");
 
-        if (!TimeSpan.TryParse(Form.ReservationTime, out var time))
+        if (ModelState.IsValid)
         {
-            ModelState.AddModelError("Form.ReservationTime", "Please choose a valid time.");
-            return Page();
-        }
-
-        var userId = _userManager.GetUserId(User)!;
-        var (success, message, reservation) = await _reservationService.CreateReservationAsync(
-            userId, Form.ReservationDate, time, Form.PartySize, Form.SpecialRequests, Form.DiningAreaId, Form.SelectedTableId);
-
-        if (!success)
-        {
+            var (ok, message, reservation) = await _reservations.CreateReservationAsync(new ReservationRequest(
+                user!.Id, date, time, Form.PartySize, Form.Notes, Form.DiningAreaId, null,
+                Occasions.Contains(Form.Occasion) ? Form.Occasion : null, Form.SetMenuId, Form.Name, Form.Phone));
+            if (ok)
+            {
+                var when = reservation!.ReservationDateTime;
+                TempData["StatusMessage"] = reservation.Status == ReservationStatus.Pending
+                    ? $"We have your request for {when:dddd d MMMM} at {when:HH:mm}. The team will confirm it within the day."
+                    : $"Your table is booked for {when:dddd d MMMM} at {when:HH:mm}.";
+                return RedirectToPage("/Reservations/Index");
+            }
             ModelState.AddModelError(string.Empty, message);
-            AvailableTables = await _reservationService.GetAvailableTablesAsync(Form.ReservationDate, time, Form.PartySize, Form.DiningAreaId);
-            return Page();
         }
 
-        TempData["StatusMessage"] = $"Reservation confirmed for {reservation!.ReservationDateTime:dddd, dd MMM yyyy 'at' h:mm tt} - Table {reservation.Table?.TableNumber}.";
-        return RedirectToPage("/Reservations/Index");
+        await PrepareAsync(user);
+        return Page();
     }
 
-    private async Task LoadDiningAreasAsync()
+    public async Task<IActionResult> OnPostWaitlistAsync()
     {
-        DiningAreas = await _context.DiningAreas.Where(d => d.IsActive).OrderBy(d => d.Name).ToListAsync();
+        var user = await _userManager.GetUserAsync(User);
+        if (!TryReadSlot(out var date, out var time))
+        {
+            ModelState.AddModelError(string.Empty, "Please choose a day and a time.");
+            await PrepareAsync(user);
+            return Page();
+        }
+
+        var (ok, message) = await _reservations.JoinWaitlistAsync(user!.Id, date, time, Form.PartySize);
+        if (ok)
+        {
+            TempData["StatusMessage"] = message;
+            return RedirectToPage("/Reservations/Index");
+        }
+        ModelState.AddModelError(string.Empty, message);
+        await PrepareAsync(user);
+        return Page();
+    }
+
+    private bool TryReadSlot(out DateTime date, out TimeSpan time)
+    {
+        time = default;
+        var okDate = DateTime.TryParseExact(Form.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        var okTime = TimeSpan.TryParseExact(Form.Time, @"hh\:mm", CultureInfo.InvariantCulture, out time);
+        return okDate && okTime;
+    }
+
+    private async Task PrepareAsync(ApplicationUser? user)
+    {
+        var setting = await _context.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
+        HoldMinutes = setting?.HoldMinutes ?? 15;
+        Phone = setting?.Phone;
+        var maxAdvance = setting?.MaxAdvanceBookingDays ?? 60;
+
+        var hours = await _context.OperatingHours.AsNoTracking().ToListAsync();
+        ClosedDays = hours.Where(h => h.IsClosed).Select(h => h.DayOfWeek).ToList();
+
+        DiningAreas = await _context.DiningAreas.AsNoTracking().Where(a => a.IsActive).OrderBy(a => a.Name).ToListAsync();
+        if (Form.DiningAreaId.HasValue && DiningAreas.All(a => a.Id != Form.DiningAreaId)) Form.DiningAreaId = null;
+
+        var allergies = DietaryRules.SplitAllergies(user?.Allergies);
+        AllergiesOnFile = allergies.Chips.Select(DietaryRules.AllergenLabel).ToList();
+        if (!string.IsNullOrWhiteSpace(allergies.Other)) AllergiesOnFile.Add(allergies.Other);
+
+        // The calendar: today to today + the booking window, minus the days the restaurant is closed.
+        var today = DateTime.Today;
+        var last = today.AddDays(maxAdvance);
+        bool IsOpen(DateTime d) => d >= today && d <= last && !ClosedDays.Contains(d.DayOfWeek);
+
+        DateTime? picked = null;
+        if (DateTime.TryParseExact(Form.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var posted) && IsOpen(posted))
+            picked = posted.Date;
+        for (var i = 0; picked == null && i <= maxAdvance; i++)
+            if (IsOpen(today.AddDays(i))) picked = today.AddDays(i);
+        SelectedDate = picked;
+        Form.Date = picked?.ToString("yyyy-MM-dd");
+
+        Month = DateTime.TryParseExact(Form.Month, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var m)
+            ? new DateTime(m.Year, m.Month, 1)
+            : new DateTime((picked ?? today).Year, (picked ?? today).Month, 1);
+        var firstMonth = new DateTime(today.Year, today.Month, 1);
+        var lastMonth = new DateTime(last.Year, last.Month, 1);
+        if (Month < firstMonth) Month = firstMonth;
+        if (Month > lastMonth) Month = lastMonth;
+        Form.Month = Month.ToString("yyyy-MM");
+        CanGoBack = Month > firstMonth;
+        CanGoForward = Month < lastMonth;
+
+        Calendar = new List<CalendarDay>();
+        var lead = ((int)Month.DayOfWeek + 6) % 7;                // weeks start on Monday
+        for (var i = 0; i < lead; i++) Calendar.Add(new CalendarDay(null, false));
+        for (var day = Month; day.Month == Month.Month; day = day.AddDays(1))
+            Calendar.Add(new CalendarDay(day, IsOpen(day)));
+
+        Slots = picked.HasValue
+            ? await _reservations.GetSlotsAsync(picked.Value, Form.PartySize, Form.DiningAreaId)
+            : new DaySlots(true, Array.Empty<SlotInfo>());
+        if (Form.Time != null && Slots.Slots.All(s => s.Time != Form.Time)) Form.Time = null;
+
+        SetMenus = (await _setMenus.ListForGuestsAsync(picked?.DayOfWeek)).ToList();
+        if (Form.SetMenuId.HasValue && SetMenus.All(s => s.Id != Form.SetMenuId)) Form.SetMenuId = null;
     }
 }

@@ -1,73 +1,280 @@
 @page
 @model RROMS.Pages.Reservations.IndexModel
 @{
-    ViewData["Title"] = "My Reservations";
+    ViewData["Title"] = "My reservations";
+    var tab = Model.Tab;
+    var pastShown = tab == "upcoming" ? Model.Past.Take(RROMS.Pages.Reservations.IndexModel.PastPreview).ToList() : Model.Past;
+    var cutoff = Reservation.GuestChangeCutoffHours;
+
+    string StatusClass(ReservationStatus s) => s switch
+    {
+        ReservationStatus.Confirmed => "st-confirmed",
+        ReservationStatus.Seated => "st-seated",
+        ReservationStatus.Completed => "st-completed",
+        ReservationStatus.Cancelled => "st-cancelled",
+        ReservationStatus.NoShow => "st-noshow",
+        _ => "st-pending"
+    };
+    string StatusText(ReservationStatus s) => s switch
+    {
+        ReservationStatus.NoShow => "Did not attend",
+        _ => s.ToString()
+    };
+
+    // One short sentence under the details: the occasion, the set menu and the allergies the kitchen will see.
+    string Note(Reservation r, bool upcoming)
+    {
+        if (r.Status == ReservationStatus.Pending)
+            return "We are confirming your table and will message you within the day.";
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(r.Occasion)) parts.Add(r.Occasion.TrimEnd('.') + ".");
+        if (r.SetMenu != null) parts.Add("Set menu: " + r.SetMenu.Name + ".");
+        if (upcoming && !string.IsNullOrWhiteSpace(Model.AllergiesOnFile)) parts.Add("Allergies noted: " + Model.AllergiesOnFile + ".");
+        if (!string.IsNullOrWhiteSpace(r.SpecialRequests)) parts.Add(r.SpecialRequests.Trim());
+        return string.Join(" ", parts);
+    }
+
+    async Task Booking(BookingCard c, bool past)
+    {
+        var r = c.Booking;
+        var upcoming = !past && r.Status != ReservationStatus.Cancelled;
+        var note = Note(r, upcoming);
+        <article class="res@(past ? " past" : "")">
+            <div class="dateblk" aria-hidden="true">
+                <div><b>@r.ReservationDateTime.ToString("dd")</b><span>@r.ReservationDateTime.ToString("MMM")</span></div>
+            </div>
+            <div>
+                <h2>@c.Title <span class="st @StatusClass(r.Status)">@StatusText(r.Status)</span></h2>
+                <div class="meta">
+                    <span>@Ui.Icon("clock", 18, 1.6) <span class="sr-only">Time </span>@r.ReservationDateTime.ToString("HH:mm")</span>
+                    <span>@Ui.Icon("user", 18, 1.6) @r.PartySize @(r.PartySize == 1 ? "guest" : "guests")</span>
+                    <span>@Ui.Icon("table", 18, 1.6) @(r.Table != null && r.Status != ReservationStatus.Pending ? "Table " + r.Table.TableNumber : "Table to be set")</span>
+                    @if (!past && r.ReservationDateTime.Date != DateTime.Today)
+                    {
+                        <span>@Ui.Icon("cal", 18, 1.6) @r.ReservationDateTime.ToString("dddd d MMMM")</span>
+                    }
+                </div>
+                @if (past && r.Status == ReservationStatus.Completed && c.OrderId.HasValue)
+                {
+                    <p class="note">Order #@c.OrderId@(c.Reviewed ? " · reviewed, thank you" : "")</p>
+                }
+                else if (!string.IsNullOrEmpty(note))
+                {
+                    <p class="note">@note</p>
+                }
+                @if (past && r.Status != ReservationStatus.Cancelled) { <p class="note muted">@r.ReservationDateTime.ToString("d MMMM yyyy")</p> }
+            </div>
+            <div class="act">
+                @if (upcoming && r.GuestCanChange)
+                {
+                    <button type="button" class="btn btn-line btn-sm" data-dialog-open="changeDlg"
+                            data-fields="id,summary,date,party,notes,time"
+                            data-id="@r.Id"
+                            data-summary="@c.Title · currently @r.ReservationDateTime.ToString("d MMMM, HH:mm"), @r.PartySize @(r.PartySize == 1 ? "guest" : "guests")"
+                            data-date="@r.ReservationDateTime.ToString("yyyy-MM-dd")"
+                            data-time="@r.ReservationDateTime.ToString("HH:mm")"
+                            data-party="@r.PartySize"
+                            data-notes="@r.SpecialRequests">Change</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-dialog-open="cancelDlg"
+                            data-fields="id,summary" data-id="@r.Id"
+                            data-summary="@c.Title, @r.ReservationDateTime.ToString("d MMMM") at @r.ReservationDateTime.ToString("HH:mm"), @r.PartySize @(r.PartySize == 1 ? "guest" : "guests")">Cancel booking</button>
+                }
+                else if (upcoming)
+                {
+                    <span class="muted act-note">Less than @cutoff hours away. Please call us to change it.</span>
+                }
+                else if (past && r.Status == ReservationStatus.Completed)
+                {
+                    if (!c.Reviewed)
+                    {
+                        <a class="btn btn-wine btn-sm" asp-page="/Feedback/Create" asp-route-reservationId="@r.Id">Write a review</a>
+                    }
+                    <a class="btn btn-line btn-sm" asp-page="/Reservations/Create" asp-route-party="@r.PartySize">Book again</a>
+                }
+                else if (r.Status == ReservationStatus.Cancelled)
+                {
+                    <a class="btn btn-line btn-sm" asp-page="/Reservations/Create" asp-route-party="@r.PartySize">Book again</a>
+                }
+            </div>
+        </article>
+    }
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/MyReservations.css" asp-append-version="true" />
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <h1 class="h3 mb-0">My Reservations</h1>
-    <a asp-page="/Reservations/Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New reservation</a>
+<section class="wrap page-top">
+    <div>
+        <h1>My reservations</h1>
+        <p class="lead-it">Your tables, past and to come.</p>
+    </div>
+    <a class="btn btn-wine btn-lg" asp-page="/Reservations/Create">Book a table</a>
+</section>
+
+<div class="wrap main">
+    <nav class="tabs" aria-label="Reservations">
+        <a asp-page="/Reservations/Index" asp-route-tab="upcoming" aria-current="@(tab == "upcoming" ? "page" : null)">Upcoming<small>@(Model.Upcoming.Count + Model.Waiting.Count)</small></a>
+        <a asp-page="/Reservations/Index" asp-route-tab="past" aria-current="@(tab == "past" ? "page" : null)">Past<small>@Model.Past.Count</small></a>
+        <a asp-page="/Reservations/Index" asp-route-tab="cancelled" aria-current="@(tab == "cancelled" ? "page" : null)">Cancelled<small>@Model.Cancelled.Count</small></a>
+    </nav>
+
+    <div class="two">
+        <div>
+            @if (tab == "upcoming")
+            {
+                if (Model.Upcoming.Count == 0 && Model.Waiting.Count == 0)
+                {
+                    <div class="empty-card">
+                        <h2>No table booked yet</h2>
+                        <p>Choose a day and we will keep a table for you.</p>
+                        <a class="btn btn-wine" asp-page="/Reservations/Create">Book a table</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="rlist">
+                        @foreach (var c in Model.Upcoming) { await Booking(c, false); }
+                        @foreach (var w in Model.Waiting)
+                        {
+                            <article class="res">
+                                <div class="dateblk" aria-hidden="true">
+                                    <div><b>@w.WantedDateTime.ToString("dd")</b><span>@w.WantedDateTime.ToString("MMM")</span></div>
+                                </div>
+                                <div>
+                                    <h2>@w.WantedDateTime.ToString("dddd") @(w.WantedDateTime.Hour < 17 ? "lunch" : "dinner") <span class="st st-waiting">Waiting list</span></h2>
+                                    <div class="meta">
+                                        <span>@Ui.Icon("clock", 18, 1.6) @w.WantedDateTime.ToString("HH:mm")</span>
+                                        <span>@Ui.Icon("user", 18, 1.6) @w.PartySize @(w.PartySize == 1 ? "guest" : "guests")</span>
+                                        <span>@Ui.Icon("cal", 18, 1.6) @w.WantedDateTime.ToString("dddd d MMMM")</span>
+                                    </div>
+                                    <p class="note">That time is full. We will message you if a table opens, and you can book it then.</p>
+                                </div>
+                                <div class="act">
+                                    <form method="post" asp-page-handler="LeaveWaitlist" asp-route-id="@w.Id"><button type="submit" class="btn btn-line btn-sm">Leave the list</button></form>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+
+                if (pastShown.Count > 0)
+                {
+                    <h2 class="list-h">Past visits</h2>
+                    <div class="rlist">
+                        @foreach (var c in pastShown) { await Booking(c, true); }
+                    </div>
+                    if (Model.Past.Count > pastShown.Count)
+                    {
+                        <p style="margin-top:22px"><a class="link" asp-page="/Reservations/Index" asp-route-tab="past">See all @Model.Past.Count past visits</a></p>
+                    }
+                }
+            }
+            else if (tab == "past")
+            {
+                if (Model.Past.Count == 0)
+                {
+                    <div class="empty-card"><h2>No visits yet</h2><p>Once you have dined with us, your visits will be kept here.</p></div>
+                }
+                else
+                {
+                    <div class="rlist">@foreach (var c in Model.Past) { await Booking(c, true); }</div>
+                }
+            }
+            else
+            {
+                if (Model.Cancelled.Count == 0)
+                {
+                    <div class="empty-card"><h2>Nothing cancelled</h2><p>Bookings you cancel will be listed here.</p></div>
+                }
+                else
+                {
+                    <div class="rlist">@foreach (var c in Model.Cancelled) { await Booking(c, true); }</div>
+                }
+            }
+        </div>
+        <aside>
+            <div class="side-card help">
+                <h3>Need a hand?</h3>
+                <p>Changes up to @cutoff hours before are free. After that, please call us and we will do what we can.</p>
+                @if (!string.IsNullOrWhiteSpace(Model.Phone))
+                {
+                    <p><a href="tel:@Model.Phone.Replace(" ", "")"><b>@Model.Phone</b></a></p>
+                }
+            </div>
+            <div class="side-card help">
+                <h3>Allergies change?</h3>
+                <p>Update your profile and every new booking will carry it. For tonight's booking, just tell us when you change it.</p>
+                <p><a class="link" asp-page="/Account/Profile">Update dietary details</a></p>
+            </div>
+        </aside>
+    </div>
 </div>
 
-<h2 class="h5 mb-3">Upcoming</h2>
-@if (!Model.Upcoming.Any())
-{
-    <div class="rroms-card p-4 text-center text-muted-warm mb-4">No upcoming reservations yet.</div>
-}
-else
-{
-    <div class="row g-3 mb-4">
-        @foreach (var r in Model.Upcoming)
-        {
-            <div class="col-md-6">
-                <div class="rroms-card p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="fw-semibold">@r.ReservationDateTime.ToString("dddd, dd MMM yyyy")</div>
-                            <div class="text-muted-warm small">@r.ReservationDateTime.ToString("h:mm tt") &middot; Party of @r.PartySize</div>
-                            <div class="text-muted-warm small">Table @(r.Table?.TableNumber ?? "TBD") &middot; @(r.Table?.DiningArea?.Name)</div>
-                        </div>
-                        <span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span>
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(r.SpecialRequests))
+<dialog class="modal" id="changeDlg" style="--w:760px" aria-labelledby="changeTitle" data-slots-url="@Url.Page("/Reservations/Create", "Slots")">
+    <div class="modal-head">
+        <h2 id="changeTitle">Change your booking</h2>
+        <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+    </div>
+    <form method="post" asp-page-handler="Change" class="form" id="changeForm">
+        <input type="hidden" name="id" id="changeDlg_id" />
+        <p class="muted" id="changeDlg_summary" style="margin-bottom:18px"></p>
+        <div class="f-row f-3">
+            <div class="field">
+                <label for="changeDlg_date">Date</label>
+                <select class="in" name="date" id="changeDlg_date">
+                    @foreach (var d in Model.OpenDates)
                     {
-                        <p class="small text-muted-warm mt-2 mb-2"><i class="bi bi-chat-left-text"></i> @r.SpecialRequests</p>
+                        <option value="@d.ToString("yyyy-MM-dd")">@d.ToString("ddd d MMM yyyy")</option>
                     }
-                    <div class="d-flex gap-2 mt-2">
-                        <a asp-page="/Reservations/Edit" asp-route-id="@r.Id" class="btn btn-sm btn-outline-primary">Modify</a>
-                        <form method="post" asp-page-handler="Cancel" asp-route-id="@r.Id" onsubmit="return confirm('Cancel this reservation?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
-                        </form>
-                        <a asp-page="/Orders/Cart" asp-route-reservationId="@r.Id" class="btn btn-sm btn-herb ms-auto">Order for this visit</a>
-                    </div>
-                </div>
+                </select>
             </div>
-        }
+            <div class="field">
+                <label for="changeDlg_time">Time</label>
+                <select class="in" name="time" id="changeDlg_time" aria-describedby="changeDlg_hint"></select>
+                <input type="hidden" id="changeDlg_current" />
+                <p class="hint" id="changeDlg_hint" aria-live="polite"></p>
+            </div>
+            <div class="field">
+                <label for="changeDlg_party">Guests</label>
+                <select class="in" name="party" id="changeDlg_party">
+                    @for (var n = 1; n <= RROMS.Pages.Reservations.CreateModel.MaxParty; n++)
+                    {
+                        <option value="@n">@n</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="field">
+            <label for="changeDlg_notes">Notes for the team</label>
+            <textarea class="in" name="notes" id="changeDlg_notes" rows="2" maxlength="400"></textarea>
+        </div>
+        <div class="note-box">
+            @Ui.Icon("clock", 16, 1.6)
+            We will message you to confirm the new time. Your table is kept until then.
+        </div>
+    </form>
+    <div class="modal-foot">
+        <button type="button" class="btn btn-line" data-dialog-close>Keep my booking</button>
+        <button type="submit" form="changeForm" class="btn btn-wine">Save changes</button>
     </div>
-}
+</dialog>
 
-<h2 class="h5 mb-3">Past &amp; cancelled</h2>
-@if (!Model.Past.Any())
-{
-    <div class="rroms-card p-4 text-center text-muted-warm">No past reservations yet.</div>
-}
-else
-{
-    <div class="table-responsive rroms-card p-2">
-        <table class="table rroms-table mb-0">
-            <thead><tr><th>Date</th><th>Time</th><th>Party</th><th>Table</th><th>Status</th></tr></thead>
-            <tbody>
-                @foreach (var r in Model.Past)
-                {
-                    <tr>
-                        <td>@r.ReservationDateTime.ToString("dd MMM yyyy")</td>
-                        <td>@r.ReservationDateTime.ToString("h:mm tt")</td>
-                        <td>@r.PartySize</td>
-                        <td>@(r.Table?.TableNumber ?? "-")</td>
-                        <td><span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<dialog class="modal" id="cancelDlg" style="--w:520px" aria-labelledby="cancelTitle">
+    <div class="modal-head">
+        <h2 id="cancelTitle">Cancel this booking?</h2>
+        <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
     </div>
+    <form method="post" asp-page-handler="Cancel" id="cancelForm">
+        <input type="hidden" name="id" id="cancelDlg_id" />
+        <p id="cancelDlg_summary" style="font-weight:600"></p>
+        <p class="muted" style="margin-top:8px">The table goes back to other guests straight away. You can book again at any time.</p>
+    </form>
+    <div class="modal-foot">
+        <button type="button" class="btn btn-line" data-dialog-close>Keep my booking</button>
+        <button type="submit" form="cancelForm" class="btn btn-danger">Cancel booking</button>
+    </div>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/reservations.js" asp-append-version="true"></script>
 }

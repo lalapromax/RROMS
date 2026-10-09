@@ -1,88 +1,247 @@
 @page
 @model RROMS.Pages.Reservations.CreateModel
 @{
-    ViewData["Title"] = "New Reservation";
+    ViewData["Title"] = "Book a table";
+    var f = Model.Form;
+    var errs = ViewData.ModelState.TryGetValue(string.Empty, out var e) ? e.Errors.Select(x => x.ErrorMessage).ToList() : new List<string>();
+    var slots = Model.Slots.Slots;
+    var lunch = slots.Where(s => string.CompareOrdinal(s.Time, "17:00") < 0).ToList();
+    var dinner = slots.Where(s => string.CompareOrdinal(s.Time, "17:00") >= 0).ToList();
+    var anyFull = slots.Any(s => s.Full);
+    var closedNames = Model.ClosedDays.Select(d => d.ToString() + "s").ToList();
+    var closedText = closedNames.Count == 0 ? null
+        : "Closed on " + (closedNames.Count == 1 ? closedNames[0] : string.Join(", ", closedNames.Take(closedNames.Count - 1)) + " and " + closedNames.Last());
+    var selectedSlot = f.Time == null ? null : slots.FirstOrDefault(s => s.Time == f.Time);
+    var guestsWord = f.PartySize == 1 ? "guest" : "guests";
+    var big = f.PartySize >= RROMS.Services.ReservationService.ConfirmByTeamFromParty;
+
+    void SlotButton(RROMS.Services.SlotInfo s)
+    {
+        <label><input type="radio" name="Form.Time" value="@s.Time" data-full="@(s.Full ? "1" : "0")" checked="@(f.Time == s.Time)" /><span class="@(s.Full ? "full" : null)">@s.Time</span></label>
+    }
 }
-<h1 class="h3 mb-4">Book a table</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Book.css" asp-append-version="true" />
+}
 
-<div class="row g-4">
-    <div class="col-lg-5">
-        <div class="rroms-card p-4">
-            <form method="post" asp-page-handler="CheckAvailability">
-                <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
-
-                <div class="mb-3">
-                    <label asp-for="Form.ReservationDate" class="form-label"></label>
-                    <input asp-for="Form.ReservationDate" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                </div>
-                <div class="mb-3">
-                    <label asp-for="Form.ReservationTime" class="form-label"></label>
-                    <input asp-for="Form.ReservationTime" type="time" class="form-control" />
-                </div>
-                <div class="mb-3">
-                    <label asp-for="Form.PartySize" class="form-label"></label>
-                    <input asp-for="Form.PartySize" type="number" min="1" max="30" class="form-control" />
-                </div>
-                <div class="mb-3">
-                    <label asp-for="Form.DiningAreaId" class="form-label">Preferred area (optional)</label>
-                    <select asp-for="Form.DiningAreaId" class="form-select">
-                        <option value="">No preference</option>
-                        @foreach (var area in Model.DiningAreas)
-                        {
-                            <option value="@area.Id">@area.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label asp-for="Form.SpecialRequests" class="form-label"></label>
-                    <textarea asp-for="Form.SpecialRequests" class="form-control" rows="2" placeholder="Allergies, occasion, seating preference..."></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-outline-primary w-100">Check availability</button>
-            </form>
-        </div>
+<section class="wrap page-top">
+    <div>
+        <p class="crumb"><a asp-page="/Index">Home</a> / Reserve</p>
+        <h1>Book a table</h1>
+        <p class="lead-it">Tell us when, and we will keep a table for you.</p>
     </div>
+</section>
 
-    <div class="col-lg-7">
-        @if (Model.HasSearched)
-        {
-            <div class="rroms-card p-4">
-                <h2 class="h5 mb-3">Available tables</h2>
-                @if (Model.AvailableTables.Any())
-                {
-                    <form method="post" asp-page-handler="Book">
-                        <input type="hidden" asp-for="Form.ReservationDate" />
-                        <input type="hidden" asp-for="Form.ReservationTime" />
-                        <input type="hidden" asp-for="Form.PartySize" />
-                        <input type="hidden" asp-for="Form.DiningAreaId" />
-                        <input type="hidden" asp-for="Form.SpecialRequests" />
+<div class="wrap main">
+    <form method="post" class="book" id="bookForm" data-book data-slots-url="@Url.Page("/Reservations/Create", "Slots")" data-hold="@Model.HoldMinutes" novalidate>
+        <input type="hidden" asp-for="Form.Month" />
 
-                        <div class="list-group mb-3">
-                            @foreach (var table in Model.AvailableTables)
+        <div class="form">
+            @if (errs.Count > 0)
+            {
+                <div class="form-alert" role="alert">
+                    @Ui.Icon("warn", 18, 2)
+                    <div>@foreach (var m in errs) { <p>@m</p> }</div>
+                </div>
+            }
+
+            <section class="step" aria-labelledby="s1">
+                <h2 id="s1"><span class="no">1</span> How many of you?</h2>
+                <div class="body">
+                    <div class="party" role="radiogroup" aria-label="Party size">
+                        @for (var n = 1; n <= RROMS.Pages.Reservations.CreateModel.MaxParty; n++)
+                        {
+                            <label><input type="radio" name="Form.PartySize" value="@n" checked="@(f.PartySize == n)" aria-label="@n @(n == 1 ? "guest" : "guests")" /><span>@n</span></label>
+                        }
+                    </div>
+                    <p class="slots-note" data-big-note hidden="@(!big)">A party this size is placed on a table straight away, and a person on the team confirms it within the day.</p>
+                    <p class="slots-note">For nine or more, please call us and we will arrange a long table.</p>
+                    <span asp-validation-for="Form.PartySize" class="err-msg"></span>
+                </div>
+            </section>
+
+            <section class="step" aria-labelledby="s2">
+                <h2 id="s2"><span class="no">2</span> Which day?</h2>
+                <div class="body">
+                    <div class="month">
+                        <b>@Model.Month.ToString("MMMM yyyy")</b>
+                        <span class="month-nav">
+                            @if (closedText != null) { <span class="muted">@closedText</span> }
+                            <button type="submit" class="mnav" name="nav" value="prev" asp-page-handler="Refresh" formnovalidate disabled="@(!Model.CanGoBack)" aria-label="Previous month">@Ui.Icon("chev", 16, 2)</button>
+                            <button type="submit" class="mnav next" name="nav" value="next" asp-page-handler="Refresh" formnovalidate disabled="@(!Model.CanGoForward)" aria-label="Next month">@Ui.Icon("chev", 16, 2)</button>
+                        </span>
+                    </div>
+                    <div class="days" role="radiogroup" aria-label="Day">
+                        @foreach (var d in new[] { "M", "T", "W", "T", "F", "S", "S" }) { <span class="dn" aria-hidden="true">@d</span> }
+                        @foreach (var cell in Model.Calendar)
+                        {
+                            if (cell.Date is null) { <span class="blank" aria-hidden="true"></span> }
+                            else if (!cell.Open) { <span class="off" title="@cell.Date.Value.ToString("dddd d MMMM"), not available">@cell.Date.Value.Day</span> }
+                            else
                             {
-                                <label class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>
-                                        <input type="radio" asp-for="Form.SelectedTableId" value="@table.Id" class="form-check-input me-2" checked="@(table == Model.AvailableTables.First())" />
-                                        Table @table.TableNumber &middot; @table.DiningArea?.Name
-                                    </span>
-                                    <span class="text-muted-warm small">Seats up to @table.Capacity</span>
+                                var iso = cell.Date.Value.ToString("yyyy-MM-dd");
+                                <label><input type="radio" name="Form.Date" value="@iso" checked="@(Model.SelectedDate == cell.Date)" aria-label="@cell.Date.Value.ToString("dddd d MMMM")" /><span>@cell.Date.Value.Day</span></label>
+                            }
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="step" aria-labelledby="s3">
+                <h2 id="s3"><span class="no">3</span> What time?</h2>
+                <div class="body">
+                    <div id="slotBox" class="slot-groups" role="radiogroup" aria-label="Time" aria-live="polite">
+                        @if (Model.Slots.Closed)
+                        {
+                            <p class="slots-empty">We are closed that day. Please choose another.</p>
+                        }
+                        else if (slots.Count == 0)
+                        {
+                            <p class="slots-empty">There are no more tables today. Please choose another day.</p>
+                        }
+                        else
+                        {
+                            if (lunch.Count > 0 && dinner.Count > 0) { <p class="slots-h">Lunch</p> }
+                            if (lunch.Count > 0) { <div class="slots">@foreach (var s in lunch) { SlotButton(s); }</div> }
+                            if (lunch.Count > 0 && dinner.Count > 0) { <p class="slots-h">Dinner</p> }
+                            if (dinner.Count > 0) { <div class="slots">@foreach (var s in dinner) { SlotButton(s); }</div> }
+                        }
+                    </div>
+                    <p class="slots-note" id="slotNote" hidden="@(!anyFull)">Dashed times are full for @f.PartySize. Choose one to join the waiting list and we will message you if a table opens.</p>
+                    <noscript><button type="submit" class="btn btn-line btn-sm" asp-page-handler="Refresh" formnovalidate style="margin-top:14px">Show the times for this day and party</button></noscript>
+                </div>
+            </section>
+
+            <section class="step" aria-labelledby="s4">
+                <h2 id="s4"><span class="no">4</span> Anything we should know?</h2>
+                <div class="body">
+                    <div class="f-row f-2">
+                        <div class="field">
+                            <label asp-for="Form.Name">Name</label>
+                            <input asp-for="Form.Name" class="in@(Ui.Err(ViewData.ModelState, "Form.Name"))" autocomplete="name" data-sum="name" />
+                            <span asp-validation-for="Form.Name" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Form.Phone">Phone</label>
+                            <input asp-for="Form.Phone" class="in@(Ui.Err(ViewData.ModelState, "Form.Phone"))" type="tel" autocomplete="tel" placeholder="+60 12 345 6789" />
+                            <span asp-validation-for="Form.Phone" class="err-msg"></span>
+                        </div>
+                    </div>
+
+                    <div class="field" role="radiogroup" aria-labelledby="occLab">
+                        <span class="lab" id="occLab">Occasion</span>
+                        <div class="chips">
+                            @foreach (var o in RROMS.Pages.Reservations.CreateModel.Occasions)
+                            {
+                                <label class="chipx"><input type="radio" name="Form.Occasion" value="@o" checked="@(f.Occasion == o)" data-sum="occasion" />@Ui.Icon("check", 14, 2.4) @o</label>
+                            }
+                        </div>
+                    </div>
+
+                    @if (Model.DiningAreas.Count > 1)
+                    {
+                        <div class="field" style="margin-top:18px" role="radiogroup" aria-labelledby="areaLab">
+                            <span class="lab" id="areaLab">Where would you like to sit?</span>
+                            <div class="chips">
+                                <label class="chipx"><input type="radio" name="Form.DiningAreaId" value="" checked="@(f.DiningAreaId == null)" />@Ui.Icon("check", 14, 2.4) Anywhere</label>
+                                @foreach (var a in Model.DiningAreas)
+                                {
+                                    <label class="chipx"><input type="radio" name="Form.DiningAreaId" value="@a.Id" checked="@(f.DiningAreaId == a.Id)" />@Ui.Icon("check", 14, 2.4) @a.Name</label>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="field" style="margin-top:18px">
+                        <span class="lab">Allergies we have on file</span>
+                        <div class="chips">
+                            @if (Model.AllergiesOnFile.Count == 0)
+                            {
+                                <span class="muted" style="align-self:center">None recorded.</span>
+                            }
+                            @foreach (var a in Model.AllergiesOnFile)
+                            {
+                                <span class="chipx on warn">@Ui.Icon("check", 14, 2.4) @a</span>
+                            }
+                            <a class="link" asp-page="/Account/Profile" style="align-self:center">@(Model.AllergiesOnFile.Count == 0 ? "Add" : "Change")</a>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label asp-for="Form.Notes">Notes for the team</label>
+                        <textarea asp-for="Form.Notes" class="in" rows="3" maxlength="400" placeholder="A candle on the dessert, a guest who does not eat pork, a high chair."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            @if (Model.SetMenus.Count > 0)
+            {
+                <section class="step" aria-labelledby="s5">
+                    <h2 id="s5"><span class="no">5</span> Add a set menu?</h2>
+                    <div class="body">
+                        <p class="muted" style="margin-bottom:16px">Optional. Choose one set menu for the whole table, or leave it and order from the menu on the night.</p>
+                        <div class="set-list" role="radiogroup" aria-label="Set menu">
+                            <label class="set-opt none">
+                                <input type="radio" name="Form.SetMenuId" value="" checked="@(f.SetMenuId == null)" data-sum="set" data-label="" />
+                                <div class="img s-linen r-sq">@Ui.Icon("book", 34, 1.2)</div>
+                                <div>
+                                    <h3>No set menu</h3>
+                                    <p>I will order from the menu on the night.</p>
+                                </div>
+                                <span class="ck"><i class="rad"></i><span class="ck-t"></span></span>
+                            </label>
+                            @foreach (var m in Model.SetMenus)
+                            {
+                                <label class="set-opt">
+                                    <input type="radio" name="Form.SetMenuId" value="@m.Id" checked="@(f.SetMenuId == m.Id)" data-sum="set" data-label="@m.Name" />
+                                    @Ui.SetCover(m, "width:96px;height:96px")
+                                    <div>
+                                        <h3>@m.Name</h3>
+                                        <p>@(string.IsNullOrWhiteSpace(m.Tagline) ? "" : m.Tagline + ". ")@Ui.Rm(m.PricePerGuest) per guest.</p>
+                                    </div>
+                                    <span class="ck"><i class="rad"></i><span class="ck-t"></span></span>
                                 </label>
                             }
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Confirm reservation</button>
-                    </form>
-                }
-                else
-                {
-                    <p class="text-muted-warm mb-0">No tables free for that slot - try a different time or party size.</p>
-                }
+                    </div>
+                </section>
+            }
+        </div>
+
+        <aside class="sum" aria-label="Your booking">
+            <div class="printed">
+                <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+                <h3>Your booking</h3>
+                <dl class="kv">
+                    <dt>Date</dt>
+                    <dd data-out="date">@(Model.SelectedDate?.ToString("dddd d MMMM") ?? "Not chosen")</dd>
+                    <dt>Time</dt>
+                    <dd data-out="time">@(f.Time ?? "Not chosen")</dd>
+                    <dt>Guests</dt>
+                    <dd data-out="party">@f.PartySize</dd>
+                    <dt data-row="occasion" hidden="@(string.IsNullOrEmpty(f.Occasion))">Occasion</dt>
+                    <dd data-row="occasion" data-out="occasion" hidden="@(string.IsNullOrEmpty(f.Occasion))">@f.Occasion</dd>
+                    <dt data-row="set" hidden="@(Model.SelectedSetMenu == null)">Set menu</dt>
+                    <dd data-row="set" data-out="set" hidden="@(Model.SelectedSetMenu == null)">@Model.SelectedSetMenu?.Name</dd>
+                </dl>
+                <p class="hold">
+                    @Ui.Icon("clock", 18, 1.6)
+                    <span>We hold the table for @Model.HoldMinutes minutes after your time.</span>
+                </p>
+                <button type="submit" class="btn btn-wine btn-lg" id="confirmBtn" asp-page-handler="Book" hidden="@Model.SelectedSlotIsFull">Confirm booking</button>
+                <button type="submit" class="btn btn-wine btn-lg" id="waitBtn" asp-page-handler="Waitlist" formnovalidate hidden="@(!Model.SelectedSlotIsFull)">Join the waiting list</button>
+                <p class="fine" id="fineText">@(Model.SelectedSlotIsFull ? "We will message you if a table opens. Nothing is charged." : $"You can change or cancel up to {Reservation.GuestChangeCutoffHours} hours before.")</p>
             </div>
-        }
-        else
-        {
-            <div class="rroms-card p-4 text-center text-muted-warm">
-                Choose a date, time and party size, then check availability to see open tables.
-            </div>
-        }
-    </div>
+            <p class="askus">
+                Eight or more, or a private room?
+                @if (string.IsNullOrWhiteSpace(Model.Phone)) { <text>Please call us</text> } else { <a class="link" href="tel:@(Model.Phone!.Replace(" ", ""))">Call us on @Model.Phone</a> }
+                and we will arrange it.
+            </p>
+        </aside>
+    </form>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/book.js" asp-append-version="true"></script>
+}
