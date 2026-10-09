@@ -1,0 +1,213 @@
+@model RROMS.Pages.Orders.DetailsModel
+@using RROMS.Models
+@{
+    var o = Model.Order;
+    var audience = ViewData["Audience"] as string ?? "guest";
+    var cancelled = o.Status == OrderStatus.Cancelled;
+    var takeaway = o.OrderType == OrderType.Takeaway;
+    var pay = o.Payment;
+    var paid = pay?.Status == PaymentStatus.Paid;
+    var refunded = pay?.Status == PaymentStatus.Refunded;
+    var paidOnline = paid && pay!.Method is PaymentMethod.OnlinePayment or PaymentMethod.OnlineBanking;
+    var lines = OrderView.Lines(o);
+    var staffView = audience != "guest";
+
+    // The kitchen's four steps, then payment. Only "placed" and "paid" have recorded times, so the others say Done or Now
+    // rather than inventing a time.
+    var reached = o.Status == OrderStatus.Completed ? 3 : Math.Min(3, (int)o.Status);
+    var stepNames = new[] { "Placed", "Preparing", "Ready", takeaway ? "Collected" : "Served" };
+    var running = !cancelled && o.Status != OrderStatus.Completed;
+    var nowStep = running ? reached + 1 : -1;
+}
+
+@if (cancelled)
+{
+    <div class="cancelled-note" role="status">
+        @Ui.Icon("warn", 20, 2)
+        <div>
+            <p>This order was cancelled.</p>
+            @if (refunded)
+            {
+                <p class="sub">@(staffView ? "The payment was returned to the guest." : "Your payment has been returned to you.")</p>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <ol class="track no-print" aria-label="Order progress">
+        @for (var i = 0; i < 4; i++)
+        {
+            var done = i <= reached;
+            var state = done ? "done" : i == nowStep ? "now" : "";
+            <li class="trk @state" aria-current="@(i == nowStep ? "step" : null)">
+                <i>@if (done) { @Ui.Icon("check", 20, 2.6) } else if (i == nowStep) { <u></u> }</i>
+                <b>@stepNames[i]</b>
+                <span>@(i == 0 ? o.OrderDate.ToLocalTime().ToString("HH:mm") : done ? "Done" : i == nowStep ? "Now" : "")&nbsp;</span>
+            </li>
+        }
+        <li class="trk @(paid ? "done" : "")">
+            <i>@if (paid) { @Ui.Icon("check", 20, 2.6) }</i>
+            <b>Paid</b>
+            <span>@(paid && pay!.PaidAt != null ? pay.PaidAt.Value.ToLocalTime().ToString("HH:mm") : paid ? "Done" : "")&nbsp;</span>
+        </li>
+    </ol>
+}
+
+<div class="od">
+    <section aria-label="What was ordered">
+        @foreach (var l in lines)
+        {
+            <div class="oline">
+                @if (l.IsSet && string.IsNullOrWhiteSpace(l.ImageUrl))
+                {
+                    @Ui.Plate("d-house", "linen", "round")
+                }
+                else
+                {
+                    @Ui.Pic(l.ImageUrl, l.PicName, l.Category, "round", decorative: true)
+                }
+                <div>
+                    <h3>@l.Title × @l.Quantity</h3>
+                    @if (!string.IsNullOrWhiteSpace(l.Sub)) { <p>@l.Sub</p> }
+                    @if (l.Saved > 0) { <small class="saved">An offer took @Ui.Rm2(l.Saved) off this</small> }
+                </div>
+                <b>@Ui.Rm(l.Amount)</b>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(o.Notes))
+        {
+            <div class="kitchen-note">
+                <b>@(staffView ? "Note for the kitchen" : "Your note for the kitchen")</b>
+                <p>@o.Notes</p>
+            </div>
+        }
+    </section>
+
+    <aside class="recv" aria-label="Receipt">
+        <div class="printed">
+            <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+            <h3 class="rc-title">Receipt</h3>
+            <p class="rc-brand">@Brand.Name · Order #@o.Id</p>
+            <dl class="kv">
+                <dt>Subtotal</dt>
+                <dd>@Ui.Rm2(o.SubTotal)</dd>
+                @if (o.ServiceChargeAmount > 0)
+                {
+                    <dt>Service charge</dt>
+                    <dd>@Ui.Rm2(o.ServiceChargeAmount)</dd>
+                }
+                @if (o.DiscountAmount > 0)
+                {
+                    <dt class="disc">@(string.IsNullOrWhiteSpace(Model.CodeUsed) ? "Offers" : "Promo " + Model.CodeUsed.ToUpperInvariant())</dt>
+                    <dd class="disc">− @Ui.Rm2(o.DiscountAmount)</dd>
+                }
+                @if (o.TaxAmount > 0)
+                {
+                    <dt>Tax</dt>
+                    <dd>@Ui.Rm2(o.TaxAmount)</dd>
+                }
+                <dt class="tot">Total</dt>
+                <dd class="tot">@Ui.Rm2(o.TotalAmount)</dd>
+
+                @if (refunded)
+                {
+                    <dt>Payment</dt>
+                    <dd>@(staffView ? "Refunded" : "Returned to you")</dd>
+                }
+                else if (paid)
+                {
+                    <dt>Paid by</dt>
+                    <dd>@OrderView.Method(pay)</dd>
+                    @if (pay!.PaidAt != null)
+                    {
+                        <dt>Paid on</dt>
+                        <dd>@pay.PaidAt.Value.ToLocalTime().ToString("d MMM yyyy, HH:mm")</dd>
+                    }
+                }
+                else if (!cancelled)
+                {
+                    <dt>To pay</dt>
+                    <dd>At the restaurant</dd>
+                }
+                @if (staffView && !string.IsNullOrWhiteSpace(pay?.TransactionReference))
+                {
+                    <dt>Reference</dt>
+                    <dd class="ref">@pay!.TransactionReference</dd>
+                }
+            </dl>
+
+            @if (Model.IsOwner && !cancelled)
+            {
+                if (Model.PointsAdded > 0)
+                {
+                    <div class="earn">
+                        @Ui.Icon("crown", 22, 1.6)
+                        <span><b>+@Model.PointsAdded.ToString("N0") points</b> added to your Rewards.</span>
+                    </div>
+                }
+                else if (Model.PointsToCome > 0)
+                {
+                    <div class="earn soft">
+                        @Ui.Icon("crown", 22, 1.6)
+                        <span>You will earn <b>@Model.PointsToCome.ToString("N0") points</b> once this order is @(paid ? "finished" : "paid and finished").</span>
+                    </div>
+                }
+            }
+
+            <div class="acts no-print">
+                @if (Model.CanReview)
+                {
+                    <a class="btn btn-wine" asp-page="/Feedback/Create" asp-route-orderId="@o.Id">Tell us how it was</a>
+                }
+                else if (Model.AlreadyReviewed)
+                {
+                    <p class="muted thanks">Thank you, your review is in. <a class="link" asp-page="/Feedback/Index">See my reviews</a></p>
+                }
+                @if (audience == "staff" && !paid && !cancelled)
+                {
+                    <a class="btn btn-wine" asp-page="/Staff/Billing" asp-route-SearchOrderId="@o.Id">Take payment</a>
+                }
+                @if (Model.CanCancel)
+                {
+                    <button type="button" class="btn btn-danger" data-dialog-open="cancelOrderDlg">Cancel this order</button>
+                }
+                else if (!staffView && !cancelled && o.Status != OrderStatus.Completed)
+                {
+                    <p class="muted fine">The kitchen has started this order. To change or cancel it, please ask your server or call us.</p>
+                }
+            </div>
+        </div>
+    </aside>
+</div>
+
+@if (Model.CanCancel)
+{
+    <dialog class="modal" id="cancelOrderDlg" style="--w:520px" aria-labelledby="cancelOrderTitle">
+        <div class="modal-head">
+            <h2 id="cancelOrderTitle">Cancel order #@o.Id?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <form method="post" asp-page-handler="Cancel" asp-route-id="@o.Id" id="cancelOrderForm">
+            <p style="font-weight:600">@OrderView.Summary(o)</p>
+            <p class="muted" style="margin-top:8px">
+                @if (paidOnline)
+                {
+                    <text>@Ui.Rm2(pay!.Amount) goes back to the card or bank it was paid from. Your bank decides how long that takes, usually a few working days.</text>
+                }
+                else if (paid)
+                {
+                    <text>This order has already been paid at the restaurant, so the team will settle the money with you directly.</text>
+                }
+                else
+                {
+                    <text>Nothing has been charged for it.</text>
+                }
+            </p>
+        </form>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep the order</button>
+            <button type="submit" form="cancelOrderForm" class="btn btn-danger">Cancel order</button>
+        </div>
+    </dialog>
+}

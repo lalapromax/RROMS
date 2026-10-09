@@ -1,99 +1,70 @@
-@page "{id:int}"
+@page
 @model RROMS.Pages.Orders.DetailsModel
+@using RROMS.Models
 @{
-    ViewData["Title"] = "Order #" + Model.Order?.Id;
+    var o = Model.Order;
+    ViewData["Title"] = "Order #" + o.Id;
+
+    var audience = ViewData["Audience"] as string ?? "guest";
+    var app = audience != "guest";
+    var placed = o.OrderDate.ToLocalTime();
+    var pill = OrderView.Pill(o);
+    var takeaway = o.OrderType == OrderType.Takeaway;
+
+    // Where the "back" link goes depends on whose shell this is: a guest's orders, the staff order board, or the admin overview.
+    var back = audience switch { "staff" => "Orders", "admin" => "Monitoring", _ => "My orders" };
+
+    string Lead()
+    {
+        var day = placed.ToString("dddd d MMMM yyyy");
+        if (audience == "guest")
+            return takeaway || Model.PartySize == null
+                ? day + ", to collect."
+                : day + ", for your table of " + OrderView.Words(Model.PartySize.Value) + ".";
+        var who = string.IsNullOrWhiteSpace(o.Customer?.FullName) ? "Guest" : o.Customer!.FullName;
+        var where = takeaway ? "to collect" : o.Table != null ? "Table " + o.Table.TableNumber : "table to be set";
+        return $"{who}, {day}, {where}.";
+    }
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/OrderDetails.css" asp-append-version="true" />
 }
 
-@if (Model.Order == null)
+@if (app)
 {
-    <p>Order not found.</p>
+    <div class="wrap main stage">
+        <div class="page-head">
+            <div>
+                <p class="crumb no-print">
+                    @if (audience == "staff") { <a asp-page="/Staff/Orders">@back</a> }
+                    else { <a asp-page="/Admin/Monitoring">@back</a> }
+                    / #@o.Id
+                </p>
+                <h1>Order #@o.Id</h1>
+                <p>@Lead()</p>
+            </div>
+            <div class="row-acts no-print">
+                <span class="st @pill.Css">@pill.Text</span>
+                <button type="button" class="btn btn-line btn-sm" data-print>@Ui.Icon("dl", 16, 1.6) Receipt</button>
+            </div>
+        </div>
+        <partial name="_OrderBody" model="Model" />
+    </div>
 }
 else
 {
-    var o = Model.Order;
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <section class="wrap page-top">
         <div>
-            <p class="rroms-section-eyebrow mb-1">Receipt</p>
-            <h1 class="h3 mb-0">Order #@o.Id</h1>
+            <p class="crumb no-print"><a asp-page="/Orders/Index">@back</a> / #@o.Id</p>
+            <h1>Order #@o.Id</h1>
+            <p class="lead-it">@Lead()</p>
         </div>
-        <span class="status-badge status-@o.Status.ToString().ToLower() fs-6">@o.Status</span>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="rroms-card p-4">
-                <table class="table rroms-table mb-0">
-                    <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Subtotal</th></tr></thead>
-                    <tbody>
-                        @foreach (var item in o.OrderItems)
-                        {
-                            <tr>
-                                <td>
-                                    @item.ItemNameSnapshot
-                                    @if (!string.IsNullOrWhiteSpace(item.SpecialInstructions))
-                                    {
-                                        <div class="small text-muted-warm">@item.SpecialInstructions</div>
-                                    }
-                                </td>
-                                <td>@item.Quantity</td>
-                                <td>@item.UnitPrice.ToString("C")</td>
-                                <td>@item.Subtotal.ToString("C")</td>
-                            </tr>
-                        }
-                    </tbody>
-                    <tfoot>
-                        <tr><td colspan="3" class="text-end">Subtotal</td><td>@o.SubTotal.ToString("C")</td></tr>
-                        <tr><td colspan="3" class="text-end">Tax</td><td>@o.TaxAmount.ToString("C")</td></tr>
-                        <tr class="fw-semibold"><td colspan="3" class="text-end">Total</td><td>@o.TotalAmount.ToString("C")</td></tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            @if (Model.CanCancel)
-            {
-                <form method="post" asp-page-handler="Cancel" asp-route-id="@o.Id" class="mt-3" onsubmit="return confirm('Cancel this order?');">
-                    <button type="submit" class="btn btn-outline-danger">Cancel order</button>
-                </form>
-            }
-
-            @if (o.Status == OrderStatus.Completed)
-            {
-                <a asp-page="/Feedback/Create" asp-route-orderId="@o.Id" class="btn btn-herb mt-3">Leave feedback for this order</a>
-            }
+        <div class="head-acts no-print">
+            <span class="st @pill.Css">@pill.Text</span>
+            <button type="button" class="btn btn-line btn-sm" data-print>@Ui.Icon("dl", 16, 1.6) Receipt</button>
         </div>
-
-        <div class="col-lg-4">
-            <div class="rroms-card p-4 mb-3">
-                <h2 class="h6 mb-3">Order info</h2>
-                <p class="small mb-1"><strong>Placed:</strong> @o.OrderDate.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</p>
-                <p class="small mb-1"><strong>Type:</strong> @o.OrderType</p>
-                @if (o.Table != null)
-                {
-                    <p class="small mb-1"><strong>Table:</strong> @o.Table.TableNumber</p>
-                }
-                @if (!string.IsNullOrWhiteSpace(o.Notes))
-                {
-                    <p class="small mb-0"><strong>Notes:</strong> @o.Notes</p>
-                }
-            </div>
-
-            <div class="rroms-card p-4">
-                <h2 class="h6 mb-3">Payment</h2>
-                @if (o.Payment != null)
-                {
-                    <p class="small mb-1"><strong>Method:</strong> @o.Payment.Method</p>
-                    <p class="small mb-1"><strong>Status:</strong> <span class="status-badge status-@o.Payment.Status.ToString().ToLower()">@o.Payment.Status</span></p>
-                    <p class="small mb-1"><strong>Amount:</strong> @o.Payment.Amount.ToString("C")</p>
-                    @if (!string.IsNullOrWhiteSpace(o.Payment.TransactionReference))
-                    {
-                        <p class="small mb-0"><strong>Reference:</strong> @o.Payment.TransactionReference</p>
-                    }
-                }
-                else
-                {
-                    <p class="small text-muted-warm mb-0">No payment record.</p>
-                }
-            </div>
-        </div>
+    </section>
+    <div class="wrap main">
+        <partial name="_OrderBody" model="Model" />
     </div>
 }

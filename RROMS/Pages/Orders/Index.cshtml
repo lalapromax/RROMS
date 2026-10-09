@@ -1,38 +1,87 @@
 @page
 @model RROMS.Pages.Orders.IndexModel
+@using RROMS.Models
 @{
-    ViewData["Title"] = "My Orders";
+    ViewData["Title"] = "My orders";
+    var filters = new[] { ("all", "All"), ("paid", "Paid"), ("unpaid", "Unpaid"), ("cancelled", "Cancelled") };
 }
-<h1 class="h3 mb-4">My Orders</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/MyOrders.css" asp-append-version="true" />
+}
 
-@if (!Model.Orders.Any())
-{
-    <div class="rroms-card p-5 text-center text-muted-warm">
-        You haven't placed any orders yet. <a asp-page="/Menu/Index">Browse the menu</a>.
+<section class="wrap page-top">
+    <div>
+        <h1>My orders</h1>
+        <p class="lead-it">Everything you have ordered with us.</p>
     </div>
-}
-else
-{
-    <div class="table-responsive rroms-card p-2">
-        <table class="table rroms-table mb-0 align-middle">
-            <thead>
-                <tr><th>Order #</th><th>Date</th><th>Type</th><th>Items</th><th>Total</th><th>Status</th><th>Payment</th><th></th></tr>
-            </thead>
-            <tbody>
+</section>
+
+<div class="wrap main">
+    @if (Model.EverOrdered == 0)
+    {
+        <div class="empty-card">
+            <h2>No orders yet</h2>
+            <p>When you order from the menu, it will be kept here with its receipt.</p>
+            <a class="btn btn-wine" asp-page="/Menu/Index">See the menu</a>
+        </div>
+    }
+    else
+    {
+        <form method="get" class="ofil" role="search" aria-label="Find an order">
+            <input type="hidden" name="Filter" value="@Model.Filter" />
+            <nav class="chips" aria-label="Show orders">
+                @foreach (var (key, label) in filters)
+                {
+                    <a class="chipx@(Model.Filter == key ? " on" : "")" asp-page="/Orders/Index" asp-route-filter="@(key == "all" ? null : key)" asp-route-q="@Model.Q"
+                       aria-current="@(Model.Filter == key ? "true" : null)">@label</a>
+                }
+            </nav>
+            <span style="flex:1"></span>
+            <div class="field ofil-search">
+                <input class="in" type="search" name="Q" value="@Model.Q" inputmode="numeric" maxlength="12" placeholder="Search by order number" aria-label="Search orders by order number" />
+            </div>
+            <button type="submit" class="sr-only">Search</button>
+        </form>
+
+        @if (Model.Matching == 0)
+        {
+            <div class="empty-card">
+                <h2>No orders match</h2>
+                <p>Nothing in your orders fits that filter@(string.IsNullOrWhiteSpace(Model.Q) ? "" : " and order number").</p>
+                <a class="btn btn-line" asp-page="/Orders/Index">Show every order</a>
+            </div>
+        }
+        else
+        {
+            <div class="olist">
                 @foreach (var o in Model.Orders)
                 {
-                    <tr>
-                        <td>#@o.Id</td>
-                        <td>@o.OrderDate.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</td>
-                        <td>@o.OrderType</td>
-                        <td>@o.OrderItems.Sum(i => i.Quantity) item(s)</td>
-                        <td>@o.TotalAmount.ToString("C")</td>
-                        <td><span class="status-badge status-@o.Status.ToString().ToLower()">@o.Status</span></td>
-                        <td><span class="status-badge status-@o.Payment?.Status.ToString().ToLower()">@(o.Payment?.Status.ToString() ?? "-")</span></td>
-                        <td><a asp-page="/Orders/Details" asp-route-id="@o.Id" class="btn btn-sm btn-outline-primary">View</a></td>
-                    </tr>
+                    var pill = OrderView.Pill(o);
+                    var when = o.OrderDate.ToLocalTime();
+                    <a class="orow" asp-page="/Orders/Details" asp-route-id="@o.Id" aria-label="Order @o.Id, @pill.Text, @Ui.Rm2(o.TotalAmount)">
+                        <div class="thumbs" aria-hidden="true">
+                            @foreach (var t in OrderView.Thumbs(o))
+                            {
+                                @Ui.Pic(t.MenuItem?.ImageUrl, t.ItemNameSnapshot, t.MenuItem?.MenuCategory?.Name, "round", decorative: true)
+                            }
+                        </div>
+                        <div class="no">
+                            <b>#@o.Id</b>
+                            <small>@when.ToString("d MMM yyyy, HH:mm")</small>
+                        </div>
+                        <p class="sum">@OrderView.Summary(o)</p>
+                        <span class="st @pill.Css">@pill.Text</span>
+                        <span class="amt">@Ui.Rm2(o.TotalAmount)</span>
+                    </a>
                 }
-            </tbody>
-        </table>
-    </div>
-}
+            </div>
+            <p class="muted showing" role="status">
+                Showing @Model.Orders.Count of @Model.Matching @(Model.Matching == 1 ? "order" : "orders").
+                @if (Model.Orders.Count < Model.Matching)
+                {
+                    <a class="link" asp-page="/Orders/Index" asp-route-filter="@(Model.Filter == "all" ? null : Model.Filter)" asp-route-q="@Model.Q" asp-route-all="true">Show all</a>
+                }
+            </p>
+        }
+    }
+</div>

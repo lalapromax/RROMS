@@ -1,172 +1,226 @@
 @page
 @model RROMS.Pages.Orders.CartModel
+@using RROMS.ViewModels
 @{
-    ViewData["Title"] = "Your Cart";
-}
-<h1 class="h3 mb-4">Your cart</h1>
+    ViewData["Title"] = "Your cart";
+    var q = Model.Quote;
+    var empty = q.Lines.Count == 0;
+    var errs = ViewData.ModelState.TryGetValue(string.Empty, out var e) ? e.Errors.Select(x => x.ErrorMessage).ToList() : new List<string>();
+    var method = Model.Checkout.PaymentMethod;
+    var online = Model.StripeEnabled;
+    var blocked = empty || q.HasProblem;
 
-@if (!Model.CartItems.Any())
-{
-    <div class="rroms-card p-5 text-center text-muted-warm">
-        Your cart is empty. <a asp-page="/Menu/Index">Browse the menu</a> to get started.
-    </div>
+    string Pretty(CartItemVM c) => c.Kind switch
+    {
+        CartKind.WineGlass => "A glass of " + c.Name,
+        CartKind.WineBottle => "A bottle of " + c.Name,
+        _ => c.Name
+    };
+    string Under(CartItemVM c) => c.Kind switch
+    {
+        CartKind.SetMenu => string.Join(" · ", c.Picks.Select(p => p.Name)),
+        CartKind.WineGlass => "Cellar · by the glass",
+        CartKind.WineBottle => "Cellar · bottle",
+        _ => c.CategoryName ?? ""
+    };
+    string Booking(Reservation r) =>
+        $"{r.ReservationDateTime:dddd d MMMM}, {r.ReservationDateTime:HH:mm} · {(r.Table != null && r.Status != ReservationStatus.Pending ? "Table " + r.Table.TableNumber : "table to be set")} · {r.PartySize} {(r.PartySize == 1 ? "guest" : "guests")}";
 }
-else
-{
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="rroms-card p-3">
-                @foreach (var item in Model.CartItems)
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Cart.css" asp-append-version="true" />
+}
+
+<section class="wrap page-top">
+    <div>
+        <p class="crumb"><a asp-page="/Menu/Index">Menu</a> / Cart</p>
+        <h1>Your cart</h1>
+        <p class="lead-it">Check it over, then send it to the kitchen.</p>
+    </div>
+</section>
+
+<div class="wrap main">
+    <form method="post" class="cart@(empty ? " is-empty" : "")" id="checkoutForm" data-cart
+          data-stripe-key="@(Model.StripeEnabled ? Model.StripePublishableKey : "")">
+        @* Pressing Enter in the promo box must apply the code, not trigger the first quantity button below. *@
+        <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" asp-page-handler="ApplyCode" formnovalidate>Apply promo code</button>
+
+        <section aria-label="Your order">
+            @if (errs.Count > 0)
+            {
+                <div class="form-alert" role="alert">
+                    @Ui.Icon("warn", 18, 2)
+                    <div>@foreach (var m in errs) { <p>@m</p> }</div>
+                </div>
+            }
+
+            @if (empty)
+            {
+                <div class="empty-card">
+                    <h2>Your cart is empty</h2>
+                    <p>Add dishes, a set menu or a glass from the cellar and they will wait here.</p>
+                    <a class="btn btn-wine" asp-page="/Menu/Index">See the menu</a>
+                </div>
+            }
+            else
+            {
+                <div class="for">
+                    @if (Model.Reservations.Count > 1)
+                    {
+                        <div>
+                            <label for="resSelect"><b>For your reservation</b></label>
+                            <select class="in" id="resSelect" name="Checkout.ReservationId" style="margin-top:8px">
+                                @foreach (var r in Model.Reservations)
+                                {
+                                    <option value="@r.Id" selected="@(r.Id == Model.SelectedReservation?.Id)">@Booking(r)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else if (Model.SelectedReservation != null)
+                    {
+                        <div>
+                            <b>For your reservation</b>
+                            <span class="muted">@Booking(Model.SelectedReservation)</span>
+                            <input type="hidden" name="Checkout.ReservationId" value="@Model.SelectedReservation.Id" />
+                        </div>
+                        <a class="link" asp-page="/Reservations/Index">Change</a>
+                    }
+                    else
+                    {
+                        <div>
+                            <b>No table booked yet</b>
+                            <span class="muted">Book a table to have this brought to you. Without one, the order is for you to collect.</span>
+                        </div>
+                        <a class="link" asp-page="/Reservations/Create">Book a table</a>
+                    }
+                </div>
+
+                @foreach (var ql in q.Lines)
                 {
-                    <div class="d-flex align-items-center gap-3 py-2 @(item != Model.CartItems.Last() ? "border-bottom" : "")" style="border-color:var(--sand) !important;">
-                        <div class="cart-line-media">
-                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                    var c = ql.Cart;
+                    <div class="line@(ql.Ok ? "" : " has-problem")">
+                        @if (c.Kind == CartKind.SetMenu && string.IsNullOrWhiteSpace(c.ImageUrl))
+                        {
+                            @Ui.Plate("d-house", "linen", "round")
+                        }
+                        else
+                        {
+                            @Ui.Pic(c.ImageUrl, c.Name, c.CategoryName, "round", alt: Pretty(c))
+                        }
+                        <div>
+                            <h3>@Pretty(c)</h3>
+                            <p>@Under(c)</p>
+                            @if (!ql.Ok)
                             {
-                                <img src="@item.ImageUrl" alt="@item.Name" />
+                                <p class="line-warn" role="alert">@Ui.Icon("warn", 15, 2) @ql.Problem</p>
                             }
-                            else
-                            {
-                                <span>&#x1F37D;&#xFE0F;</span>
-                            }
+                            <div class="qty" role="group" aria-label="Quantity of @Pretty(c)">
+                                <button type="submit" asp-page-handler="SetQty" asp-route-key="@c.Key" asp-route-qty="@(c.Quantity - 1)" formnovalidate aria-label="One fewer @Pretty(c)">−</button>
+                                <span aria-live="polite">@c.Quantity</span>
+                                <button type="submit" asp-page-handler="SetQty" asp-route-key="@c.Key" asp-route-qty="@(c.Quantity + 1)" formnovalidate disabled="@(c.Quantity >= 50)" aria-label="One more @Pretty(c)">+</button>
+                            </div>
+                            <p class="rm"><button type="submit" class="link" asp-page-handler="Remove" asp-route-key="@c.Key" formnovalidate>Remove</button></p>
                         </div>
-                        <div class="flex-grow-1">
-                            <div class="fw-semibold">@item.Name</div>
-                            @if (!string.IsNullOrWhiteSpace(item.SpecialInstructions))
-                            {
-                                <div class="small text-muted-warm">"@item.SpecialInstructions"</div>
-                            }
-                            <div class="small text-muted-warm">@item.UnitPrice.ToString("C") each</div>
-                        </div>
-                        <form method="post" asp-page-handler="UpdateQuantity" class="d-flex align-items-center gap-1">
-                            <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
-                            <input type="number" name="quantity" value="@item.Quantity" min="0" max="20" class="form-control form-control-sm" style="width:60px;" />
-                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Update quantity"><i class="bi bi-arrow-repeat"></i></button>
-                        </form>
-                        <div class="fw-semibold text-end" style="min-width:80px;">@item.Subtotal.ToString("C")</div>
-                        <form method="post" asp-page-handler="Remove">
-                            <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove"><i class="bi bi-trash"></i></button>
-                        </form>
+                        <div class="pr">@Ui.Rm(ql.Gross)</div>
                     </div>
                 }
-            </div>
-        </div>
 
-        <div class="col-lg-5">
-            <div class="rroms-card p-4">
-                <h2 class="h5 mb-3">Checkout</h2>
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-                <div class="d-flex justify-content-between small mb-1">
-                    <span>Subtotal</span><span>@Model.SubTotal.ToString("C")</span>
-                </div>
-                <div class="d-flex justify-content-between small mb-2">
-                    <span>Estimated tax</span><span>@Model.EstimatedTax.ToString("C")</span>
-                </div>
-                <div class="d-flex justify-content-between fw-semibold mb-3">
-                    <span>Total</span><span>@Model.EstimatedTotal.ToString("C")</span>
-                </div>
-                <hr class="rroms-divider" style="margin:1rem 0;" />
-
-                <form method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Order type</label>
-                        <select asp-for="Checkout.OrderType" class="form-select" id="orderTypeSelect">
-                            <option value="0">Dine-in (linked to a reservation)</option>
-                            <option value="1">Takeaway</option>
-                        </select>
+                <div class="form" style="margin-top:18px">
+                    <div class="field">
+                        <label for="kitchenNotes">Notes for the kitchen</label>
+                        <textarea class="in" id="kitchenNotes" name="Checkout.Notes" rows="2" maxlength="400" placeholder="No coriander on the tartare, please.">@Model.Checkout.Notes</textarea>
                     </div>
-                    <div class="mb-3" id="reservationSelectGroup">
-                        <label asp-for="Checkout.ReservationId" class="form-label">Reservation</label>
-                        <select asp-for="Checkout.ReservationId" class="form-select">
-                            <option value="">Select a reservation...</option>
-                            @foreach (var r in Model.UpcomingReservations)
-                            {
-                                <option value="@r.Id">@r.ReservationDateTime.ToString("dd MMM, h:mm tt") - Table @r.Table?.TableNumber</option>
-                            }
-                        </select>
+                </div>
+            }
+        </section>
 
-                        <button type="button" class="btn btn-sm btn-link px-0 mt-1" data-bs-toggle="collapse" data-bs-target="#quickReserveBox">
-                            @(Model.UpcomingReservations.Any() ? "Need a different table?" : "No upcoming reservation?") Reserve one now
-                        </button>
+        @if (!empty)
+        {
+            <aside class="pay" aria-label="Payment">
+                <div class="printed">
+                    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+                    <h3>Payment</h3>
 
-                        <div class="collapse @(Model.UpcomingReservations.Any() ? "" : "show")" id="quickReserveBox">
-                            <div class="p-3 mt-1" style="background:var(--paper); border:1px solid var(--sand); border-radius:10px;">
-                                <p class="small fw-semibold mb-2">Reserve a table for this order</p>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label class="form-label small mb-0">Date</label>
-                                        <input asp-for="QuickReserve.ReservationDate" type="date" class="form-control form-control-sm" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label small mb-0">Time</label>
-                                        <input asp-for="QuickReserve.ReservationTime" type="time" class="form-control form-control-sm" />
-                                    </div>
-                                    <div class="col-7">
-                                        <label class="form-label small mb-0">Party size</label>
-                                        <input asp-for="QuickReserve.PartySize" type="number" min="1" max="30" class="form-control form-control-sm" />
-                                    </div>
-                                    <div class="col-5 d-flex align-items-end">
-                                        <button type="submit" asp-page-handler="QuickReserve" formnovalidate class="btn btn-sm btn-herb w-100">Reserve</button>
-                                    </div>
-                                </div>
-                                <div class="form-text">We check availability instantly and attach the table to this order.</div>
-                            </div>
-                        </div>
+                    <div class="promo">
+                        <input class="in@(q.CodeEntered != null && !q.CodeApplied ? " err" : "")" type="text" name="Checkout.PromoCode" value="@Model.Checkout.PromoCode" maxlength="30"
+                               aria-label="Promo code" placeholder="Promo code" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+                        <button type="submit" class="btn btn-line btn-sm" asp-page-handler="ApplyCode" formnovalidate>Apply</button>
+                    </div>
+                    @if (q.CodeApplied)
+                    {
+                        <p class="applied">@Ui.Icon("check", 16, 2.4) @q.CodeMessage</p>
+                    }
+                    else if (!string.IsNullOrEmpty(q.CodeMessage))
+                    {
+                        <p class="applied bad" role="status">@Ui.Icon("warn", 16, 2) @q.CodeMessage</p>
+                    }
 
-                        @if (!Model.UpcomingReservations.Any())
+                    <div class="tot">
+                        <span>Subtotal</span><span>@Ui.Rm2(q.SubTotal)</span>
+                        @if (q.ServiceCharge > 0)
                         {
-                            <div class="form-text mt-1">Prefer a dedicated page? <a asp-page="/Reservations/Create">Book a table</a> or choose Takeaway above.</div>
+                            <span>Service charge (@q.ServiceChargePercent.ToString("0.##")%)</span><span>@Ui.Rm2(q.ServiceCharge)</span>
                         }
-                    </div>
-                    <div class="mb-3">
-                        <label asp-for="Checkout.Notes" class="form-label">Notes for the kitchen (optional)</label>
-                        <textarea asp-for="Checkout.Notes" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payment method</label>
-                        <select asp-for="Checkout.PaymentMethod" class="form-select" id="paymentMethodSelect">
-                            <option value="0">Cash (pay at restaurant)</option>
-                            <option value="1">Card</option>
-                            <option value="2">Online payment</option>
-                        </select>
-                    </div>
-                    <div id="cardFieldsGroup" class="d-none">
-                        <div class="mb-2">
-                            <input asp-for="Checkout.CardName" class="form-control" placeholder="Name on card" />
-                        </div>
-                        <div class="mb-2">
-                            <input asp-for="Checkout.CardNumber" class="form-control" placeholder="Card number (simulated)" />
-                        </div>
-                        <div class="mb-3">
-                            <input asp-for="Checkout.CardExpiry" class="form-control" placeholder="MM/YY" />
-                        </div>
-                        <p class="small text-muted-warm">This is a simulated payment for coursework purposes - no real charge is made.</p>
+                        @if (q.Discount > 0)
+                        {
+                            <span class="disc">@(q.CodeApplied ? "Promo " + q.CodeEntered!.ToUpperInvariant() : "Offers")</span><span class="disc">− @Ui.Rm2(q.Discount)</span>
+                        }
+                        @if (q.Tax > 0)
+                        {
+                            <span>Tax (@q.TaxPercent.ToString("0.##")%)</span><span>@Ui.Rm2(q.Tax)</span>
+                        }
+                        <span class="sum">Total</span><span class="sum" id="cartTotal">@Ui.Rm2(q.Total)</span>
                     </div>
 
-                    <button type="submit" asp-page-handler="Checkout" class="btn btn-primary w-100">Place order</button>
-                </form>
-            </div>
-        </div>
-    </div>
-}
+                    <div class="earn">
+                        @Ui.Icon("crown", 22, 1.6)
+                        <span>You will earn <b>@q.PointsEstimate.ToString("N0") points</b> with this order.</span>
+                    </div>
+
+                    <fieldset class="method" aria-label="Pay with">
+                        <legend class="sr-only">Pay with</legend>
+                        <label class="opt@(online ? "" : " off")">
+                            <input type="radio" name="Checkout.PaymentMethod" value="OnlinePayment" checked="@(method == PaymentMethod.OnlinePayment)" disabled="@(!online)" />
+                            <span><span class="ck"><i class="rad"></i>Card, paid securely online</span></span>
+                            @Ui.Icon("card", 22, 1.6)
+                        </label>
+                        <label class="opt@(online ? "" : " off")">
+                            <input type="radio" name="Checkout.PaymentMethod" value="OnlineBanking" checked="@(method == PaymentMethod.OnlineBanking)" disabled="@(!online)" />
+                            <span><span class="ck"><i class="rad"></i>Online banking</span></span>
+                            @Ui.Icon("globe", 22, 1.6)
+                        </label>
+                        <label class="opt">
+                            <input type="radio" name="Checkout.PaymentMethod" value="Cash" checked="@(method == PaymentMethod.Cash)" />
+                            <span><span class="ck"><i class="rad"></i>Pay at the restaurant</span></span>
+                            @Ui.Icon("receipt", 22, 1.6)
+                        </label>
+                    </fieldset>
+                    @if (!online)
+                    {
+                        <p class="hint-line">Paying online is not switched on yet. Please pay at the restaurant.</p>
+                    }
+                    <p class="hint-line" data-banking-note hidden="@(method != PaymentMethod.OnlineBanking)">You will go to your bank's page to approve the payment, then come straight back here.</p>
+
+                    <div id="payment-element" class="pay-el" hidden></div>
+                    <p id="paymentElementErrors" class="err-msg" role="alert"></p>
+                    <input type="hidden" name="Checkout.StripePaymentIntentId" id="stripePaymentIntentIdInput" />
+
+                    <button type="submit" id="placeOrderBtn" class="btn btn-wine btn-lg" asp-page-handler="Checkout" disabled="@blocked" style="width:100%;margin-top:22px">Place order</button>
+                    @if (q.HasProblem)
+                    {
+                        <p class="fine-line">Take out the item marked above to place your order.</p>
+                    }
+                    <p class="stripe">Card payments are handled by Stripe. We never see your card number.</p>
+                </div>
+            </aside>
+        }
+    </form>
+</div>
 
 @section Scripts {
-    <script>
-        function toggleCheckoutFields() {
-            var orderType = document.getElementById('orderTypeSelect');
-            var reservationGroup = document.getElementById('reservationSelectGroup');
-            var payment = document.getElementById('paymentMethodSelect');
-            var cardFields = document.getElementById('cardFieldsGroup');
-            if (orderType) reservationGroup.style.display = orderType.value === '0' ? '' : 'none';
-            if (payment) cardFields.classList.toggle('d-none', payment.value === '0');
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-            toggleCheckoutFields();
-            var orderType = document.getElementById('orderTypeSelect');
-            var payment = document.getElementById('paymentMethodSelect');
-            if (orderType) orderType.addEventListener('change', toggleCheckoutFields);
-            if (payment) payment.addEventListener('change', toggleCheckoutFields);
-        });
-    </script>
+    @if (Model.StripeEnabled)
+    {
+        <script src="https://js.stripe.com/v3/"></script>
+    }
+    <script src="~/js/cart.js" asp-append-version="true"></script>
 }
