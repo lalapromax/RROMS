@@ -1,0 +1,129 @@
+@page
+@model RROMS.Pages.Admin.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+    string Day(DayOfWeek d) => d.ToString();
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Settings</h1>
+            <p>Contact details, booking rules, tax and opening hours. Changes apply to the whole site straight away.</p>
+        </div>
+    </div>
+
+    <div class="grid2 g75">
+        <div class="stack">
+            <section class="panel" aria-labelledby="prof">
+                <h2 id="prof" style="font-size:32px;font-weight:500">Restaurant profile</h2>
+                <div class="note-box name-lock">
+                    <span class="nl-icon">@Ui.Icon("lock", 22, 1.6)</span>
+                    <div>
+                        <span class="nl-label">Restaurant name</span>
+                        <b class="nl-name">@Brand.Name</b>
+                        <span class="nl-note">Set in the system and shown on every page, email and receipt. It cannot be changed here.</span>
+                    </div>
+                </div>
+
+                <form method="post" asp-page-handler="SaveProfile" class="form" style="margin-top:20px" novalidate>
+                    <div class="field">
+                        <label for="ad">Address</label>
+                        <input class="in@(ViewData.ModelState["Input.Address"]?.Errors.Count > 0 ? " err" : "")" id="ad" asp-for="Input.Address" maxlength="300" autocomplete="street-address" />
+                        <span asp-validation-for="Input.Address" class="err-msg"></span>
+                    </div>
+                    <div class="f-row f-2">
+                        <div class="field">
+                            <label for="ph">Phone</label>
+                            <input class="in@(ViewData.ModelState["Input.Phone"]?.Errors.Count > 0 ? " err" : "")" id="ph" asp-for="Input.Phone" maxlength="30" inputmode="tel" />
+                            <span asp-validation-for="Input.Phone" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="em">Contact email</label>
+                            <input class="in@(ViewData.ModelState["Input.Email"]?.Errors.Count > 0 ? " err" : "")" id="em" asp-for="Input.Email" type="email" maxlength="120" />
+                            <span asp-validation-for="Input.Email" class="err-msg"></span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="de">Short description</label>
+                        <textarea class="in@(ViewData.ModelState["Input.Description"]?.Errors.Count > 0 ? " err" : "")" id="de" asp-for="Input.Description" rows="2" maxlength="500"></textarea>
+                        <span asp-validation-for="Input.Description" class="err-msg"></span>
+                    </div>
+                    <div class="f-row f-3">
+                        <div class="field">
+                            <label for="bl">Booking length (min)</label>
+                            <input class="in@(ViewData.ModelState["Input.ReservationDurationMinutes"]?.Errors.Count > 0 ? " err" : "")" id="bl" asp-for="Input.ReservationDurationMinutes" type="number" min="30" max="300" step="5" inputmode="numeric" />
+                            <span asp-validation-for="Input.ReservationDurationMinutes" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="ba">Book up to (days ahead)</label>
+                            <input class="in@(ViewData.ModelState["Input.MaxAdvanceBookingDays"]?.Errors.Count > 0 ? " err" : "")" id="ba" asp-for="Input.MaxAdvanceBookingDays" type="number" min="1" max="365" inputmode="numeric" />
+                            <span asp-validation-for="Input.MaxAdvanceBookingDays" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="sc">Service charge (%)</label>
+                            <input class="in@(ViewData.ModelState["Input.ServiceChargePercent"]?.Errors.Count > 0 ? " err" : "")" id="sc" asp-for="Input.ServiceChargePercent" type="number" min="0" max="30" step="0.5" inputmode="decimal" />
+                            <span asp-validation-for="Input.ServiceChargePercent" class="err-msg"></span>
+                        </div>
+                    </div>
+                    <div class="f-row f-2">
+                        <div class="field">
+                            <label for="tx">Tax rate (%)</label>
+                            <input class="in@(ViewData.ModelState["Input.TaxRatePercent"]?.Errors.Count > 0 ? " err" : "")" id="tx" asp-for="Input.TaxRatePercent" type="number" min="0" max="30" step="0.5" inputmode="decimal" />
+                            <span asp-validation-for="Input.TaxRatePercent" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="hd">Hold a table for (min)</label>
+                            <input class="in@(ViewData.ModelState["Input.HoldMinutes"]?.Errors.Count > 0 ? " err" : "")" id="hd" asp-for="Input.HoldMinutes" type="number" min="5" max="120" inputmode="numeric" />
+                            <span asp-validation-for="Input.HoldMinutes" class="err-msg"></span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-wine">Save settings</button>
+                </form>
+            </section>
+        </div>
+
+        <aside class="stack">
+            <section class="panel" aria-labelledby="hrs">
+                <h2 id="hrs" style="font-size:30px;font-weight:500">Opening hours</h2>
+                <form method="post" asp-page-handler="SaveHours" id="hoursForm">
+                    <table class="t hours-t">
+                        <thead>
+                            <tr>
+                                <th scope="col">Day</th>
+                                <th scope="col">Open and close</th>
+                                <th scope="col" class="n">Closed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var h in Model.Hours)
+                            {
+                                var d = Day(h.DayOfWeek);
+                                <tr data-day-row>
+                                    <td><b>@d</b><input type="hidden" name="hourId" value="@h.Id" /></td>
+                                    <td>
+                                        <span class="muted" data-closed-note @(h.IsClosed ? null : "hidden")>Closed all day</span>
+                                        <span class="times" data-times @(h.IsClosed ? "hidden" : null)>
+                                            <input class="in hrs-in" type="time" name="openTime" value="@h.OpenTime.ToString(@"hh\:mm")" aria-label="@d opens" />
+                                            <span class="muted">to</span>
+                                            <input class="in hrs-in" type="time" name="closeTime" value="@h.CloseTime.ToString(@"hh\:mm")" aria-label="@d closes" />
+                                        </span>
+                                    </td>
+                                    <td class="n">
+                                        <label class="ckb ckb-end"><input type="checkbox" name="closedDayIds" value="@h.Id" checked="@h.IsClosed" data-closed aria-label="@d is closed" /><i>@Ui.Icon("check", 13, 3)</i><span class="ck-m" aria-hidden="true">Closed</span></label>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <button type="submit" class="btn btn-wine" style="margin-top:16px">Save hours</button>
+                </form>
+            </section>
+            <p class="muted" style="font-size:14px">Changes to hours are recorded in the list of recent administrative actions on the Team page.</p>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin-settings.js" asp-append-version="true"></script>
+}

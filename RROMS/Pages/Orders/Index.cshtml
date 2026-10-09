@@ -1,0 +1,38 @@
+@page
+@model RROMS.Pages.Orders.IndexModel
+@{
+    ViewData["Title"] = "My Orders";
+}
+<h1 class="h3 mb-4">My Orders</h1>
+
+@if (!Model.Orders.Any())
+{
+    <div class="rroms-card p-5 text-center text-muted-warm">
+        You haven't placed any orders yet. <a asp-page="/Menu/Index">Browse the menu</a>.
+    </div>
+}
+else
+{
+    <div class="table-responsive rroms-card p-2">
+        <table class="table rroms-table mb-0 align-middle">
+            <thead>
+                <tr><th>Order #</th><th>Date</th><th>Type</th><th>Items</th><th>Total</th><th>Status</th><th>Payment</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model.Orders)
+                {
+                    <tr>
+                        <td>#@o.Id</td>
+                        <td>@o.OrderDate.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</td>
+                        <td>@o.OrderType</td>
+                        <td>@o.OrderItems.Sum(i => i.Quantity) item(s)</td>
+                        <td>@o.TotalAmount.ToString("C")</td>
+                        <td><span class="status-badge status-@o.Status.ToString().ToLower()">@o.Status</span></td>
+                        <td><span class="status-badge status-@o.Payment?.Status.ToString().ToLower()">@(o.Payment?.Status.ToString() ?? "-")</span></td>
+                        <td><a asp-page="/Orders/Details" asp-route-id="@o.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -1,0 +1,26 @@
+@* One-off messages set with TempData["StatusMessage"] (done) or TempData["ErrorMessage"] (something to fix). *@
+@{
+    var ok = TempData["StatusMessage"] as string;
+    var bad = TempData["ErrorMessage"] as string;
+}
+@if (!string.IsNullOrWhiteSpace(ok) || !string.IsNullOrWhiteSpace(bad))
+{
+    <div class="wrap flash-wrap" aria-live="polite">
+        @if (!string.IsNullOrWhiteSpace(ok))
+        {
+            <div class="flash" role="status">
+                @Ui.Icon("check", 18, 2.2)
+                <span class="grow">@ok</span>
+                <button type="button" data-dismiss aria-label="Dismiss message">@Ui.Icon("x", 14, 2)</button>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(bad))
+        {
+            <div class="flash bad" role="alert">
+                @Ui.Icon("warn", 18, 2)
+                <span class="grow">@bad</span>
+                <button type="button" data-dismiss aria-label="Dismiss message">@Ui.Icon("x", 14, 2)</button>
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,9 @@
+@* Shared <head> for every layout: fonts, the design tokens and the base styles. Each layout then adds its own bundle and the page's own file. *@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#442D1C" />
+<title>@(string.IsNullOrWhiteSpace(ViewData["Title"] as string) ? "" : ViewData["Title"] + " | ")@Brand.Name</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Hanken+Grotesk:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap">
+<link rel="stylesheet" href="~/css/blm.css" asp-append-version="true">

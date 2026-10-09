@@ -11,12 +11,14 @@ namespace RROMS.Data
         }
 
         public DbSet<DiningArea> DiningAreas => Set<DiningArea>();
+        public DbSet<OperatingHours> OperatingHours => Set<OperatingHours>();
         public DbSet<RestaurantSetting> RestaurantSettings => Set<RestaurantSetting>();
         public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
-
         public DbSet<Reservation> Reservations => Set<Reservation>();
-
+        public DbSet<Order> Orders => Set<Order>();
+        public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+        public DbSet<Collaboration> Collaborations => Set<Collaboration>();
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -29,6 +31,66 @@ namespace RROMS.Data
                 .HasForeignKey(m => m.MenuCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ---- Reservation ----
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Customer)
+                .WithMany(u => u.Reservations)
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Table)
+                .WithMany(t => t.Reservations)
+                .HasForeignKey(r => r.TableId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Reservation>()
+                .HasOne(r => r.ConfirmedByStaff)
+                .WithMany()
+                .HasForeignKey(r => r.ConfirmedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- Order ----
+            builder.Entity<Order>()
+                .HasOne(o => o.Customer)
+                .WithMany(u => u.Orders)
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.Reservation)
+                .WithMany(r => r.Orders)
+                .HasForeignKey(o => o.ReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.Table)
+                .WithMany(t => t.Orders)
+                .HasForeignKey(o => o.TableId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.HandledByStaff)
+                .WithMany()
+                .HasForeignKey(o => o.HandledByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- OrderItem ----
+            builder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<OrderItem>()
+                .HasOne(oi => oi.MenuItem)
+                .WithMany(m => m.OrderItems)
+                .HasForeignKey(oi => oi.MenuItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- Collaboration ----
+            
+            builder.Entity<Collaboration>().HasIndex(c => new { c.IsPublished, c.DisplayOrder });
         }
     }
 }

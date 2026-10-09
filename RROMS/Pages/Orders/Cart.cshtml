@@ -1,0 +1,172 @@
+@page
+@model RROMS.Pages.Orders.CartModel
+@{
+    ViewData["Title"] = "Your Cart";
+}
+<h1 class="h3 mb-4">Your cart</h1>
+
+@if (!Model.CartItems.Any())
+{
+    <div class="rroms-card p-5 text-center text-muted-warm">
+        Your cart is empty. <a asp-page="/Menu/Index">Browse the menu</a> to get started.
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="rroms-card p-3">
+                @foreach (var item in Model.CartItems)
+                {
+                    <div class="d-flex align-items-center gap-3 py-2 @(item != Model.CartItems.Last() ? "border-bottom" : "")" style="border-color:var(--sand) !important;">
+                        <div class="cart-line-media">
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="@item.Name" />
+                            }
+                            else
+                            {
+                                <span>&#x1F37D;&#xFE0F;</span>
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">@item.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(item.SpecialInstructions))
+                            {
+                                <div class="small text-muted-warm">"@item.SpecialInstructions"</div>
+                            }
+                            <div class="small text-muted-warm">@item.UnitPrice.ToString("C") each</div>
+                        </div>
+                        <form method="post" asp-page-handler="UpdateQuantity" class="d-flex align-items-center gap-1">
+                            <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
+                            <input type="number" name="quantity" value="@item.Quantity" min="0" max="20" class="form-control form-control-sm" style="width:60px;" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Update quantity"><i class="bi bi-arrow-repeat"></i></button>
+                        </form>
+                        <div class="fw-semibold text-end" style="min-width:80px;">@item.Subtotal.ToString("C")</div>
+                        <form method="post" asp-page-handler="Remove">
+                            <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="rroms-card p-4">
+                <h2 class="h5 mb-3">Checkout</h2>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>Subtotal</span><span>@Model.SubTotal.ToString("C")</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-2">
+                    <span>Estimated tax</span><span>@Model.EstimatedTax.ToString("C")</span>
+                </div>
+                <div class="d-flex justify-content-between fw-semibold mb-3">
+                    <span>Total</span><span>@Model.EstimatedTotal.ToString("C")</span>
+                </div>
+                <hr class="rroms-divider" style="margin:1rem 0;" />
+
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Order type</label>
+                        <select asp-for="Checkout.OrderType" class="form-select" id="orderTypeSelect">
+                            <option value="0">Dine-in (linked to a reservation)</option>
+                            <option value="1">Takeaway</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="reservationSelectGroup">
+                        <label asp-for="Checkout.ReservationId" class="form-label">Reservation</label>
+                        <select asp-for="Checkout.ReservationId" class="form-select">
+                            <option value="">Select a reservation...</option>
+                            @foreach (var r in Model.UpcomingReservations)
+                            {
+                                <option value="@r.Id">@r.ReservationDateTime.ToString("dd MMM, h:mm tt") - Table @r.Table?.TableNumber</option>
+                            }
+                        </select>
+
+                        <button type="button" class="btn btn-sm btn-link px-0 mt-1" data-bs-toggle="collapse" data-bs-target="#quickReserveBox">
+                            @(Model.UpcomingReservations.Any() ? "Need a different table?" : "No upcoming reservation?") Reserve one now
+                        </button>
+
+                        <div class="collapse @(Model.UpcomingReservations.Any() ? "" : "show")" id="quickReserveBox">
+                            <div class="p-3 mt-1" style="background:var(--paper); border:1px solid var(--sand); border-radius:10px;">
+                                <p class="small fw-semibold mb-2">Reserve a table for this order</p>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label small mb-0">Date</label>
+                                        <input asp-for="QuickReserve.ReservationDate" type="date" class="form-control form-control-sm" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small mb-0">Time</label>
+                                        <input asp-for="QuickReserve.ReservationTime" type="time" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-7">
+                                        <label class="form-label small mb-0">Party size</label>
+                                        <input asp-for="QuickReserve.PartySize" type="number" min="1" max="30" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-5 d-flex align-items-end">
+                                        <button type="submit" asp-page-handler="QuickReserve" formnovalidate class="btn btn-sm btn-herb w-100">Reserve</button>
+                                    </div>
+                                </div>
+                                <div class="form-text">We check availability instantly and attach the table to this order.</div>
+                            </div>
+                        </div>
+
+                        @if (!Model.UpcomingReservations.Any())
+                        {
+                            <div class="form-text mt-1">Prefer a dedicated page? <a asp-page="/Reservations/Create">Book a table</a> or choose Takeaway above.</div>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Checkout.Notes" class="form-label">Notes for the kitchen (optional)</label>
+                        <textarea asp-for="Checkout.Notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment method</label>
+                        <select asp-for="Checkout.PaymentMethod" class="form-select" id="paymentMethodSelect">
+                            <option value="0">Cash (pay at restaurant)</option>
+                            <option value="1">Card</option>
+                            <option value="2">Online payment</option>
+                        </select>
+                    </div>
+                    <div id="cardFieldsGroup" class="d-none">
+                        <div class="mb-2">
+                            <input asp-for="Checkout.CardName" class="form-control" placeholder="Name on card" />
+                        </div>
+                        <div class="mb-2">
+                            <input asp-for="Checkout.CardNumber" class="form-control" placeholder="Card number (simulated)" />
+                        </div>
+                        <div class="mb-3">
+                            <input asp-for="Checkout.CardExpiry" class="form-control" placeholder="MM/YY" />
+                        </div>
+                        <p class="small text-muted-warm">This is a simulated payment for coursework purposes - no real charge is made.</p>
+                    </div>
+
+                    <button type="submit" asp-page-handler="Checkout" class="btn btn-primary w-100">Place order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toggleCheckoutFields() {
+            var orderType = document.getElementById('orderTypeSelect');
+            var reservationGroup = document.getElementById('reservationSelectGroup');
+            var payment = document.getElementById('paymentMethodSelect');
+            var cardFields = document.getElementById('cardFieldsGroup');
+            if (orderType) reservationGroup.style.display = orderType.value === '0' ? '' : 'none';
+            if (payment) cardFields.classList.toggle('d-none', payment.value === '0');
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            toggleCheckoutFields();
+            var orderType = document.getElementById('orderTypeSelect');
+            var payment = document.getElementById('paymentMethodSelect');
+            if (orderType) orderType.addEventListener('change', toggleCheckoutFields);
+            if (payment) payment.addEventListener('change', toggleCheckoutFields);
+        });
+    </script>
+}

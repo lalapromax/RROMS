@@ -1,0 +1,273 @@
+@page
+@model RROMS.Pages.Admin.TeamModel
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Team";
+    var inviteLink = TempData["InviteLink"] as string;
+    var inviteName = TempData["InviteName"] as string;
+    var addError = ViewData.ModelState["Add"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var staffRows = Model.People.Where(p => p.Role == RROMS.Models.Roles.Staff).ToList();
+    var common = RROMS.Models.DietaryOptions.Common;
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Team</h1>
+            <p>Add a staff account or terminate one. Roles and the restaurant name cannot be changed.</p>
+        </div>
+        <div class="row-acts">
+            <a class="btn btn-wine" href="#addStaff">Add staff</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(inviteLink))
+    {
+        <section class="note-box invite" aria-labelledby="invT">
+            <div>
+                <b id="invT">Give @(inviteName ?? "them") this link</b>
+                <p class="muted" style="margin-top:4px">Email is not set up, so no invitation was sent. Open the link on their device, or send it to them yourself. It lets them choose their own password, works once and expires after a day.</p>
+                <div class="invite-row">
+                    <input class="in" id="inviteLink" type="text" readonly value="@inviteLink" aria-label="Invitation link" onfocus="this.select()" />
+                    <button type="button" class="btn btn-line" data-copy="inviteLink">Copy link</button>
+                </div>
+            </div>
+        </section>
+    }
+
+    <div class="grid2 g75">
+        <div class="stack">
+            <section class="panel" aria-labelledby="accT">
+                <div class="panel-head">
+                    <h2 id="accT" style="font-size:34px;font-weight:500">Accounts</h2>
+                </div>
+
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Action</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.People)
+                            {
+                                <tr>
+                                    <td data-l="" class="c-guest">
+                                        <div class="who">
+                                            <b class="@(p.Active ? null : "muted")">@(p.IsMe ? "You" : p.Name)</b>
+                                            <small>@(p.IsMe ? p.Email : p.Email)</small>
+                                        </div>
+                                    </td>
+                                    <td data-l="Role">
+                                        <span class="lock-tag">@Ui.Icon("lock", 15, 1.6) @p.Role</span>
+                                    </td>
+                                    <td data-l="Status">
+                                        @if (p.Active) { <span class="st st-active">Active</span> }
+                                        else { <span class="st st-terminated">Terminated</span> }
+                                    </td>
+                                    <td data-l="" class="c-acts">
+                                        @if (p.Role == RROMS.Models.Roles.Administrator)
+                                        {
+                                            <span class="muted">Cannot be terminated</span>
+                                        }
+                                        else if (!p.Active)
+                                        {
+                                            <span class="muted">No access</span>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-danger btn-sm2"
+                                                    data-dialog-open="terminateDlg" data-fields="id,who" data-id="@p.Id" data-who="@p.Name"
+                                                    data-title="Terminate @p.Name?">Terminate</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="add" id="addStaff">
+                    <h3 style="font-size:24px;font-weight:500">Add a staff member</h3>
+                    @if (addError != null)
+                    {
+                        <p class="err-msg" role="alert" style="margin-top:10px">@addError</p>
+                    }
+                    <form method="post" asp-page-handler="Add" class="form add-form" novalidate>
+                        <div class="field">
+                            <label for="addName">Full name</label>
+                            <input class="in@(addError != null ? " err" : "")" id="addName" asp-for="Add.FullName" maxlength="100" autocomplete="off" required />
+                        </div>
+                        <div class="field">
+                            <label for="addEmail">Email</label>
+                            <input class="in@(addError != null ? " err" : "")" id="addEmail" asp-for="Add.Email" type="email" maxlength="120" autocomplete="off" placeholder="name@example.com" required />
+                        </div>
+                        <div class="field">
+                            <label for="addRole">Role</label>
+                            <input class="in" id="addRole" type="text" value="Staff" disabled />
+                        </div>
+                        <button type="submit" class="btn btn-wine">Send invitation</button>
+                    </form>
+                    <p class="hint" style="margin-top:10px">@(Model.EmailReady
+                        ? "They receive an email with a link to choose their own password."
+                        : "Email is not set up yet, so you will be given a link to hand over instead.")</p>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="dietT">
+                <h2 id="dietT" style="font-size:30px;font-weight:500">Staff dietary information</h2>
+                <p class="panel-sub">Visible to administrators only, for planning staff meals. Allergies are kept apart from general preference.</p>
+                @if (staffRows.Count == 0)
+                {
+                    <div class="empty-card"><p>No staff accounts yet. Add one above.</p></div>
+                }
+                else
+                {
+                    <div class="t-scroll">
+                        <table class="t t-cards">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Dietary preference</th>
+                                    <th scope="col">Allergies</th>
+                                    <th scope="col"><span class="sr-only">Action</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in staffRows)
+                                {
+                                    var known = !string.IsNullOrWhiteSpace(p.Diet) && common.Contains(p.Diet) && p.Diet != RROMS.Models.DietaryOptions.Other;
+                                    var prefValue = string.IsNullOrWhiteSpace(p.Diet) ? "None" : known ? p.Diet! : RROMS.Models.DietaryOptions.Other;
+                                    var otherValue = !string.IsNullOrWhiteSpace(p.Diet) && !known ? p.Diet : null;
+                                    <tr>
+                                        <td data-l="" class="c-guest"><b class="@(p.Active ? null : "muted")">@p.Name</b></td>
+                                        <td data-l="Preference">@(string.IsNullOrWhiteSpace(p.Diet) ? "None" : p.Diet)</td>
+                                        <td data-l="Allergies">@(string.IsNullOrWhiteSpace(p.Allergies) ? "None" : p.Allergies)</td>
+                                        <td data-l="" class="c-acts">
+                                            <button type="button" class="link" data-dialog-open="dietDlg" data-fields="id,who,pref,other,allergies"
+                                                    data-id="@p.Id" data-who="@p.Name" data-pref="@prefValue" data-other="@otherValue" data-allergies="@p.Allergies"
+                                                    data-title="Dietary information: @p.Name">Edit</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        </div>
+
+        <aside class="stack">
+            <section class="fixed">
+                <h2>Fixed in the system</h2>
+                <p>Set up once. Nobody can edit these here, including you.</p>
+                <dl>
+                    <div>
+                        <dt>Restaurant name</dt>
+                        <dd><span class="fx-name">@Brand.Name</span> <span class="lock-tag">@Ui.Icon("lock", 15, 1.6) Locked</span></dd>
+                    </div>
+                    <div>
+                        <dt>Staff roles</dt>
+                        <dd><span>Staff and Administrator</span> <span class="lock-tag">@Ui.Icon("lock", 15, 1.6) Locked</span></dd>
+                    </div>
+                    <div>
+                        <dt>Staff accounts</dt>
+                        <dd><span>Add or terminate only</span> <span class="lock-tag">@Ui.Icon("lock", 15, 1.6) Locked</span></dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="panel">
+                <h3 style="font-size:24px;font-weight:500">What each role can do</h3>
+                <dl class="roles-dl">
+                    <dt>Staff</dt>
+                    <dd>Run service: reservations, orders, billing, set menus and announcements to customers. Staff do not see reports or accounts.</dd>
+                    <dt>Administrator</dt>
+                    <dd>Everything staff can do, plus the menu, floor plan, promotions, rewards, reports, integrations and the team.</dd>
+                </dl>
+            </section>
+
+            <section class="panel">
+                <h3 style="font-size:24px;font-weight:500">Recent administrative actions</h3>
+                @if (Model.Recent.Count == 0)
+                {
+                    <p class="muted" style="margin-top:10px">Nothing yet. Changes to the team, hours and announcements are listed here.</p>
+                }
+                @foreach (var a in Model.Recent)
+                {
+                    <div class="opt-row">
+                        <div>
+                            <b style="font-weight:500">@AuditLabels.Describe(a, Model.MeId)</b>
+                            <small>@AuditLabels.When(a.CreatedAt)</small>
+                        </div>
+                    </div>
+                }
+            </section>
+        </aside>
+    </div>
+</div>
+
+@* ---- terminate: the administrator's own password is asked for every time, and checked on the server ---- *@
+<dialog class="modal" id="terminateDlg" style="--w:560px" aria-labelledby="termT">
+    <form method="post" asp-page-handler="Terminate" class="form" autocomplete="off">
+        <input type="hidden" id="terminateDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="termT" data-dialog-title>Terminate this account?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p><b id="terminateDlg_who">This person</b> will be signed out within a minute and cannot sign in again. Their past work stays in the records. You can add them again later.</p>
+            <div class="field" style="margin-top:18px">
+                <label for="terminateDlg_pw">Your password, to confirm</label>
+                <input class="in" id="terminateDlg_pw" name="confirmPassword" type="password" autocomplete="current-password" required />
+                <p class="hint">We ask every time someone is terminated.</p>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep the account</button>
+            <button type="submit" class="btn btn-wine">Terminate account</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- staff dietary information ---- *@
+<dialog class="modal" id="dietDlg" style="--w:520px" aria-labelledby="dietT2">
+    <form method="post" asp-page-handler="Dietary" class="form">
+        <input type="hidden" id="dietDlg_id" name="id" />
+        <div class="modal-head">
+            <div>
+                <h2 id="dietT2" data-dialog-title>Dietary information</h2>
+                <p class="muted" id="dietDlg_who" style="margin-top:2px"></p>
+            </div>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label for="dietDlg_pref">Dietary preference</label>
+                <select class="in" id="dietDlg_pref" name="preference" data-diet-pref>
+                    @foreach (var o in common) { <option value="@o">@o</option> }
+                </select>
+            </div>
+            <div class="field" id="dietOtherBox" hidden>
+                <label for="dietDlg_other">Please say which</label>
+                <input class="in" id="dietDlg_other" name="other" maxlength="100" />
+            </div>
+            <div class="field">
+                <label for="dietDlg_allergies">Allergies</label>
+                <textarea class="in" id="dietDlg_allergies" name="allergies" rows="2" maxlength="300" placeholder="For example: peanuts, shellfish"></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save</button>
+        </div>
+    </form>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/admin-team.js" asp-append-version="true"></script>
+}
