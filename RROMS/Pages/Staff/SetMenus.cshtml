@@ -1,0 +1,18 @@
+@page
+@model RROMS.Pages.Staff.SetMenusModel
+@{
+    ViewData["Title"] = "Set menus";
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Set menus</h1>
+            <p>The menus guests can choose for the whole table. Staff and administrators can both create them.</p>
+        </div>
+        <div class="row-acts">
+            <a class="btn btn-wine" asp-page="/Staff/SetMenus/Edit">New set menu</a>
+        </div>
+    </div>
+    <partial name="_SetMenuCards" model="Model" />
+</div>

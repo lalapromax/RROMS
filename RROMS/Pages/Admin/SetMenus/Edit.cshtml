@@ -1,0 +1,14 @@
+@page "{id:int?}"
+@model RROMS.Pages.Admin.SetMenus.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "New set menu" : "Edit set menu";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/SetMenuBuilder.css" asp-append-version="true" />
+}
+
+<partial name="_SetMenuEdit" model="Model" />
+
+@section Scripts {
+    <script src="~/js/set-menu-builder.js" asp-append-version="true"></script>
+}
