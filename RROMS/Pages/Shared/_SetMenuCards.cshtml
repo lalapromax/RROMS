@@ -1,0 +1,50 @@
+@model RROMS.Pages.SetMenusListPageBase
+@using RROMS.Models
+@using RROMS.Presentation
+@{
+    string Label(SetMenuStatus s) => s switch { SetMenuStatus.Active => "Active", SetMenuStatus.Hidden => "Hidden", _ => "Draft" };
+    string Css(SetMenuStatus s) => s switch { SetMenuStatus.Active => "st-active", SetMenuStatus.Hidden => "st-completed", _ => "st-draft" };
+    var editPage = "/" + Model.Area + "/SetMenus/Edit";
+}
+@if (Model.Menus.Count == 0)
+{
+    <div class="empty-card">
+        <h2>No set menus yet</h2>
+        <p>A set menu is a few courses at one price. Guests choose a dish in each course when they book or order.</p>
+        <a class="btn btn-wine" asp-page="@editPage">New set menu</a>
+    </div>
+}
+else
+{
+    <div class="sm-grid">
+        @foreach (var m in Model.Menus)
+        {
+            <article class="panel sm-card">
+                <div class="sm-pic">@SetMenuLabels.Cover(m)</div>
+                <div class="sm-body">
+                    <div class="sp-b">
+                        <h3>@m.Name</h3>
+                        <span class="st @Css(m.Status)">@Label(m.Status)</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(m.Tagline)) { <p class="muted sm-tag">@m.Tagline</p> }
+                    <p class="muted sm-when">@SetMenuLabels.Service(m), @SetMenuLabels.Days(m)</p>
+                    <div class="sm-foot">
+                        <div class="sp-b">
+                            <span><b class="sm-price">@Ui.Rm(m.PricePerGuest)</b> <span class="muted">per guest</span></span>
+                            <span class="muted">@SetMenuLabels.Courses(m)</span>
+                        </div>
+                        <div class="row-acts" style="margin-top:16px;justify-content:flex-start">
+                            <a class="btn btn-line btn-sm2" asp-page="@editPage" asp-route-id="@m.Id">Edit</a>
+                            <form method="post" asp-page-handler="Status" class="inl">
+                                <input type="hidden" name="id" value="@m.Id" />
+                                <input type="hidden" name="to" value="@(m.Status == SetMenuStatus.Active ? "hidden" : "active")" />
+                                <button type="submit" class="btn btn-line btn-sm2">@(m.Status == SetMenuStatus.Active ? "Hide" : "Publish")</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+    <p class="note-box" style="margin-top:24px">A set menu without a photo uses a plain house plate on the guest pages. Adding a photo is optional for staff.</p>
+}

@@ -1,0 +1,200 @@
+@model RROMS.Pages.SetMenuEditPageBase
+@using RROMS.Models
+@using RROMS.Presentation
+@{
+    var listPage = "/" + Model.Area + "/SetMenus";
+    var status = Model.Status;
+    var statusLabel = status switch { SetMenuStatus.Active => "Active", SetMenuStatus.Hidden => "Hidden", _ => "Draft" };
+    var days = new (int Value, string Label)[] { (1, "Mon"), (2, "Tue"), (3, "Wed"), (4, "Thu"), (5, "Fri"), (6, "Sat"), (0, "Sun") };
+}
+
+<div class="wrap main stage">
+    <form method="post" enctype="multipart/form-data" id="smForm" class="form" data-currency="@Brand.Currency" asp-route-id="@Model.Id" autocomplete="off" novalidate>
+        <input type="hidden" name="Payload" id="smPayload" />
+
+        <div class="page-head">
+            <div>
+                <p class="crumb"><a asp-page="@listPage">Set menus</a></p>
+                <h1>@(Model.IsNew ? "New set menu" : "Edit set menu")</h1>
+            </div>
+            <div class="head-actions">
+                <span class="tag tag-line">@statusLabel</span>
+                @switch (status)
+                {
+                    case SetMenuStatus.Active:
+                        <button type="submit" class="btn btn-line" name="Intent" value="hide">Hide from guests</button>
+                        <button type="submit" class="btn btn-wine" name="Intent" value="save">Save changes</button>
+                        break;
+                    case SetMenuStatus.Hidden:
+                        <button type="submit" class="btn btn-line" name="Intent" value="save">Save changes</button>
+                        <button type="submit" class="btn btn-wine" name="Intent" value="publish">Publish</button>
+                        break;
+                    default:
+                        <button type="submit" class="btn btn-line" name="Intent" value="draft">Save draft</button>
+                        <button type="submit" class="btn btn-wine" name="Intent" value="publish">Publish</button>
+                        break;
+                }
+            </div>
+        </div>
+
+        @if (Model.Problem != null)
+        {
+            <div class="form-alert" role="alert" style="margin-bottom:24px">@Ui.Icon("warn", 18, 2)<div><p>@Model.Problem</p></div></div>
+        }
+
+        <div class="grid">
+            <div>
+                <section class="panel" aria-labelledby="det">
+                    <h2 id="det">Details</h2>
+                    <p class="panel-sub">Guests see the name, the description and the price. You choose when it is on the menu.</p>
+                    <div class="fields">
+                        <div class="field">
+                            <label for="smName">Name</label>
+                            <input class="in" id="smName" type="text" maxlength="80" autocomplete="off" />
+                        </div>
+                        <div class="field">
+                            <label for="smPrice">Price per guest (@Brand.Currency)</label>
+                            <input class="in" id="smPrice" type="text" inputmode="decimal" autocomplete="off" />
+                        </div>
+                        <div class="field full">
+                            <label for="smTag">A short line <span class="muted">(optional, shown under the name)</span></label>
+                            <input class="in" id="smTag" type="text" maxlength="120" autocomplete="off" />
+                        </div>
+                        <div class="field full">
+                            <label for="smDesc">Description</label>
+                            <textarea class="in" id="smDesc" maxlength="500" rows="3"></textarea>
+                        </div>
+                        <div class="field full">
+                            <label for="smPhoto">Photo <span class="muted">(optional)</span></label>
+                            <div class="ph-row">
+                                <div class="ph-thumb">
+                                    @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl)) { @Ui.Pic(Model.PhotoUrl, null, null, "soft", "linen", null, "The current photo", decorative: false) }
+                                    else { @Ui.Plate("d-house", "linen", "soft") }
+                                </div>
+                                <div class="ph-ctl">
+                                    <input class="in" id="smPhoto" name="Photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="smPhotoHint" />
+                                    @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl))
+                                    {
+                                        <label class="ckb" style="margin-top:8px"><input type="checkbox" name="RemovePhoto" value="true" /><i>@Ui.Icon("check", 13, 3)</i> Remove the current photo</label>
+                                    }
+                                    <p class="hint" id="smPhotoHint">JPG, PNG or WebP, 3 MB at most. Without one, guests see the first dishes of the menu side by side.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field full">
+                            <span class="lab" id="smDaysL">Available on</span>
+                            <div class="chips" role="group" aria-labelledby="smDaysL" id="smDays">
+                                @foreach (var d in days)
+                                {
+                                    <button class="chip" type="button" data-day="@d.Value" aria-pressed="false">@d.Label</button>
+                                }
+                            </div>
+                        </div>
+                        <div class="field full">
+                            <span class="lab" id="smSvcL">Service</span>
+                            <div class="chips" role="group" aria-labelledby="smSvcL" id="smSvc">
+                                <button class="chip" type="button" data-svc="lunch" aria-pressed="false">Lunch</button>
+                                <button class="chip" type="button" data-svc="dinner" aria-pressed="false">Dinner</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel" aria-labelledby="crs">
+                    <h2 id="crs">Courses</h2>
+                    <p class="panel-sub">Add courses in the order they are served and name them whatever the set needs. Guests choose their dishes in each.</p>
+                    <ul class="courses" id="smCourses"></ul>
+                    <div class="add-row">
+                        <button class="btn btn-wine" type="button" id="smAddCourse">Add a course</button>
+                        <span class="lab2" id="smCommonL">Or start from a common one</span>
+                        <span class="chips" role="group" aria-labelledby="smCommonL" id="smCommon">
+                            <button class="chip" type="button" data-common="Dessert">Dessert</button>
+                            <button class="chip" type="button" data-common="Cheese">Cheese</button>
+                            <button class="chip" type="button" data-common="Amuse-bouche">Amuse-bouche</button>
+                            <button class="chip" type="button" data-common="Wine pairing">Wine pairing</button>
+                        </span>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="preview" aria-label="Preview">
+                <div class="pv-head">
+                    <h2>How guests see it</h2>
+                </div>
+                <article class="menu-card" id="smCard">
+                    <div class="mc-head">
+                        <span class="logo-slot"><partial name="_LogoSlot" /></span>
+                        <h3 id="pvName"></h3>
+                        <p class="mc-sub" id="pvTag"></p>
+                    </div>
+                    <dl class="mc-courses" id="pvCourses"></dl>
+                    <div class="mc-foot">
+                        <span class="mc-price" id="pvPrice"></span>
+                        <span class="mc-per">per guest</span>
+                    </div>
+                </article>
+                <div class="pv-note">
+                    @Ui.Plate("d-house", "linen", "round")
+                    <span>A dish with no photo shows a plain house plate, so guests never see an empty picture. Photos are optional for staff.</span>
+                </div>
+                <section class="panel check" aria-labelledby="chk" style="margin-bottom:0">
+                    <h3 id="chk">Price check</h3>
+                    <p class="note" style="margin-top:6px" id="pcNote">Compared with ordering the first dish in each course from the carte. Where guests pick two, the first two are counted, and where they take every dish, all of them.</p>
+                    <table>
+                        <tbody id="pcBody"></tbody>
+                    </table>
+                    <p class="note">Staff and admin can create, edit and publish set menus.</p>
+                </section>
+                @if (!Model.IsNew)
+                {
+                    <p class="del-row"><button type="button" class="btn btn-line btn-sm2" data-dialog-open="smDelDlg">Delete this set menu</button></p>
+                }
+            </aside>
+        </div>
+
+        <p class="sr-only" id="smLive" role="status" aria-live="polite"></p>
+        <script type="application/json" id="smState">@Html.Raw(Model.StateJson)</script>
+        <script type="application/json" id="smItems">@Html.Raw(Model.ItemsJson)</script>
+    </form>
+</div>
+
+@* ---- choose dishes for one course ---- *@
+<dialog class="modal" id="pickDlg" style="--w:600px" aria-labelledby="pickT">
+    <div class="modal-head">
+        <div>
+            <h2 id="pickT">Add dishes</h2>
+            <p class="muted" id="pickFor" style="margin-top:2px"></p>
+        </div>
+        <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+    </div>
+    <div class="modal-body">
+        <div class="field" style="margin-bottom:12px">
+            <label for="pickQ" class="sr-only">Search the carte</label>
+            <input class="in" id="pickQ" type="search" placeholder="Search dishes, drinks and wines" style="width:100%" autocomplete="off" />
+        </div>
+        <div id="pickList" class="pk-list"></div>
+    </div>
+    <div class="modal-foot">
+        <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+        <button type="button" class="btn btn-wine" id="pickAdd">Add to the course</button>
+    </div>
+</dialog>
+
+@if (!Model.IsNew)
+{
+    <dialog class="modal" id="smDelDlg" style="--w:480px" aria-labelledby="smDelT">
+        <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Id" class="form">
+            <div class="modal-head">
+                <h2 id="smDelT">Delete this set menu?</h2>
+                <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+            </div>
+            <div class="modal-body">
+                <p>It is removed for good. Bookings and orders that already include it keep their own copy of the name and price. To take it off the guest pages for a while, hide it instead.</p>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+        </form>
+    </dialog>
+}
