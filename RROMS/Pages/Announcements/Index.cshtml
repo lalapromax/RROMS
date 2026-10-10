@@ -1,0 +1,22 @@
+@page
+@model RROMS.Pages.Announcements.IndexModel
+@using RROMS.ViewModels
+@{
+    ViewData["Title"] = "News";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Notices.css" asp-append-version="true" />
+}
+
+<section class="wrap page-top">
+    <div>
+        <h1>News</h1>
+        <p class="lead-it">What is happening at the restaurant.</p>
+    </div>
+    <a class="link" asp-page="/Account/Login" asp-route-returnUrl="/Notifications/Index">Sign in for your own notices</a>
+</section>
+
+<div class="wrap main">
+    @if (Model.Pinned != null) { <partial name="_NoticePinned" model="Model.Pinned" /> }
+    <partial name="_NoticeRows" model="@(new NoticeListVM(Model.Rows, Model.Pinned != null, "Nothing to report just now. Come back soon."))" />
+</div>
