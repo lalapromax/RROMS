@@ -1,163 +1,395 @@
 @page
 @model RROMS.Pages.Admin.MenuManagementModel
+@using RROMS.Models
+@using RROMS.Presentation
 @{
-    ViewData["Title"] = "Menu Management";
+    ViewData["Title"] = "Menu and sets";
+    var tab = Model.Tab;
+    var isWineTab = tab == "wine";
+    var cats = Model.Categories;
+    var tabCats = tab == "categories" ? cats : cats.Where(c => c.IsWine == isWineTab).ToList();
+    var firstCat = (Model.Cat.HasValue && tabCats.Any(c => c.Id == Model.Cat) ? Model.Cat : tabCats.Where(c => c.IsActive).Select(c => (int?)c.Id).FirstOrDefault()) ?? 0;
+    var noun = isWineTab ? "wine" : "dish";
+    var item = Model.Item;
+    var cin = Model.Category;
+
+    string AllergenWord(string a) => a switch { "Milk" => "dairy", "Eggs" => "egg", "Tree nuts" => "nuts", _ => a.ToLowerInvariant() };
+    string Contains(string? allergens)
+    {
+        if (allergens == null) return "";
+        var list = DietaryRules.ParseList(allergens);
+        if (list.Count == 0) return "None";
+        var s = string.Join(", ", list.OrderBy(a => a).Select(AllergenWord));
+        return char.ToUpperInvariant(s[0]) + s[1..];
+    }
+    string AllergenLabel(string a) => a == "Milk" ? "Dairy" : a;
+    string Price(MenuItem m) => m.MenuCategory?.IsWine == true
+        ? (m.GlassPrice.HasValue ? $"{Ui.Rm(m.GlassPrice.Value)} glass · {Ui.Rm(m.Price)} bottle" : $"{Ui.Rm(m.Price)} bottle")
+        : Ui.Rm(m.Price);
+    var itemAllergens = (item.Allergens ?? Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var itemTags = (item.DietTags ?? Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 }
-<h1 class="h3 mb-4">Menu Management</h1>
 
-<ul class="nav nav-tabs mb-3">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#catsTab">Categories</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#itemsTab">Menu Items</button></li>
-</ul>
-
-<div class="tab-content">
-    <div class="tab-pane fade show active" id="catsTab">
-        <div class="d-flex justify-content-end mb-2">
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCatModal"><i class="bi bi-plus-lg"></i> Add category</button>
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Menu and sets</h1>
+            <p>Dishes, wine and categories. Changes reach the guest menu straight away.</p>
         </div>
-        <div class="rroms-card p-2">
-            <table class="table rroms-table mb-0 align-middle">
-                <thead><tr><th>Order</th><th>Name</th><th>Description</th><th>Items</th><th>Active</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var c in Model.Categories)
-                    {
-                        <tr>
-                            <td>@c.DisplayOrder</td>
-                            <td>@c.Name</td>
-                            <td class="small text-muted-warm">@c.Description</td>
-                            <td>@Model.Items.Count(i => i.MenuCategoryId == c.Id)</td>
-                            <td>@(c.IsActive ? "Yes" : "No")</td>
-                            <td class="text-nowrap">
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editCatModal"
-                                        data-edit-modal="editCatModal" data-fields="id,name,description,displayorder,isactive"
-                                        data-id="@c.Id" data-name="@c.Name" data-description="@c.Description" data-displayorder="@c.DisplayOrder" data-isactive="@c.IsActive.ToString().ToLower()">Edit</button>
-                                <form method="post" asp-page-handler="DeleteCategory" asp-route-id="@c.Id" class="d-inline" onsubmit="return confirm('Delete this category?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="row-acts">
+            <a class="btn btn-line" asp-page="/Admin/SetMenus">Set menus</a>
+            @if (tab == "categories")
+            {
+                <button type="button" class="btn btn-wine" data-dialog-open="catDlg" data-fields="id,name,description,order,active,wine,setonly,kind" data-title="Add a category" data-active="true" data-order="@((cats.Count == 0 ? 0 : cats.Max(c => c.DisplayOrder)) + 1)">Add a category</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-wine" data-dialog-open="dishDlg" data-fields="id,name,price,glass,cat,calories,description,winenote,available,veg,spicy,pick,reviewed" data-title="@(isWineTab ? "Add a wine" : "Add a dish")" data-cat="@firstCat" data-available="true" data-allergens="" data-tags="" data-photo="">@(isWineTab ? "Add a wine" : "Add a dish")</button>
+            }
         </div>
     </div>
 
-    <div class="tab-pane fade" id="itemsTab">
-        <div class="d-flex justify-content-end mb-2">
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addItemModal"><i class="bi bi-plus-lg"></i> Add menu item</button>
-        </div>
-        <div class="rroms-card p-2">
-            <table class="table rroms-table mb-0 align-middle">
-                <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Flags</th><th>Available</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var i in Model.Items)
-                    {
-                        <tr>
-                            <td>@i.Name</td>
-                            <td>@i.MenuCategory?.Name</td>
-                            <td>@i.Price.ToString("C")</td>
-                            <td>
-                                @if (i.IsVegetarian) { <span class="menu-tag veg">Veg</span> }
-                                @if (i.IsSpicy) { <span class="menu-tag spicy">Spicy</span> }
-                            </td>
-                            <td>@(i.IsAvailable ? "Yes" : "No")</td>
-                            <td class="text-nowrap">
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editItemModal"
-                                        data-edit-modal="editItemModal"
-                                        data-fields="id,name,description,price,menucategoryid,imageurl,isavailable,isvegetarian,isspicy,calories"
-                                        data-id="@i.Id" data-name="@i.Name" data-description="@i.Description" data-price="@i.Price"
-                                        data-menucategoryid="@i.MenuCategoryId" data-imageurl="@i.ImageUrl"
-                                        data-isavailable="@i.IsAvailable.ToString().ToLower()" data-isvegetarian="@i.IsVegetarian.ToString().ToLower()"
-                                        data-isspicy="@i.IsSpicy.ToString().ToLower()" data-calories="@i.Calories">Edit</button>
-                                <form method="post" asp-page-handler="DeleteItem" asp-route-id="@i.Id" class="d-inline" onsubmit="return confirm('Delete this menu item?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <nav class="tabs" role="tablist" aria-label="Menu sections">
+        <a role="tab" asp-page="/Admin/MenuManagement" asp-route-tab="items" aria-current="@(tab == "items" ? "page" : null)">Menu items<small>@Model.DishCount</small></a>
+        <a role="tab" asp-page="/Admin/MenuManagement" asp-route-tab="wine" aria-current="@(tab == "wine" ? "page" : null)">Wine<small>@Model.WineCount</small></a>
+        <a role="tab" asp-page="/Admin/MenuManagement" asp-route-tab="categories" aria-current="@(tab == "categories" ? "page" : null)">Categories<small>@cats.Count</small></a>
+    </nav>
+
+    @if (tab != "categories")
+    {
+        <form method="get" class="filter" aria-label="Filter the list">
+            <input type="hidden" name="tab" value="@tab" />
+            <div class="field">
+                <label for="c">Category</label>
+                <select class="in" id="c" name="cat" style="width:190px" data-autosubmit>
+                    <option value="" selected="@(!Model.Cat.HasValue)">All categories</option>
+                    @foreach (var c in tabCats) { <option value="@c.Id" selected="@(Model.Cat == c.Id)">@c.Name</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="q">Search</label>
+                <input class="in" id="q" name="q" type="search" placeholder="@(isWineTab ? "Wine name" : "Dish name")" value="@Model.Q" style="width:260px" />
+            </div>
+            <button type="submit" class="btn btn-line">Search</button>
+            <span class="sp"></span>
+            <span class="muted">@Model.Rows.Count of @Model.ShownOf shown</span>
+        </form>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="empty-card">
+                @if (Model.ShownOf == 0)
+                {
+                    <h2>@(isWineTab ? "The wine list is empty" : "No dishes yet")</h2>
+                    <p>@(isWineTab ? "Add a wine and it appears in the cellar." : "Add your first dish and it appears on the guest menu.")</p>
+                }
+                else
+                {
+                    <p>Nothing matches. Try another category or clear the search.</p>
+                    <a class="btn btn-line" asp-page="/Admin/MenuManagement" asp-route-tab="@tab">Clear filters</a>
+                }
+            </div>
+        }
+        else
+        {
+            <section class="panel">
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="sr-only">Picture</span></th>
+                                <th scope="col">@(isWineTab ? "Wine" : "Dish")</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Price</th>
+                                <th scope="col">Contains</th>
+                                <th scope="col">Diet labels</th>
+                                <th scope="col">On the menu</th>
+                                <th scope="col"><span class="sr-only">Edit</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.Rows)
+                            {
+                                var noPhoto = string.IsNullOrWhiteSpace(m.ImageUrl);
+                                var tags = new List<string>();
+                                if (m.IsVegetarian) tags.Add("Vegetarian");
+                                tags.AddRange(DietaryRules.ParseList(m.DietaryTags));
+                                var allergenText = Contains(m.Allergens);
+                                <tr>
+                                    <td data-l="" class="c-pic"><div class="thumb@(noPhoto ? " noph" : "")" title="@(noPhoto ? "No photo" : null)">@Ui.Pic(m.ImageUrl, m.Name, m.MenuCategory?.Name, "sq", null, null, null, true)</div></td>
+                                    <td data-l="" class="c-guest">
+                                        <div class="who">
+                                            <b>@m.Name</b>
+                                            @if (isWineTab && !string.IsNullOrWhiteSpace(m.WineNote)) { <small>@m.WineNote</small> }
+                                            else if (noPhoto) { <small>No photo, guests see an illustrated plate</small> }
+                                            @if (m.IsChefsPick) { <small>Chef's pick</small> }
+                                        </div>
+                                    </td>
+                                    <td data-l="Category">@m.MenuCategory?.Name@if (m.MenuCategory?.SetMenuOnly == true) { <br /><small class="muted">Set menus only</small> }</td>
+                                    <td data-l="Price">@Price(m)</td>
+                                    <td data-l="Contains">@if (m.Allergens == null) { <span class="flag warn-soft">Not recorded</span> } else { <span class="muted">@allergenText</span> }</td>
+                                    <td data-l="Diet labels">@if (tags.Count == 0) { <span class="muted">None</span> } else { <span class="flags">@foreach (var t in tags) { <span class="flag soft">@t</span> }</span> }</td>
+                                    <td data-l="On the menu">
+                                        <form method="post" asp-page-handler="Availability" asp-route-tab="@tab" asp-route-cat="@Model.Cat" asp-route-q="@Model.Q" data-autosubmit class="inl">
+                                            <input type="hidden" name="id" value="@m.Id" />
+                                            <label class="swx"><input type="checkbox" name="available" value="true" checked="@m.IsAvailable" aria-label="@m.Name is on the menu" /><span class="sw"></span></label>
+                                        </form>
+                                    </td>
+                                    <td data-l="" class="c-acts">
+                                        <button type="button" class="btn btn-line btn-sm2" data-dialog-open="dishDlg"
+                                                data-fields="id,name,price,glass,cat,calories,description,winenote,available,veg,spicy,pick,reviewed"
+                                                data-id="@m.Id" data-name="@m.Name" data-price="@m.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                                data-glass="@(m.GlassPrice?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" data-cat="@m.MenuCategoryId"
+                                                data-calories="@m.Calories" data-description="@m.Description" data-winenote="@m.WineNote"
+                                                data-available="@(m.IsAvailable ? "true" : "false")" data-veg="@(m.IsVegetarian ? "true" : "false")" data-spicy="@(m.IsSpicy ? "true" : "false")"
+                                                data-pick="@(m.IsChefsPick ? "true" : "false")" data-reviewed="@(m.Allergens != null ? "true" : "false")"
+                                                data-allergens="@m.Allergens" data-tags="@m.DietaryTags" data-photo="@m.ImageUrl"
+                                                data-title="@(isWineTab ? "Edit wine" : "Edit dish")">Edit</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    }
+    else
+    {
+        <section class="panel">
+            @if (cats.Count == 0)
+            {
+                <div class="empty-card"><h2>No categories yet</h2><p>Dishes are grouped in categories such as Starter, Main and Dessert. Add one to begin.</p></div>
+            }
+            else
+            {
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="n">Order</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Kind</th>
+                                <th scope="col" class="n">Items</th>
+                                <th scope="col">Shown</th>
+                                <th scope="col"><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in cats)
+                            {
+                                var n = Model.ItemCounts.TryGetValue(c.Id, out var cnt) ? cnt : 0;
+                                <tr>
+                                    <td class="n" data-l="Order">@c.DisplayOrder</td>
+                                    <td data-l="" class="c-guest"><div class="who"><b>@c.Name</b>@if (!string.IsNullOrWhiteSpace(c.Description)) { <small>@c.Description</small> }</div></td>
+                                    <td data-l="Kind">@(c.IsWine ? "Wine list" : c.SetMenuOnly ? "Set menus only" : "Dishes")</td>
+                                    <td class="n" data-l="Items">@n</td>
+                                    <td data-l="Shown">@if (c.IsActive) { <span class="st st-active">Shown</span> } else { <span class="st st-draft">Hidden</span> }</td>
+                                    <td data-l="" class="c-acts">
+                                        <div class="row-acts">
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="catDlg" data-fields="id,name,description,order,active,wine,setonly,kind"
+                                                    data-id="@c.Id" data-name="@c.Name" data-description="@c.Description" data-order="@c.DisplayOrder" data-active="@(c.IsActive ? "true" : "false")"
+                                                    data-wine="@(c.IsWine ? "true" : "false")" data-setonly="@(c.SetMenuOnly ? "true" : "false")" data-kind="@(n > 0 ? "locked" : "")" data-title="Edit category">Edit</button>
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="delCatDlg" data-fields="id,name" data-id="@c.Id" data-name="@c.Name">Remove</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
 </div>
 
-<!-- Add Category Modal -->
-<div class="modal fade" id="addCatModal"><div class="modal-dialog"><div class="modal-content">
-    <form method="post" asp-page-handler="AddCategory">
-        <div class="modal-header"><h5 class="modal-title">Add category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+@* ---- one drawer for adding and editing a dish or a wine ---- *@
+<dialog class="drawer" id="dishDlg" aria-labelledby="dishT" data-open-on-load="@(Model.OpenItem ? "true" : null)">
+    <form method="post" asp-page-handler="SaveItem" enctype="multipart/form-data" class="form" novalidate>
+        <input type="hidden" id="dishDlg_id" name="Item.Id" value="@item.Id" />
+        <div class="dr-head">
+            <h2 id="dishT" data-dialog-title>@(item.Id == 0 ? (isWineTab ? "Add a wine" : "Add a dish") : "Edit")</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="dr-body">
+            @if (Model.ItemError != null) { <p class="form-alert" role="alert">@Model.ItemError</p> }
+            <div class="f-row" style="grid-template-columns:2fr 1fr">
+                <div class="field">
+                    <label for="dishDlg_name">Name</label>
+                    <input class="in" id="dishDlg_name" name="Item.Name" value="@item.Name" maxlength="100" required />
+                </div>
+                <div class="field">
+                    <label for="dishDlg_price" id="priceLabel">Price (@Brand.Currency)</label>
+                    <input class="in" id="dishDlg_price" name="Item.Price" value="@(item.Price == 0 ? "" : item.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" type="number" min="0" max="10000" step="0.01" inputmode="decimal" required />
+                </div>
+            </div>
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="dishDlg_cat">Category</label>
+                    <select class="in" id="dishDlg_cat" name="Item.MenuCategoryId" data-cat-select>
+                        @foreach (var c in Model.ItemCategories)
+                        {
+                            <option value="@c.Id" data-wine="@(c.IsWine ? "true" : "false")" selected="@(item.MenuCategoryId == c.Id)">@c.Name@(c.IsWine ? " (wine)" : c.SetMenuOnly ? " (set menus only)" : "")</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="dishDlg_calories">Calories (optional)</label>
+                    <input class="in" id="dishDlg_calories" name="Item.Calories" value="@item.Calories" type="number" min="0" max="10000" inputmode="numeric" />
+                </div>
+            </div>
+            <div class="f-row f-2" data-wine-only hidden>
+                <div class="field">
+                    <label for="dishDlg_glass">Price per glass (@Brand.Currency)</label>
+                    <input class="in" id="dishDlg_glass" name="Item.GlassPrice" value="@(item.GlassPrice?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" type="number" min="0" max="10000" step="0.01" inputmode="decimal" />
+                    <p class="hint">Leave empty if it is sold by the bottle only.</p>
+                </div>
+                <div class="field">
+                    <label for="dishDlg_winenote">Line under the name</label>
+                    <input class="in" id="dishDlg_winenote" name="Item.WineNote" value="@item.WineNote" maxlength="80" placeholder="Burgundy, white" />
+                </div>
+            </div>
+            <div class="field">
+                <label for="dishDlg_description">Description</label>
+                <textarea class="in" id="dishDlg_description" name="Item.Description" rows="3" maxlength="500">@item.Description</textarea>
+            </div>
+
+            <div class="field">
+                <span class="lab">Photo</span>
+                <div class="photo-row">
+                    <div class="photo-prev" id="dishPrev">@Ui.Plate("d-house", "linen", "sq")</div>
+                    <div>
+                        <label class="btn btn-line btn-sm2" for="dishPhoto">Choose a photo</label>
+                        <input type="file" id="dishPhoto" name="Item.Photo" accept="image/jpeg,image/png,image/webp" class="sr-only" />
+                        <span class="muted" id="dishPhotoName"></span>
+                        <label class="ckb" id="dishRemoveBox" hidden><input type="checkbox" name="Item.RemovePhoto" value="true" /><i>@Ui.Icon("check", 13, 3)</i> Remove the current photo</label>
+                        <p class="hint">Optional, JPG, PNG or WebP up to 4 MB. Without one, guests see an illustrated plate.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <span class="lab">Contains</span>
+                <div class="al">
+                    @foreach (var a in DietaryRules.AllergenNames)
+                    {
+                        <label class="ckb"><input type="checkbox" name="Item.Allergens" value="@a" data-allergen checked="@itemAllergens.Contains(a)" /><i>@Ui.Icon("check", 13, 3)</i> @AllergenLabel(a)</label>
+                    }
+                </div>
+                <label class="ckb" style="margin-top:10px"><input type="checkbox" id="dishDlg_reviewed" name="Item.AllergensReviewed" value="true" checked="@item.AllergensReviewed" /><i>@Ui.Icon("check", 13, 3)</i> The kitchen has checked these allergens</label>
+                <p class="hint">Until this is ticked, guests with allergies are not shown the dish as safe.</p>
+            </div>
+
+            <div class="field">
+                <span class="lab">Diet labels it meets</span>
+                <div class="al">
+                    <label class="ckb"><input type="checkbox" id="dishDlg_veg" name="Item.IsVegetarian" value="true" checked="@item.IsVegetarian" /><i>@Ui.Icon("check", 13, 3)</i> Vegetarian</label>
+                    @foreach (var t in DietaryRules.DietTags)
+                    {
+                        <label class="ckb"><input type="checkbox" name="Item.DietTags" value="@t" data-tag checked="@itemTags.Contains(t)" /><i>@Ui.Icon("check", 13, 3)</i> @t</label>
+                    }
+                </div>
+                <p class="hint">Only tick a label you can stand behind.</p>
+            </div>
+
+            <div class="opt-row">
+                <div><b>On the menu</b><small>Switch off when it is sold out for tonight.</small></div>
+                <label class="swx"><input type="checkbox" id="dishDlg_available" name="Item.IsAvailable" value="true" checked="@item.IsAvailable" aria-label="On the menu" /><span class="sw"></span></label>
+            </div>
+            <div class="opt-row">
+                <div><b>Chef's pick</b><small>Shown first, with the handwritten tag.</small></div>
+                <label class="swx"><input type="checkbox" id="dishDlg_pick" name="Item.IsChefsPick" value="true" checked="@item.IsChefsPick" aria-label="Chef's pick" /><span class="sw"></span></label>
+            </div>
+            <div class="opt-row">
+                <div><b>Spicy</b><small>Adds the chilli mark on the guest menu.</small></div>
+                <label class="swx"><input type="checkbox" id="dishDlg_spicy" name="Item.IsSpicy" value="true" checked="@item.IsSpicy" aria-label="Spicy" /><span class="sw"></span></label>
+            </div>
+        </div>
+        <div class="dr-foot">
+            <button type="button" class="btn btn-danger" id="dishRemove" data-remove hidden>Remove</button>
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="removeDlg" style="--w:480px" aria-labelledby="remT">
+    <form method="post" asp-page-handler="DeleteItem" class="form">
+        <input type="hidden" id="removeDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="remT">Remove <span id="removeDlg_name">this item</span>?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
         <div class="modal-body">
-            <div class="mb-2"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
-            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
-            <div class="mb-2"><label class="form-label">Display order</label><input type="number" name="displayOrder" value="0" class="form-control" /></div>
+            <p>It disappears from the guest menu. If guests have ordered it before, it is switched off instead, so past orders keep their record. A dish that is part of a set menu has to come out of the set menu first.</p>
         </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Remove</button>
+        </div>
     </form>
-</div></div></div>
+</dialog>
 
-<!-- Edit Category Modal -->
-<div class="modal fade" id="editCatModal"><div class="modal-dialog"><div class="modal-content">
-    <form method="post" asp-page-handler="EditCategory">
-        <div class="modal-header"><h5 class="modal-title">Edit category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<dialog class="modal" id="catDlg" style="--w:520px" aria-labelledby="catT" data-open-on-load="@(Model.OpenCategory ? "true" : null)">
+    <form method="post" asp-page-handler="SaveCategory" class="form" novalidate>
+        <input type="hidden" id="catDlg_id" name="Category.Id" value="@cin.Id" />
+        <div class="modal-head">
+            <h2 id="catT" data-dialog-title>@(cin.Id == 0 ? "Add a category" : "Edit category")</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
         <div class="modal-body">
-            <input type="hidden" name="id" id="editCatModal_id" />
-            <div class="mb-2"><label class="form-label">Name</label><input name="name" id="editCatModal_name" class="form-control" required /></div>
-            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" id="editCatModal_description" class="form-control"></textarea></div>
-            <div class="mb-2"><label class="form-label">Display order</label><input type="number" name="displayOrder" id="editCatModal_displayorder" class="form-control" /></div>
-            <div class="form-check"><input type="checkbox" name="isActive" value="true" id="editCatModal_isactive" class="form-check-input" /><label class="form-check-label">Active</label></div>
+            @if (Model.CategoryError != null) { <p class="form-alert" role="alert">@Model.CategoryError</p> }
+            <div class="field">
+                <label for="catDlg_name">Name</label>
+                <input class="in" id="catDlg_name" name="Category.Name" value="@cin.Name" maxlength="60" required />
+            </div>
+            <div class="field">
+                <label for="catDlg_description">Description (optional)</label>
+                <input class="in" id="catDlg_description" name="Category.Description" value="@cin.Description" maxlength="200" />
+            </div>
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="catDlg_order">Position on the menu</label>
+                    <input class="in" id="catDlg_order" name="Category.DisplayOrder" value="@cin.DisplayOrder" type="number" min="0" max="1000" inputmode="numeric" />
+                    <p class="hint">Lower numbers come first.</p>
+                </div>
+            </div>
+            <fieldset class="field cat-kind" id="catKind">
+                <legend class="lab">What it holds</legend>
+                <label class="ckb"><input type="checkbox" id="catDlg_wine" name="Category.IsWine" value="true" checked="@cin.IsWine" data-kind-wine /><i>@Ui.Icon("check", 13, 3)</i> The wine list <span class="muted">(bottle and glass prices)</span></label>
+                <label class="ckb"><input type="checkbox" id="catDlg_setonly" name="Category.SetMenuOnly" value="true" checked="@cin.SetMenuOnly" data-kind-set /><i>@Ui.Icon("check", 13, 3)</i> Served only in set menus <span class="muted">(never on the carte)</span></label>
+                <p class="hint" id="catKindNote" hidden>This category has items, so it cannot be switched to or from the wine list.</p>
+            </fieldset>
+            <label class="swx cat-active"><input type="checkbox" id="catDlg_active" name="Category.IsActive" value="true" checked="@cin.IsActive" /><span class="sw"></span> Show to guests</label>
         </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save</button>
+        </div>
     </form>
-</div></div></div>
+</dialog>
 
-<!-- Add Item Modal -->
-<div class="modal fade" id="addItemModal"><div class="modal-dialog modal-lg"><div class="modal-content">
-    <form method="post" asp-page-handler="AddItem">
-        <div class="modal-header"><h5 class="modal-title">Add menu item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body row g-2">
-            <div class="col-md-6"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
-            <div class="col-md-3"><label class="form-label">Price</label><input type="number" step="0.01" min="0" name="price" class="form-control" required /></div>
-            <div class="col-md-3">
-                <label class="form-label">Category</label>
-                <select name="menuCategoryId" class="form-select" required>
-                    @foreach (var c in Model.Categories) { <option value="@c.Id">@c.Name</option> }
-                </select>
-            </div>
-            <div class="col-12"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
-            <div class="col-md-6"><label class="form-label">Image URL (optional)</label><input name="imageUrl" class="form-control" /></div>
-            <div class="col-md-3"><label class="form-label">Calories (optional)</label><input type="number" name="calories" class="form-control" /></div>
-            <div class="col-md-3 d-flex align-items-end gap-3">
-                <div class="form-check"><input type="checkbox" name="isAvailable" value="true" checked class="form-check-input" id="addItemAvail" /><label class="form-check-label" for="addItemAvail">Available</label></div>
-            </div>
-            <div class="col-md-6 form-check"><input type="checkbox" name="isVegetarian" value="true" class="form-check-input" id="addItemVeg" /><label class="form-check-label" for="addItemVeg">Vegetarian</label></div>
-            <div class="col-md-6 form-check"><input type="checkbox" name="isSpicy" value="true" class="form-check-input" id="addItemSpicy" /><label class="form-check-label" for="addItemSpicy">Spicy</label></div>
+<dialog class="modal" id="delCatDlg" style="--w:480px" aria-labelledby="delCatT">
+    <form method="post" asp-page-handler="DeleteCategory" class="form">
+        <input type="hidden" id="delCatDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="delCatT">Remove <span id="delCatDlg_name">this category</span>?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
         </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+        <div class="modal-body">
+            <p>Only an empty category can be removed. If it still has items, move or remove them first. To keep it but hide it from guests, edit it and switch off "Show to guests".</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Remove</button>
+        </div>
     </form>
-</div></div></div>
+</dialog>
 
-<!-- Edit Item Modal -->
-<div class="modal fade" id="editItemModal"><div class="modal-dialog modal-lg"><div class="modal-content">
-    <form method="post" asp-page-handler="EditItem">
-        <div class="modal-header"><h5 class="modal-title">Edit menu item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body row g-2">
-            <input type="hidden" name="id" id="editItemModal_id" />
-            <div class="col-md-6"><label class="form-label">Name</label><input name="name" id="editItemModal_name" class="form-control" required /></div>
-            <div class="col-md-3"><label class="form-label">Price</label><input type="number" step="0.01" min="0" name="price" id="editItemModal_price" class="form-control" required /></div>
-            <div class="col-md-3">
-                <label class="form-label">Category</label>
-                <select name="menuCategoryId" id="editItemModal_menucategoryid" class="form-select" required>
-                    @foreach (var c in Model.Categories) { <option value="@c.Id">@c.Name</option> }
-                </select>
-            </div>
-            <div class="col-12"><label class="form-label">Description</label><textarea name="description" id="editItemModal_description" class="form-control"></textarea></div>
-            <div class="col-md-6"><label class="form-label">Image URL</label><input name="imageUrl" id="editItemModal_imageurl" class="form-control" /></div>
-            <div class="col-md-3"><label class="form-label">Calories</label><input type="number" name="calories" id="editItemModal_calories" class="form-control" /></div>
-            <div class="col-md-3 d-flex align-items-end">
-                <div class="form-check"><input type="checkbox" name="isAvailable" value="true" id="editItemModal_isavailable" class="form-check-input" /><label class="form-check-label">Available</label></div>
-            </div>
-            <div class="col-md-6 form-check"><input type="checkbox" name="isVegetarian" value="true" id="editItemModal_isvegetarian" class="form-check-input" /><label class="form-check-label">Vegetarian</label></div>
-            <div class="col-md-6 form-check"><input type="checkbox" name="isSpicy" value="true" id="editItemModal_isspicy" class="form-check-input" /><label class="form-check-label">Spicy</label></div>
-        </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
-    </form>
-</div></div></div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminMenu.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/admin-menu.js" asp-append-version="true"></script>
+}

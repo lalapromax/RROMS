@@ -20,6 +20,8 @@ namespace RROMS.Data
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<Collaboration> Collaborations => Set<Collaboration>();
+        public DbSet<SetMenu> SetMenus => Set<SetMenu>();
+        public DbSet<SetMenuCourse> SetMenuCourses => Set<SetMenuCourse>();
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -98,6 +100,33 @@ namespace RROMS.Data
             // ---- Collaboration ----
             
             builder.Entity<Collaboration>().HasIndex(c => new { c.IsPublished, c.DisplayOrder });
+
+            // ---- Set menus: courses and dishes go with the menu; a dish on the carte cannot be deleted while a set menu offers it ----
+            builder.Entity<SetMenuCourse>()
+                .HasOne(c => c.SetMenu)
+                .WithMany(m => m.Courses)
+                .HasForeignKey(c => c.SetMenuId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SetMenuDish>()
+                .HasOne(d => d.Course)
+                .WithMany(c => c.Dishes)
+                .HasForeignKey(d => d.SetMenuCourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SetMenuDish>()
+                .HasOne(d => d.MenuItem)
+                .WithMany()
+                .HasForeignKey(d => d.MenuItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SetMenu>().HasIndex(m => new { m.Status, m.SortOrder });
+
+            builder.Entity<Reservation>()
+                .HasOne(r => r.SetMenu)
+                .WithMany()
+                .HasForeignKey(r => r.SetMenuId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
