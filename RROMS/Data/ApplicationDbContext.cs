@@ -11,6 +11,7 @@ namespace RROMS.Data
         }
 
         public DbSet<DiningArea> DiningAreas => Set<DiningArea>();
+        public DbSet<RestaurantTable> RestaurantTables => Set<RestaurantTable>();
         public DbSet<OperatingHours> OperatingHours => Set<OperatingHours>();
         public DbSet<RestaurantSetting> RestaurantSettings => Set<RestaurantSetting>();
         public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
@@ -23,6 +24,12 @@ namespace RROMS.Data
         {
             base.OnModelCreating(builder);
 
+            // ---- RestaurantTable ----
+            builder.Entity<RestaurantTable>()
+                .HasOne(t => t.DiningArea)
+                .WithMany(a => a.Tables)
+                .HasForeignKey(t => t.DiningAreaId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ---- MenuItem ----
             builder.Entity<MenuItem>()
