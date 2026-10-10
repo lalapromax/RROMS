@@ -1,3 +1,12 @@
-﻿@{
-    Layout = "_Layout";
+@{
+    // Three different "shells", one per kind of signed-in user, so each person only ever sees navigation that
+    // belongs to their own job. Shared pages (profile, notifications, receipts) simply pick up the shell of whoever
+    // is looking. The shell is only the look - what a role may OPEN is enforced on the server (Program.cs).
+    Layout = User.IsInRole(Roles.Administrator) ? "_AdminLayout"
+           : User.IsInRole(Roles.Staff) ? "_StaffLayout"
+           : "_Layout";
+    // Shared pages read this to draw the page heading and panels in the right style for whoever is looking.
+    ViewData["Audience"] = User.IsInRole(Roles.Administrator) ? "admin"
+                         : User.IsInRole(Roles.Staff) ? "staff"
+                         : "guest";
 }
