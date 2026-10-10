@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RROMS.Models;
 
-/// A guest who asked to be told if a full time slot opens up.</summary>
+/// A guest who asked to be told if a full time slot opens up.
 public class WaitlistEntry
 {
     public int Id { get; set; }
@@ -18,6 +18,6 @@ public class WaitlistEntry
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    /// When we told the guest a table might be free. Null while still waiting.</summary>
+    /// When we told the guest a table might be free. Null while still waiting.
     public DateTime? NotifiedAt { get; set; }
 }

@@ -6,10 +6,10 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Staff;
 
-/// <summary>
+/// 
 /// The kitchen board: Placed, Preparing, Ready and Served. Each card has one next step. Guests see the change on their own order.
 /// "Send to billing" opens the bill for that order; paying it (Billing page) is what closes it.
-/// </summary>
+/// 
 public class OrdersModel : PageModel
 {
     private readonly IOrderService _orders;
@@ -36,7 +36,7 @@ public class OrdersModel : PageModel
         Orders = TableId.HasValue ? all.Where(o => o.TableId == TableId).ToList() : all;
     }
 
-    /// <summary>Only the next step is allowed from the board: Placed, then Preparing, Ready and Served. Nothing skips ahead.</summary>
+    /// Only the next step is allowed from the board: Placed, then Preparing, Ready and Served. Nothing skips ahead.
     public async Task<IActionResult> OnPostAdvanceAsync(int id, OrderStatus to)
     {
         var order = await _orders.GetByIdAsync(id);

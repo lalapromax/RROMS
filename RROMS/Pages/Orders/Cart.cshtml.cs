@@ -24,8 +24,8 @@ public class CartModel : PageModel
         _stripe = stripe;
     }
 
-    /// <summary>Whether real Stripe keys are set. Without them the two online choices are shown but switched off (brief 6.C:
-    /// never pretend live payments work when no credentials are configured).</summary>
+    /// Whether real Stripe keys are set. Without them the two online choices are shown but switched off (brief 6.C:
+    /// never pretend live payments work when no credentials are configured).
     public bool StripeEnabled => _stripe.IsConfigured;
     public string StripePublishableKey => _stripe.PublishableKey;
 
@@ -45,7 +45,7 @@ public class CartModel : PageModel
         await LoadAsync();
     }
 
-    /// <summary>The +, - and Remove buttons. The quantity posted is the one wanted, so a repeated post changes nothing more.</summary>
+    /// The +, - and Remove buttons. The quantity posted is the one wanted, so a repeated post changes nothing more.
     public async Task<IActionResult> OnPostSetQtyAsync(string key, int qty)
     {
         var cart = CartSession.Load(HttpContext.Session);
@@ -67,10 +67,10 @@ public class CartModel : PageModel
         return await RedrawAsync();
     }
 
-    /// <summary>"Apply" next to the promo code: redraws the cart with the code priced in, keeping everything else typed so far.</summary>
+    /// "Apply" next to the promo code: redraws the cart with the code priced in, keeping everything else typed so far.
     public async Task<IActionResult> OnPostApplyCodeAsync() => await RedrawAsync();
 
-    /// <summary>Redraws the page without a redirect, so notes, payment choice and code typed so far are kept.</summary>
+    /// Redraws the page without a redirect, so notes, payment choice and code typed so far are kept.
     private async Task<IActionResult> RedrawAsync()
     {
         ModelState.Clear();
@@ -78,10 +78,10 @@ public class CartModel : PageModel
         return Page();
     }
 
-    /// <summary>
+    /// 
     /// Called by the page's script when an online payment choice is picked, so the Stripe form has a client secret to mount.
     /// The amount comes from the same pricing checkout uses, never from the browser.
-    /// </summary>
+    /// 
     public async Task<IActionResult> OnPostCreatePaymentIntentAsync()
     {
         await LoadAsync();

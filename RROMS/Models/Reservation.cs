@@ -17,7 +17,7 @@ public class Reservation
     [Range(1, 30)]
     public int PartySize { get; set; }
 
-    /// <summary>Combined booking date + time, stored in local restaurant time.</summary>
+    /// Combined booking date + time, stored in local restaurant time.
     public DateTime ReservationDateTime { get; set; }
 
     public int DurationMinutes { get; set; } = 90;
@@ -30,11 +30,11 @@ public class Reservation
     [StringLength(40)]
     public string? Occasion { get; set; }
 
-    /// <summary>Optional: one set menu chosen for the whole table when booking.</summary>
+    /// Optional: one set menu chosen for the whole table when booking.
     public int? SetMenuId { get; set; }
     public SetMenu? SetMenu { get; set; }
 
-    /// <summary>Who to ask for at the door, if different from the account name, and a number to reach them on the day.</summary>
+    /// Who to ask for at the door, if different from the account name, and a number to reach them on the day.
     [StringLength(80)]
     public string? ContactName { get; set; }
 
@@ -53,7 +53,7 @@ public class Reservation
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
-    /// <summary>Guests may change or cancel on their own until this many hours before the booking; after that they call us.</summary>
+    /// Guests may change or cancel on their own until this many hours before the booking; after that they call us.
     public const int GuestChangeCutoffHours = 4;
 
     [NotMapped]

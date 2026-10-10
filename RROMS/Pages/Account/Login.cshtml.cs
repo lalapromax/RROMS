@@ -70,13 +70,13 @@ public class LoginModel : PageModel
         return Page();
     }
 
-    /// <summary>
+    /// 
     /// Google Sign-In / Sign-Up. The browser sends the ID token Google gave it; nothing is
     /// trusted until IGoogleAuthService has verified it on the server. Only ever signs in
     /// (or creates) an account whose Google identity is already linked or brand new - it
     /// never silently attaches Google to an existing password account, because anyone could
     /// have pre-registered that email address (account pre-hijacking).
-    /// </summary>
+    /// 
     public async Task<IActionResult> OnPostGoogleAsync(string? credential, string? returnUrl)
     {
         var (verified, message, identity) = await _googleAuth.VerifyAsync(credential ?? string.Empty, HttpContext.Session);
@@ -117,11 +117,11 @@ public class LoginModel : PageModel
     private static JsonResult Fail(string message) =>
         new(new { success = false, message }) { StatusCode = StatusCodes.Status400BadRequest };
 
-    /// <summary>
+    /// 
     /// Where to send someone after signing in. If they were heading somewhere specific (and it is a local address)
     /// they go there; otherwise each role lands in its own area - administrators on their dashboard, staff on theirs,
     /// customers on the home page.
-    /// </summary>
+    /// 
     private async Task<string> LandingUrlAsync(ApplicationUser user, string? returnUrl)
     {
         var requested = SafeReturnUrl(returnUrl);

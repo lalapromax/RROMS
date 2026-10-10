@@ -10,19 +10,19 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Reservations;
 
-/// <summary>What the booking form posts. Date, time and month travel as plain text so the page works without scripts.</summary>
+/// What the booking form posts. Date, time and month travel as plain text so the page works without scripts.
 public class BookForm
 {
     [Range(1, CreateModel.MaxParty, ErrorMessage = "Choose between 1 and 8 guests. For more, please call us.")]
     public int PartySize { get; set; } = 2;
 
-    /// <summary>yyyy-MM-dd</summary>
+    /// yyyy-MM-dd
     public string? Date { get; set; }
 
-    /// <summary>HH:mm</summary>
+    /// HH:mm
     public string? Time { get; set; }
 
-    /// <summary>The month shown in the calendar, yyyy-MM.</summary>
+    /// The month shown in the calendar, yyyy-MM.
     public string? Month { get; set; }
 
     [Required(ErrorMessage = "Please tell us who to ask for."), StringLength(80)]
@@ -41,7 +41,7 @@ public class BookForm
     public int? SetMenuId { get; set; }
 }
 
-/// <summary>One cell of the calendar: a date a guest can pick, or a blank/closed/past one.</summary>
+/// One cell of the calendar: a date a guest can pick, or a blank/closed/past one.
 public record CalendarDay(DateTime? Date, bool Open);
 
 public class CreateModel : PageModel
@@ -92,7 +92,7 @@ public class CreateModel : PageModel
         await PrepareAsync(user);
     }
 
-    /// <summary>Used by the page's script: the start times for one day and party size, without reloading the page.</summary>
+    /// Used by the page's script: the start times for one day and party size, without reloading the page.
     public async Task<IActionResult> OnGetSlotsAsync(string date, int party, int? area)
     {
         if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) || party < 1 || party > MaxParty)
@@ -101,7 +101,7 @@ public class CreateModel : PageModel
         return new JsonResult(new { closed = slots.Closed, slots = slots.Slots.Select(s => new { time = s.Time, full = s.Full }) });
     }
 
-    /// <summary>Re-draws the page with what has been entered so far (month arrows, and the "show times" button when scripts are off).</summary>
+    /// Re-draws the page with what has been entered so far (month arrows, and the "show times" button when scripts are off).
     public async Task<IActionResult> OnPostRefreshAsync(string? nav)
     {
         ModelState.Clear();

@@ -9,7 +9,7 @@ namespace RROMS.Pages.Orders;
 
 public class IndexModel : PageModel
 {
-    /// <summary>How many orders show before "Show all".</summary>
+    /// How many orders show before "Show all".
     public const int FirstPage = 6;
 
     private readonly IOrderService _orderService;
@@ -21,7 +21,7 @@ public class IndexModel : PageModel
         _userManager = userManager;
     }
 
-    /// <summary>all, paid, unpaid or cancelled.</summary>
+    /// all, paid, unpaid or cancelled.
     [BindProperty(SupportsGet = true)] public string Filter { get; set; } = "all";
     [BindProperty(SupportsGet = true)] public string? Q { get; set; }
     [BindProperty(SupportsGet = true)] public bool All { get; set; }

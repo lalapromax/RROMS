@@ -10,12 +10,12 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Admin;
 
-/// <summary>
+/// 
 /// The team. An administrator can do exactly two things to a staff account: add one, or terminate one. Roles are fixed
 /// (Staff and Administrator, nothing in between and nothing new), the restaurant name is fixed, and there is no handler on this
 /// page, or anywhere else, that changes a person's role or makes another administrator. A terminated account is kept, never deleted,
 /// so everything that person did stays attributed to them. Adding the same email again brings the account back.
-/// </summary>
+/// 
 public class TeamModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _users;

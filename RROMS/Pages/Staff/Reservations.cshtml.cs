@@ -8,11 +8,11 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Staff;
 
-/// <summary>
+/// 
 /// The day's bookings: confirm requests, seat guests, change tables, take a booking or a walk-in for someone without an account.
 /// Every action is a small post that goes back to the same day and filters. The rules (a table must be big enough and free for the
 /// whole sitting) are enforced in <see cref="IReservationService"/>, so the page only offers what is likely to work.
-/// </summary>
+/// 
 public class ReservationsModel : PageModel
 {
     private readonly IReservationService _reservations;
@@ -30,7 +30,7 @@ public class ReservationsModel : PageModel
     [BindProperty(SupportsGet = true)] public string? Status { get; set; }
     [BindProperty(SupportsGet = true)] public string? Q { get; set; }
     [BindProperty(SupportsGet = true)] public int? TableId { get; set; }
-    /// <summary>The dashboard's "Add walk-in" opens the new-booking dialog with "seat now" ticked.</summary>
+    /// The dashboard's "Add walk-in" opens the new-booking dialog with "seat now" ticked.
     [BindProperty(SupportsGet = true)] public bool WalkIn { get; set; }
 
     [BindProperty] public NewBookingInput New { get; set; } = new();
@@ -202,7 +202,7 @@ public class ReservationsModel : PageModel
         return Done(ok, msg);
     }
 
-    /// <summary>"Decline" for a request, "Cancel" for anything else: the guest is told, and sees the reason if one was given.</summary>
+    /// "Decline" for a request, "Cancel" for anything else: the guest is told, and sees the reason if one was given.
     public async Task<IActionResult> OnPostDeclineAsync(int id, string? reason)
     {
         reason = string.IsNullOrWhiteSpace(reason) ? "Cancelled by staff" : reason.Trim();

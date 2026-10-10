@@ -2,9 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RROMS.Models;
 
-/// <summary>
+/// 
 /// One row per day of the week. Seeded automatically for all seven days.
-/// </summary>
+/// 
 public class OperatingHours
 {
     public int Id { get; set; }

@@ -8,10 +8,10 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Orders;
 
-/// <summary>
+/// 
 /// The order and its receipt. One page for three kinds of reader: the guest who placed it, and staff or an administrator
 /// looking it up for them. The page model refuses everyone else.
-/// </summary>
+/// 
 public class DetailsModel : PageModel
 {
     private readonly IOrderService _orderService;
@@ -33,23 +33,23 @@ public class DetailsModel : PageModel
     public bool IsStaff => User.IsInRole(Roles.Staff);
     public bool IsAdmin => User.IsInRole(Roles.Administrator);
 
-    /// <summary>True only for the guest who placed a completed order that has no review yet.</summary>
+    /// True only for the guest who placed a completed order that has no review yet.
     public bool CanReview { get; private set; }
     public bool AlreadyReviewed { get; private set; }
 
-    /// <summary>Guests can cancel until the kitchen starts; staff and administrators until the order is closed.</summary>
+    /// Guests can cancel until the kitchen starts; staff and administrators until the order is closed.
     public bool CanCancel =>
         Order.Status != OrderStatus.Cancelled && Order.Status != OrderStatus.Completed
         && (Order.Status == OrderStatus.Placed || IsStaff || IsAdmin);
 
-    /// <summary>The promo code the guest used on this order, if any.</summary>
+    /// The promo code the guest used on this order, if any.
     public string? CodeUsed { get; private set; }
 
-    /// <summary>Points already added for this order, or what it will add once it is finished and paid.</summary>
+    /// Points already added for this order, or what it will add once it is finished and paid.
     public int PointsAdded { get; private set; }
     public int PointsToCome { get; private set; }
 
-    /// <summary>How many guests the booking behind this order is for (for the line under the title).</summary>
+    /// How many guests the booking behind this order is for (for the line under the title).
     public int? PartySize => Order.Reservation?.PartySize;
 
     public async Task<IActionResult> OnGetAsync(int id)

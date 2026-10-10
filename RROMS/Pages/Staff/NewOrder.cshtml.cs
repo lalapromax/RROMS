@@ -9,11 +9,11 @@ using RROMS.ViewModels;
 
 namespace RROMS.Pages.Staff;
 
-/// <summary>
+/// 
 /// Add an order for a table that is already seated, or for someone at the counter. It goes through the same
 /// <see cref="IOrderService.PlaceOrderAsync"/> as an online order, so prices, discounts and checks are the same. Set menus are
 /// chosen by guests from the Menu page; here staff add single dishes and wines.
-/// </summary>
+/// 
 public class NewOrderModel : PageModel
 {
     private readonly ApplicationDbContext _context;

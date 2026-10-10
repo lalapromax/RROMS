@@ -2,19 +2,19 @@ namespace RROMS.Services;
 
 public interface IProfileImageService
 {
-    /// <summary>Validates and stores an uploaded picture; returns the site-relative URL to save on the user.</summary>
+    /// Validates and stores an uploaded picture; returns the site-relative URL to save on the user.
     Task<(bool Success, string Message, string? Url)> SaveAsync(IFormFile file, string userId);
 
-    /// <summary>Deletes a previously stored picture, but only if it lives in our own uploads folder.</summary>
+    /// Deletes a previously stored picture, but only if it lives in our own uploads folder.
     void DeleteIfOurs(string? url);
 }
 
-/// <summary>
+/// 
 /// Profile picture storage (brief 6.E). Uploads are untrusted input, so this checks the file's
 /// real signature (not just its extension or the browser-supplied content type), caps the size,
 /// and ignores the original filename entirely - the stored name is generated here, which also
 /// rules out path traversal and overwriting someone else's picture.
-/// </summary>
+/// 
 public class ProfileImageService : IProfileImageService
 {
     public const string UploadsUrlFolder = "/uploads/profiles/";

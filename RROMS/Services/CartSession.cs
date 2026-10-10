@@ -3,7 +3,7 @@ using RROMS.ViewModels;
 
 namespace RROMS.Services;
 
-/// <summary>Reads and writes the cart kept in the session. One place, so the menu, the cart and the top bar agree on what is in it.</summary>
+/// Reads and writes the cart kept in the session. One place, so the menu, the cart and the top bar agree on what is in it.
 public static class CartSession
 {
     private const string Key = "Cart";
@@ -20,7 +20,7 @@ public static class CartSession
 
     public static void Clear(ISession session) => session.Remove(Key);
 
-    /// <summary>Adds a line, or one more of an identical line.</summary>
+    /// Adds a line, or one more of an identical line.
     public static void Add(List<CartItemVM> cart, CartItemVM line)
     {
         var existing = cart.FirstOrDefault(c => c.Key == line.Key && c.SpecialInstructions == line.SpecialInstructions);

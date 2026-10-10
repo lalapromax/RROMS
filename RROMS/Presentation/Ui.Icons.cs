@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Html;
 
 namespace RROMS.Presentation;
 
-/// <summary>
+/// 
 /// The line icons used across the site, copied from the approved design. They are inline SVG so they take the
 /// colour of the surrounding text and need no icon font or network request.
-/// </summary>
+/// 
 public static partial class Ui
 {
     private static readonly Dictionary<string, string> IconPaths = new()
@@ -55,7 +55,7 @@ public static partial class Ui
 
     public static bool HasIcon(string name) => IconPaths.ContainsKey(name);
 
-    /// <summary>One inline icon. <paramref name="size"/> is in pixels; the stroke width follows the design (1.6).</summary>
+    /// One inline icon. <paramref name="size"/> is in pixels; the stroke width follows the design (1.6).
     public static IHtmlContent Icon(string name, int size = 20, double stroke = 1.6)
     {
         if (!IconPaths.TryGetValue(name, out var d))

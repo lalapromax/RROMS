@@ -9,15 +9,15 @@ public interface IGoogleAuthService
     bool IsConfigured { get; }
     string ClientId { get; }
 
-    /// <summary>Creates a one-time nonce, remembers it in the session, and returns it for the page to hand to Google.</summary>
+    /// Creates a one-time nonce, remembers it in the session, and returns it for the page to hand to Google.
     string CreateNonce(ISession session);
 
-    /// <summary>
+    /// 
     /// Verifies a Google ID token ("credential") on the server: Google's signature, the issuer,
     /// the expiry, that it was issued for THIS app's client id, that Google has verified the
     /// email address, and that it carries the nonce this session asked for.
     /// A successful frontend callback alone proves nothing - only this check does (brief 6.D).
-    /// </summary>
+    /// 
     Task<(bool Success, string Message, GoogleIdentity? Identity)> VerifyAsync(string credential, ISession session);
 }
 
@@ -36,8 +36,8 @@ public class GoogleAuthService : IGoogleAuthService
 
     public string ClientId => _config["GoogleSettings:ClientId"] ?? string.Empty;
 
-    /// <summary>On as soon as a real Client ID is pasted in (placeholders like YOUR_GOOGLE_CLIENT_ID do not count).
-    /// "GoogleSettings:Enabled": false is an optional off-switch; leaving it out means on.</summary>
+    /// On as soon as a real Client ID is pasted in (placeholders like YOUR_GOOGLE_CLIENT_ID do not count).
+    /// "GoogleSettings:Enabled": false is an optional off-switch; leaving it out means on.
     public bool IsConfigured =>
         (_config.GetValue<bool?>("GoogleSettings:Enabled") ?? true) && IntegrationSettings.IsReal(ClientId);
 

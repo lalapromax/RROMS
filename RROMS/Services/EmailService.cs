@@ -5,17 +5,17 @@ namespace RROMS.Services;
 
 public interface IEmailService
 {
-    /// <summary>True when SmtpSettings has a real host, username and password (placeholders do not count).</summary>
+    /// True when SmtpSettings has a real host, username and password (placeholders do not count).
     bool IsConfigured { get; }
 
-    /// <summary>Sends one plain-text email. Never throws: the result says what went wrong in plain words.</summary>
+    /// Sends one plain-text email. Never throws: the result says what went wrong in plain words.
     Task<(bool Success, string Message)> SendAsync(string toEmail, string subject, string body);
 }
 
-/// <summary>
+/// 
 /// Sends mail through any SMTP server (Gmail, Outlook, Mailtrap, your own). All values come from the
 /// SmtpSettings section - see INTEGRATIONS.md for the Gmail "app password" walkthrough.
-/// </summary>
+/// 
 public class EmailService : IEmailService
 {
     private readonly IConfiguration _config;

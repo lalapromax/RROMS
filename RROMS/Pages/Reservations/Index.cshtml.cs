@@ -9,7 +9,7 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Reservations;
 
-/// <summary>One booking as the list shows it.</summary>
+/// One booking as the list shows it.
 public record BookingCard(Reservation Booking, bool Reviewed, int? OrderId)
 {
     public string Title =>
@@ -29,7 +29,7 @@ public class IndexModel : PageModel
         _userManager = userManager;
     }
 
-    /// <summary>upcoming (default), past or cancelled.</summary>
+    /// upcoming (default), past or cancelled.
     [BindProperty(SupportsGet = true)]
     public string Tab { get; set; } = "upcoming";
 
@@ -41,7 +41,7 @@ public class IndexModel : PageModel
     public string AllergiesOnFile { get; private set; } = string.Empty;
     public string? Phone { get; private set; }
 
-    /// <summary>On the "Upcoming" tab only the latest few past visits sit below the list; the rest are on the Past tab.</summary>
+    /// On the "Upcoming" tab only the latest few past visits sit below the list; the rest are on the Past tab.
     public const int PastPreview = 3;
 
     public async Task OnGetAsync()

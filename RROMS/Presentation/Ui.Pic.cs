@@ -5,10 +5,10 @@ namespace RROMS.Presentation;
 
 public static partial class Ui
 {
-    /// <summary>
+    /// 
     /// One guest-facing picture. If the dish, set menu or wine has its own photo that is shown; otherwise the matching
     /// illustrated plate from the design is drawn, so a guest never sees an empty box. Staff may leave photos out.
-    /// </summary>
+    /// 
     /// <param name="shape">sq, round, arch, soft or none (the radius the design uses for that spot).</param>
     /// <param name="surface">linen, oak, slate, olive, wine or cocoa; left empty the surface follows the picture.</param>
     public static IHtmlContent Pic(string? imageUrl, string? name, string? category = null, string shape = "sq",
@@ -26,17 +26,17 @@ public static partial class Ui
         return new HtmlString($"<div class=\"{klass}\"><svg viewBox=\"0 0 200 200\" {label} focusable=\"false\"><use href=\"#{sym}\"></use></svg></div>");
     }
 
-    /// <summary>A fixed illustrated plate from the design (used where the picture is decoration, not a specific dish).</summary>
+    /// A fixed illustrated plate from the design (used where the picture is decoration, not a specific dish).
     public static IHtmlContent Plate(string symbol, string surface, string shape = "sq", string? cls = null)
     {
         var klass = $"img s-{surface} r-{shape}" + (string.IsNullOrWhiteSpace(cls) ? "" : " " + cls);
         return new HtmlString($"<div class=\"{klass}\"><svg viewBox=\"0 0 200 200\" aria-hidden=\"true\" focusable=\"false\"><use href=\"#{symbol}\"></use></svg></div>");
     }
 
-    /// <summary>
+    /// 
     /// The 2 x 2 collage that stands for a set menu: the picture of the first dish of each of its first four courses.
     /// A set menu photo, when staff added one, replaces the collage.
-    /// </summary>
+    /// 
     public static IHtmlContent SetCover(RROMS.Models.SetMenu menu, string? style = null, string shape = "none")
     {
         var sb = new System.Text.StringBuilder();
@@ -60,7 +60,7 @@ public static partial class Ui
         return new HtmlString(sb.ToString());
     }
 
-    /// <summary>"Contains dairy, gluten" for the line under a dish; null when nothing is recorded.</summary>
+    /// "Contains dairy, gluten" for the line under a dish; null when nothing is recorded.
     public static string? AllergenLine(string? allergens)
     {
         var list = RROMS.Services.DietaryRules.ParseList(allergens);
@@ -70,7 +70,7 @@ public static partial class Ui
         return "Contains " + string.Join(", ", names);
     }
 
-    /// <summary>Picks the illustrated plate for a dish by its name and category. Falls back to the plain house plate.</summary>
+    /// Picks the illustrated plate for a dish by its name and category. Falls back to the plain house plate.
     public static (string Symbol, string Surface) Symbol(string? name, string? category)
     {
         var n = (name ?? "").ToLowerInvariant();
@@ -98,24 +98,24 @@ public static partial class Ui
         return ("d-house", "linen");
     }
 
-    /// <summary>" err" when the model-state entry has an error, so the field gets the wine outline. Use inside class="in@(Ui.Err(...))".</summary>
+    /// " err" when the model-state entry has an error, so the field gets the wine outline. Use inside class="in@(Ui.Err(...))".
     public static string Err(Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary state, string key) =>
         state.TryGetValue(key, out var entry) && entry.Errors.Count > 0 ? " err" : "";
 
-    /// <summary>"RM 118" for whole amounts, "RM 118.50" otherwise.</summary>
+    /// "RM 118" for whole amounts, "RM 118.50" otherwise.
     public static string Rm(decimal amount) =>
         amount == decimal.Truncate(amount)
             ? $"{Brand.Currency} {amount:#,0}"
             : $"{Brand.Currency} {amount:#,0.00}";
 
-    /// <summary>Always two decimals: receipts, bills and totals.</summary>
+    /// Always two decimals: receipts, bills and totals.
     public static string Rm2(decimal amount) => $"{Brand.Currency} {amount:#,0.00}";
 
-    /// <summary>One outlined star. The star pickers draw five of these and fill them with CSS as a rating is chosen.</summary>
+    /// One outlined star. The star pickers draw five of these and fill them with CSS as a rating is chosen.
     public static IHtmlContent Star(int size = 30) =>
         new HtmlString($"<svg width=\"{size}\" height=\"{size}\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 2.8l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.7 6.1 20.8l1.2-6.5L2.5 9.7l6.6-.9z\"></path></svg>");
 
-    /// <summary>Five outlined stars, <paramref name="n"/> of them filled.</summary>
+    /// Five outlined stars, <paramref name="n"/> of them filled.
     public static IHtmlContent Stars(int n, int size = 16, string cls = "stars")
     {
         const string star = "M12 2.8l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.7 6.1 20.8l1.2-6.5L2.5 9.7l6.6-.9z";

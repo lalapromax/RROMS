@@ -8,10 +8,10 @@ using RROMS.Models;
 
 namespace RROMS.Pages.Account;
 
-/// <summary>
+/// 
 /// The link in the email sent when someone changes their sign-in address on the profile page. The address only changes
 /// here, once the new mailbox is proven to be theirs. The token is single use and tied to the new address.
-/// </summary>
+/// 
 [AllowAnonymous]
 public class ConfirmEmailModel : PageModel
 {

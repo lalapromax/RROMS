@@ -2,9 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RROMS.Models;
 
-/// <summary>
+/// 
 /// Single-row table holding restaurant-wide configuration, managed from Admin > Settings.
-/// </summary>
+/// 
 public class RestaurantSetting
 {
     public int Id { get; set; }
@@ -24,10 +24,10 @@ public class RestaurantSetting
     [StringLength(500)]
     public string? Description { get; set; }
 
-    /// <summary>Default length of a table booking, used by the availability engine.</summary>
+    /// Default length of a table booking, used by the availability engine.
     public int ReservationDurationMinutes { get; set; } = 90;
 
-    /// <summary>How many days in advance a customer may book.</summary>
+    /// How many days in advance a customer may book.
     public int MaxAdvanceBookingDays { get; set; } = 60;
 
     [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "decimal(5,2)")]

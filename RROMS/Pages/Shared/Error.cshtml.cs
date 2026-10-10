@@ -10,12 +10,12 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Shared;
 
-/// <summary>
+/// 
 /// What a guest, a staff member or an administrator sees when something is missing or has failed. One page, three cases:
 /// not found (404), not for this account (401/403) and "our side" (everything else, including unhandled exceptions).
 /// The wording never blames the visitor. The "our side" case also prints a short reference that is written to the server log
 /// next to the full request id, so a phone call can be matched to what really happened.
-/// </summary>
+/// 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [IgnoreAntiforgeryToken]
 public class ErrorModel : PageModel
@@ -29,17 +29,17 @@ public class ErrorModel : PageModel
         _cache = cache;
     }
 
-    /// <summary>missing, denied or ours.</summary>
+    /// missing, denied or ours.
     public string Kind { get; private set; } = "ours";
     public int Status { get; private set; } = 500;
 
-    /// <summary>Eight characters from the request id, as 7F3A-21C9. Only shown for the "our side" case.</summary>
+    /// Eight characters from the request id, as 7F3A-21C9. Only shown for the "our side" case.
     public string Reference { get; private set; } = string.Empty;
 
-    /// <summary>The restaurant phone as last seen by any page. Empty until the owner has set one (the seed holds a placeholder in brackets).</summary>
+    /// The restaurant phone as last seen by any page. Empty until the owner has set one (the seed holds a placeholder in brackets).
     public string? Phone { get; private set; }
 
-    /// <summary>Where "Try again" goes: the address that failed. A plain visit to /Error goes home.</summary>
+    /// Where "Try again" goes: the address that failed. A plain visit to /Error goes home.
     public string RetryUrl { get; private set; } = "/";
 
     public bool Signed => User.Identity?.IsAuthenticated == true;
@@ -71,7 +71,7 @@ public class ErrorModel : PageModel
         Response.StatusCode = Status;
     }
 
-    /// <summary>The same request id always gives the same reference, so it can be worked out again from the log.</summary>
+    /// The same request id always gives the same reference, so it can be worked out again from the log.
     public static string ReferenceFor(string requestId)
     {
         var hex = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requestId)).AsSpan(0, 4));

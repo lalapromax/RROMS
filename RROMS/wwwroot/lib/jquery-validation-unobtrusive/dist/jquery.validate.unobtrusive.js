@@ -175,9 +175,9 @@
         adapters: [],
 
         parseElement: function (element, skipAttach) {
-            /// <summary>
+            /// 
             /// Parses a single HTML element for unobtrusive validation attributes.
-            /// </summary>
+            /// 
             /// <param name="element" domElement="true">The HTML element to be parsed.</param>
             /// <param name="skipAttach" type="Boolean">[Optional] true to skip attaching the
             /// validation to the form. If parsing just this single element, you should specify true.
@@ -226,11 +226,11 @@
         },
 
         parse: function (selector) {
-            /// <summary>
+            /// 
             /// Parses all the HTML elements in the specified selector. It looks for input elements decorated
             /// with the [data-val=true] attribute value and enables validation according to the data-val-*
             /// attribute values.
-            /// </summary>
+            /// 
             /// <param name="selector" type="String">Any valid jQuery selector.</param>
 
             // $forms includes all forms in selector's DOM hierarchy (parent, children and self) that have at least one
@@ -258,7 +258,7 @@
     adapters = $jQval.unobtrusive.adapters;
 
     adapters.add = function (adapterName, params, fn) {
-        /// <summary>Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation.</summary>
+        /// Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation.
         /// <param name="adapterName" type="String">The name of the adapter to be added. This matches the name used
         /// in the data-val-nnnn HTML attribute (where nnnn is the adapter name).</param>
         /// <param name="params" type="Array" optional="true">[Optional] An array of parameter names (strings) that will
@@ -276,8 +276,8 @@
     };
 
     adapters.addBool = function (adapterName, ruleName) {
-        /// <summary>Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation, where
-        /// the jQuery Validate validation rule has no parameter values.</summary>
+        /// Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation, where
+        /// the jQuery Validate validation rule has no parameter values.
         /// <param name="adapterName" type="String">The name of the adapter to be added. This matches the name used
         /// in the data-val-nnnn HTML attribute (where nnnn is the adapter name).</param>
         /// <param name="ruleName" type="String" optional="true">[Optional] The name of the jQuery Validate rule. If not provided, the value
@@ -289,9 +289,9 @@
     };
 
     adapters.addMinMax = function (adapterName, minRuleName, maxRuleName, minMaxRuleName, minAttribute, maxAttribute) {
-        /// <summary>Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation, where
+        /// Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation, where
         /// the jQuery Validate validation has three potential rules (one for min-only, one for max-only, and
-        /// one for min-and-max). The HTML parameters are expected to be named -min and -max.</summary>
+        /// one for min-and-max). The HTML parameters are expected to be named -min and -max.
         /// <param name="adapterName" type="String">The name of the adapter to be added. This matches the name used
         /// in the data-val-nnnn HTML attribute (where nnnn is the adapter name).</param>
         /// <param name="minRuleName" type="String">The name of the jQuery Validate rule to be used when you only
@@ -322,8 +322,8 @@
     };
 
     adapters.addSingleVal = function (adapterName, attribute, ruleName) {
-        /// <summary>Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation, where
-        /// the jQuery Validate validation rule has a single value.</summary>
+        /// Adds a new adapter to convert unobtrusive HTML into a jQuery Validate validation, where
+        /// the jQuery Validate validation rule has a single value.
         /// <param name="adapterName" type="String">The name of the adapter to be added. This matches the name used
         /// in the data-val-nnnn HTML attribute(where nnnn is the adapter name).</param>
         /// <param name="attribute" type="String">[Optional] The name of the HTML attribute that contains the value.

@@ -15,9 +15,9 @@ public class ApplicationUser : IdentityUser
 
     public DateTime DateJoined { get; set; } = DateTime.UtcNow;
 
-    /// <summary>
+    /// 
     /// Allows an Administrator to deactivate a staff or customer account without deleting it.
-    /// </summary>
+    /// 
     public bool IsActive { get; set; } = true;
 
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();

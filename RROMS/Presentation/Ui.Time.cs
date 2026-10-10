@@ -2,7 +2,7 @@ namespace RROMS.Presentation;
 
 public static partial class Ui
 {
-    /// <summary>"Today, 09:10", "Yesterday", "16 Oct" or "16 Oct 2025": how long ago, in the way people say it.</summary>
+    /// "Today, 09:10", "Yesterday", "16 Oct" or "16 Oct 2025": how long ago, in the way people say it.
     public static string When(DateTime local)
     {
         var today = DateTime.Today;

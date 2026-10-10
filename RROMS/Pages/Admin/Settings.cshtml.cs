@@ -9,11 +9,11 @@ using RROMS.Services;
 
 namespace RROMS.Pages.Admin;
 
-/// <summary>
+/// 
 /// Contact details, booking rules, tax, service charge and opening hours. The restaurant's NAME is deliberately not here:
 /// it is fixed in the system (see <c>Brand.Name</c>) and shown on every page, email and receipt, so no form on this page can
 /// change it, and nothing in the handlers below reads one from the request.
-/// </summary>
+/// 
 public class SettingsModel : PageModel
 {
     private readonly ApplicationDbContext _context;

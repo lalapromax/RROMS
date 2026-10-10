@@ -4,37 +4,37 @@ using RROMS.Models;
 
 namespace RROMS.Services;
 
-/// <summary>Booked/free status for one table at a specific date/time, used by the
-/// admin visual floor plan to overlay live reservation status on each table.</summary>
+/// Booked/free status for one table at a specific date/time, used by the
+/// admin visual floor plan to overlay live reservation status on each table.
 public record TableStatusInfo(int TableId, bool IsBooked, string? ReservationSummary);
 
-/// <summary>One bookable start time on a day. <see cref="Full"/> means no table fits the party then, so the guest may join the waiting list.</summary>
+/// One bookable start time on a day. <see cref="Full"/> means no table fits the party then, so the guest may join the waiting list.
 public record SlotInfo(string Time, bool Full);
 
-/// <summary>What a guest can book on one day: nothing when the restaurant is closed, otherwise the start times in order.</summary>
+/// What a guest can book on one day: nothing when the restaurant is closed, otherwise the start times in order.
 public record DaySlots(bool Closed, IReadOnlyList<SlotInfo> Slots);
 
-/// <summary>Everything the booking form collects. Staff bookings leave the guest-only fields empty.</summary>
+/// Everything the booking form collects. Staff bookings leave the guest-only fields empty.
 public record ReservationRequest(
     string CustomerId, DateTime Date, TimeSpan Time, int PartySize,
     string? SpecialRequests = null, int? DiningAreaId = null, int? PreferredTableId = null,
     string? Occasion = null, int? SetMenuId = null, string? ContactName = null, string? ContactPhone = null);
 
-/// <summary>A booking or walk-in taken by a member of staff for a guest who has no account (or is on the phone).</summary>
+/// A booking or walk-in taken by a member of staff for a guest who has no account (or is on the phone).
 public record StaffBooking(string GuestName, string? Phone, DateTime Date, TimeSpan Time, int PartySize, int? TableId, string? Notes, string? Occasion, bool SeatNow);
 
 public interface IReservationService
 {
-    /// <summary>Staff: book (or seat right now) a guest who has no account. Filed under the shared walk-in account; the name and number stay on the booking.</summary>
+    /// Staff: book (or seat right now) a guest who has no account. Filed under the shared walk-in account; the name and number stay on the booking.
     Task<(bool Success, string Message, Reservation? Reservation)> CreateByStaffAsync(StaffBooking booking, string staffId);
 
-    /// <summary>Staff: move a booking to another table, if it is big enough and free for the whole sitting.</summary>
+    /// Staff: move a booking to another table, if it is big enough and free for the whole sitting.
     Task<(bool Success, string Message)> MoveTableAsync(int reservationId, int tableId);
 
-    /// <summary>Staff: put a cancelled or no-show booking back, on the same table if it is still free, otherwise on another.</summary>
+    /// Staff: put a cancelled or no-show booking back, on the same table if it is still free, otherwise on another.
     Task<(bool Success, string Message)> ReopenAsync(int reservationId, string staffId);
 
-    /// <summary>The tables a booking could move to right now: big enough, active and free for its whole sitting (its own table included).</summary>
+    /// The tables a booking could move to right now: big enough, active and free for its whole sitting (its own table included).
     Task<List<RestaurantTable>> GetTablesForMoveAsync(int reservationId);
 
     Task<List<RestaurantTable>> GetAvailableTablesAsync(DateTime date, TimeSpan time, int partySize, int? diningAreaId = null);
