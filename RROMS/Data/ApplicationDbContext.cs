@@ -20,6 +20,7 @@ namespace RROMS.Data
         public DbSet<Reservation> Reservations => Set<Reservation>();
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+        public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<Collaboration> Collaborations => Set<Collaboration>();
         public DbSet<SetMenu> SetMenus => Set<SetMenu>();
         public DbSet<SetMenuCourse> SetMenuCourses => Set<SetMenuCourse>();
