@@ -1,0 +1,30 @@
+@page
+@model RROMS.Pages.Notifications.IndexModel
+@{
+    ViewData["Title"] = "Notifications";
+}
+<h1 class="h3 mb-4">Notifications</h1>
+
+@if (!Model.Notifications.Any())
+{
+    <div class="rroms-card p-5 text-center text-muted-warm">You're all caught up - no notifications yet.</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var n in Model.Notifications)
+        {
+            <div class="list-group-item rroms-card mb-2 @(n.IsRead ? "" : "border-start border-3")" style="@(n.IsRead ? "" : "border-left-color:var(--gold) !important;")">
+                <div class="d-flex justify-content-between">
+                    <strong>@n.Title</strong>
+                    <span class="small text-muted-warm">@n.CreatedAt.ToLocalTime().ToString("dd MMM, h:mm tt")</span>
+                </div>
+                <p class="mb-1">@n.Message</p>
+                @if (!string.IsNullOrEmpty(n.LinkUrl))
+                {
+                    <a href="@n.LinkUrl" class="small">View details &rarr;</a>
+                }
+            </div>
+        }
+    </div>
+}

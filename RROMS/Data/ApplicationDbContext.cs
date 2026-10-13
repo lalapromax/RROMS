@@ -16,6 +16,7 @@ namespace RROMS.Data
         public DbSet<RestaurantSetting> RestaurantSettings => Set<RestaurantSetting>();
         public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
+        public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<Announcement> Announcements => Set<Announcement>();
         public DbSet<Reservation> Reservations => Set<Reservation>();
         public DbSet<Order> Orders => Set<Order>();
@@ -40,6 +41,13 @@ namespace RROMS.Data
                 .WithMany(c => c.MenuItems)
                 .HasForeignKey(m => m.MenuCategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- Notification ----
+            builder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // ---- Announcement ----
             builder.Entity<Announcement>()
