@@ -66,10 +66,7 @@ public interface IOrderService
     /// 
     /// Creates a Stripe PaymentIntent for the customer's current cart, priced the exact
     /// same way PlaceOrderAsync prices it, so the embedded Payment Element the customer
-    /// confirms is always for the real, server-computed total (brief 6.C) - never a
-    /// figure the browser sent. No Order row is created here; that only happens once
-    /// payment is confirmed, via PlaceOrderAsync.
-    /// 
+    /// confirms is always for the real total
     Task<(bool Success, string Message, string? ClientSecret, string? PaymentIntentId)> CreateOnlinePaymentIntentAsync(
         string customerId, List<CartItemVM> items, OrderType type, string? promoCode, bool onlineBanking);
 
