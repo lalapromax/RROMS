@@ -1,0 +1,10 @@
+@inject IChromeService Chrome
+@{ var hasLogo = (await Chrome.GetAsync()).HasLogo; }
+@if (hasLogo)
+{
+    <img class="logo-img" src="@Brand.LogoPath" alt="" width="44" height="44" />
+}
+else
+{
+    <span class="logo-slot" aria-hidden="true"></span>
+}

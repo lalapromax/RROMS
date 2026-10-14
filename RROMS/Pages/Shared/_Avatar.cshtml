@@ -1,0 +1,14 @@
+@* Profile picture, or a default initials avatar when none is set.*@
+@model AvatarVM
+@{
+    var initials = string.Concat((Model.FullName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    if (string.IsNullOrEmpty(initials)) initials = "?";
+}
+@if (!string.IsNullOrEmpty(Model.ImagePath))
+{
+    <img class="avatar" src="@Model.ImagePath" alt="" width="@Model.Size" height="@Model.Size" style="width:@(Model.Size)px;height:@(Model.Size)px;" />
+}
+else
+{
+    <span class="avatar avatar-default" aria-hidden="true" style="width:@(Model.Size)px;height:@(Model.Size)px;font-size:@(Model.Size * 0.4)px;">@initials</span>
+}
