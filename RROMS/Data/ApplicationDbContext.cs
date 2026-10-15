@@ -20,6 +20,7 @@ namespace RROMS.Data
         public DbSet<Reservation> Reservations => Set<Reservation>();
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+        public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<Collaboration> Collaborations => Set<Collaboration>();
         public DbSet<SetMenu> SetMenus => Set<SetMenu>();
         public DbSet<SetMenuCourse> SetMenuCourses => Set<SetMenuCourse>();
@@ -105,8 +106,14 @@ namespace RROMS.Data
                 .HasForeignKey(oi => oi.MenuItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ---- Payment (1:1 with Order) ----
+            builder.Entity<Payment>()
+                .HasOne(p => p.Order)
+                .WithOne(o => o.Payment)
+                .HasForeignKey<Payment>(p => p.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // ---- Collaboration ----
-            
             builder.Entity<Collaboration>().HasIndex(c => new { c.IsPublished, c.DisplayOrder });
 
             // ---- Set menus: courses and dishes go with the menu; a dish on the carte cannot be deleted while a set menu offers it ----
