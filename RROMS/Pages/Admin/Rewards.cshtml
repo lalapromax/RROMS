@@ -1,0 +1,475 @@
+@page
+@model RROMS.Pages.Admin.RewardsModel
+@using RROMS.Models
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Rewards";
+    var tab = Model.TabKey;
+    string FreqLabel(PerkFrequency f) => f switch
+    {
+        PerkFrequency.Once => "One time",
+        PerkFrequency.Monthly => "Once a month",
+        PerkFrequency.Yearly => "Once a year",
+        _ => "Always on"
+    };
+    string IconWord(string k) => k switch
+    {
+        "cal" => "Calendar", "fork" => "Fork and knife", "bag" => "Shopping bag", "table" => "Table", _ => char.ToUpperInvariant(k[0]) + k[1..]
+    };
+    var perkFields = "id,tierid,name,description,icon,group,frequency,isactive";
+    // The ranking tab previews the band a guest in the upper-middle of the list would be in.
+    var previewIndex = Model.Bands.FindLastIndex(b => b.UpToPercent <= 50 && b.UpToPercent > 10);
+    RankBand? previewBand = previewIndex >= 0 ? Model.Bands[previewIndex] : null;
+    var previewAhead = previewBand == null ? 0 : 100 - (int)Math.Round((previewBand.UpToPercent + (previewIndex > 0 ? Model.Bands[previewIndex - 1].UpToPercent : 0)) / 2.0);
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Rewards</h1>
+            <p>Tiers, perks and the claims guests make. Everything here shows on the guest Rewards page.</p>
+        </div>
+        <div class="row-acts">
+            @if (tab == "tiers")
+            {
+                <button type="button" class="btn btn-line" data-dialog-open="tierDlg" data-fields="id,name,minpoints,blurb,colorhex" data-title="Add a tier" data-colorhex="#84592B">Add a tier</button>
+            }
+        </div>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="Rewards sections">
+        <a role="tab" asp-page="/Admin/Rewards" aria-current="@(tab == "tiers" ? "page" : null)">Tiers and perks</a>
+        <a role="tab" asp-page="/Admin/Rewards" asp-route-tab="claims" aria-current="@(tab == "claims" ? "page" : null)">Claims@if (Model.WaitingClaims > 0) { <small>@Model.WaitingClaims</small> }</a>
+        <a role="tab" asp-page="/Admin/Rewards" asp-route-tab="ranking" aria-current="@(tab == "ranking" ? "page" : null)">Ranking and messages</a>
+    </nav>
+
+    @if (tab == "tiers")
+    {
+        @if (!Model.Tiers.Any())
+        {
+            <div class="empty-card">
+                <h2>No tiers yet</h2>
+                <p>Add the first tier. It has to start at 0 points so every new guest belongs to it.</p>
+                <button type="button" class="btn btn-wine" data-dialog-open="tierDlg" data-fields="id,name,minpoints,blurb,colorhex" data-title="Add a tier" data-minpoints="0" data-colorhex="#84592B">Add a tier</button>
+            </div>
+        }
+        else
+        {
+            <div class="tiercol">
+                @for (var ti = 0; ti < Model.Tiers.Count; ti++)
+                {
+                    var tier = Model.Tiers[ti];
+                    var members = Model.MemberCounts.TryGetValue(tier.Id, out var mc) ? mc : 0;
+                    <article class="panel tier" style="--tier:@tier.ColorHex" aria-labelledby="tier-@tier.Id">
+                        <div class="tier-h">
+                            <div class="sp-b">
+                                <h2 id="tier-@tier.Id">@tier.Name</h2>
+                                <button type="button" class="btn btn-line btn-sm2" data-dialog-open="tierDlg" data-fields="id,name,minpoints,blurb,colorhex" data-title="Edit @tier.Name"
+                                        data-id="@tier.Id" data-name="@tier.Name" data-minpoints="@tier.MinPoints" data-blurb="@tier.Blurb" data-colorhex="@tier.ColorHex">Edit tier</button>
+                            </div>
+                            <p>From @tier.MinPoints.ToString("N0") lifetime points@(string.IsNullOrWhiteSpace(tier.Blurb) ? "" : " · " + tier.Blurb)</p>
+                            <p class="tier-n">@members of @Model.TotalCustomers @(Model.TotalCustomers == 1 ? "guest" : "guests") here now</p>
+                        </div>
+
+                        @if (ti > 0)
+                        {
+                            <div class="perk perk-inherit">
+                                <span class="i" aria-hidden="true">@Ui.Icon("check", 18, 1.6)</span>
+                                <div><b>Everything in @Model.Tiers[ti - 1].Name</b><small>Higher tiers keep the perks below them.</small></div>
+                            </div>
+                        }
+
+                        @foreach (var perk in tier.Perks)
+                        {
+                            <div class="perk@(perk.IsActive ? "" : " is-off")">
+                                <span class="i" aria-hidden="true">@Ui.Icon(PerkIcons.Normalize(perk.Icon), 18, 1.6)</span>
+                                <div>
+                                    <b>@perk.Title@if (!perk.IsActive) { <span class="st st-cancelled">Hidden</span> }</b>
+                                    <small>@FreqLabel(perk.Frequency) · @perk.Group</small>
+                                    @if (!string.IsNullOrWhiteSpace(perk.Description)) { <small class="perk-d">@perk.Description</small> }
+                                </div>
+                                <div class="b">
+                                    <button type="button" class="ib" aria-label="Edit @perk.Title" data-dialog-open="perkDlg" data-fields="@perkFields" data-title="Edit perk"
+                                            data-id="@perk.Id" data-tierid="@perk.RewardTierId" data-name="@perk.Title" data-description="@perk.Description"
+                                            data-icon="@PerkIcons.Normalize(perk.Icon)" data-group="@perk.Group" data-frequency="@((int)perk.Frequency)" data-isactive="@(perk.IsActive ? "true" : "false")">@Ui.Icon("pen", 16, 1.6)</button>
+                                    <button type="button" class="ib" aria-label="Delete @perk.Title" data-dialog-open="delPerkDlg" data-fields="id,name" data-id="@perk.Id" data-name="@perk.Title">@Ui.Icon("trash", 16, 1.6)</button>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!tier.Perks.Any())
+                        {
+                            <p class="tier-none">No perks yet. Guests in this tier have nothing to claim.</p>
+                        }
+
+                        <button type="button" class="add-p" data-dialog-open="perkDlg" data-fields="@perkFields" data-title="Add a perk to @tier.Name"
+                                data-tierid="@tier.Id" data-icon="gift" data-group="Welcome treats" data-frequency="1" data-isactive="true">@Ui.Icon("plus", 16, 2) Add a perk</button>
+
+                        @if (tier.MinPoints != 0 && !tier.Perks.Any())
+                        {
+                            <button type="button" class="linkbtn tier-del" data-dialog-open="delTierDlg" data-fields="id,name" data-id="@tier.Id" data-name="@tier.Name">Delete the @tier.Name tier</button>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    }
+    else if (tab == "claims")
+    {
+        <div class="filter" role="group" aria-label="Claim status">
+            @foreach (var s in new[] { RewardClaimStatus.Waiting, RewardClaimStatus.Fulfilled, RewardClaimStatus.Declined })
+            {
+                var n = Model.ClaimCounts.TryGetValue(s, out var cc) ? cc : 0;
+                <a class="chipx@(Model.ActiveStatus == s ? " on" : "")" asp-page="/Admin/Rewards" asp-route-tab="claims" asp-route-status="@s" aria-current="@(Model.ActiveStatus == s ? "true" : null)">@s <small>@n</small></a>
+            }
+        </div>
+
+        @if (!Model.Claims.Any())
+        {
+            <div class="empty-card">
+                <h2>No @Model.ActiveStatus.ToString().ToLowerInvariant() claims</h2>
+                <p>@(Model.ActiveStatus == RewardClaimStatus.Waiting ? "When a guest claims a perk it lands here for your team to honour." : "Claims you have dealt with are listed here.")</p>
+            </div>
+        }
+        else
+        {
+            <section class="panel">
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Guest</th>
+                                <th scope="col">Perk</th>
+                                <th scope="col">Tier</th>
+                                <th scope="col">Requested</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.Claims)
+                            {
+                                <tr>
+                                    <td data-l="" class="c-guest"><div class="who"><b>@(c.Customer?.FullName ?? "Closed account")</b><small>@c.Customer?.Email</small></div></td>
+                                    <td data-l="Perk">@c.PerkTitle</td>
+                                    <td data-l="Tier">@c.TierName</td>
+                                    <td data-l="Requested">@c.CreatedAt.ToLocalTime().ToString("d MMM yyyy, HH:mm")</td>
+                                    <td data-l="Status">
+                                        @if (c.Status == RewardClaimStatus.Waiting) { <span class="st st-waiting">Waiting</span> }
+                                        else if (c.Status == RewardClaimStatus.Fulfilled) { <span class="st st-completed">Fulfilled</span> }
+                                        else { <span class="st st-declined">Declined</span> }
+                                    </td>
+                                    <td data-l="" class="c-acts">
+                                        @if (c.Status == RewardClaimStatus.Waiting)
+                                        {
+                                            <div class="row-acts">
+                                                <button type="button" class="btn btn-wine btn-sm2" data-dialog-open="fulfilDlg" data-fields="claimid,name" data-claimid="@c.Id" data-name="@c.PerkTitle for @c.Customer?.FullName">Mark fulfilled</button>
+                                                <button type="button" class="btn btn-line btn-sm2" data-dialog-open="declineDlg" data-fields="claimid,name" data-claimid="@c.Id" data-name="@c.PerkTitle for @c.Customer?.FullName">Decline</button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="muted">@(c.ResolvedAt?.ToLocalTime().ToString("d MMM yyyy"))@(string.IsNullOrWhiteSpace(c.AdminNote) ? "" : " · " + c.AdminNote)</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    }
+    else
+    {
+        <div class="rm">
+            <form method="post" asp-page-handler="SaveRanking" id="rankForm" class="stack form" novalidate>
+                <section class="panel">
+                    <h2 class="rm-h">What each guest is told about their rank</h2>
+                    <p class="panel-sub">Edit the wording and the cut-offs. Guests only see the message for the band they are in.</p>
+                    <div class="bands">
+                        @for (var i = 0; i < Model.Bands.Count; i++)
+                        {
+                            var b = Model.Bands[i];
+                            var last = i == Model.Bands.Count - 1;
+                            <div class="band">
+                                <input type="hidden" name="bandId" value="@b.Id" />
+                                <div class="l">
+                                    <b data-band-label>@(last ? "Everyone else" : b.Label)</b>
+                                    <small>of all guests</small>
+                                    @if (last)
+                                    {
+                                        <input type="hidden" name="cut" value="100" />
+                                        <div class="cut muted">Everyone below</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="cut">
+                                            <label class="muted" for="cut-@b.Id">Up to</label>
+                                            <input class="in" id="cut-@b.Id" name="cut" type="number" inputmode="numeric" min="1" max="99" value="@b.UpToPercent" data-band-cut required />
+                                            <span class="muted">%</span>
+                                        </div>
+                                    }
+                                </div>
+                                <div>
+                                    <label class="sr-only" for="msg-@b.Id">Message for @(last ? "everyone else" : b.Label)</label>
+                                    <textarea class="in" id="msg-@b.Id" name="bandMessage" maxlength="240" required @(previewIndex == i ? "data-preview-source" : null)>@b.Message</textarea>
+                                </div>
+                            </div>
+                        }
+                        @if (!Model.Bands.Any())
+                        {
+                            <p class="muted">There are no bands yet. Restore the defaults to start from the standard seven.</p>
+                        }
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2 class="rm-h">Messages for each tier</h2>
+                    <p class="panel-sub">Shown on the tier card, depending on where the guest is. Write {points} to show the tier's starting points.</p>
+                    <div class="tl tl-head" aria-hidden="true">
+                        <span></span>
+                        <span class="tl-h">After they pass it</span>
+                        <span class="tl-h">While they are in it</span>
+                        <span class="tl-h">Before they get there</span>
+                    </div>
+                    @foreach (var t in Model.Tiers)
+                    {
+                        <div class="tl">
+                            <b>@t.Name<input type="hidden" name="tierId" value="@t.Id" /></b>
+                            <div><label class="sr-only" for="tp-@t.Id">@t.Name, after they pass it</label><textarea class="in" id="tp-@t.Id" name="passed" maxlength="200">@t.MessagePassed</textarea></div>
+                            <div><label class="sr-only" for="tc-@t.Id">@t.Name, while they are in it</label><textarea class="in" id="tc-@t.Id" name="current" maxlength="200">@t.MessageCurrent</textarea></div>
+                            <div><label class="sr-only" for="tl-@t.Id">@t.Name, before they get there</label><textarea class="in" id="tl-@t.Id" name="locked" maxlength="200">@t.MessageLocked</textarea></div>
+                        </div>
+                    }
+                </section>
+            </form>
+
+            <aside class="stack">
+                <section class="panel">
+                    <h3 class="rm-h2">Guardrails</h3>
+                    <p class="panel-sub">So the ranking encourages, and never stings. These are built in.</p>
+                    <div class="rule-row">
+                        <span class="lock-tag" aria-hidden="true">@Ui.Icon("lock", 16, 1.6)</span>
+                        <div>
+                            <b>Percentages only for the top half</b>
+                            <small>Guests in a band that ends at 50% or less see "Ahead of 62%". Everyone else sees a warm message and their next goal.</small>
+                        </div>
+                    </div>
+                    <div class="rule-row">
+                        <span class="lock-tag" aria-hidden="true">@Ui.Icon("lock", 16, 1.6)</span>
+                        <div>
+                            <b>Never say bottom, last or lowest</b>
+                            <small>Checked when you save. @string.Join(", ", RankMessageRules.Forbidden) cannot be used in a message.</small>
+                        </div>
+                    </div>
+                    <div class="rule-row">
+                        <span class="lock-tag" aria-hidden="true">@Ui.Icon("lock", 16, 1.6)</span>
+                        <div>
+                            <b>Other guests show as first name and initial</b>
+                            <small>For example Amelia T. Guests can take themselves off the board.</small>
+                        </div>
+                    </div>
+                </section>
+
+                @if (previewBand != null)
+                {
+                    <section class="prev" aria-label="Guest preview">
+                        <p class="prev-t">What a guest in <span id="prevBand">@previewBand.Label</span> sees</p>
+                        <div class="card2">
+                            <p class="muted">You are ahead of</p>
+                            <p class="big">@(previewAhead)%</p>
+                            <p class="msg" id="prevMsg">@previewBand.Message</p>
+                        </div>
+                        <p class="prev-n">The percentage is an example. Each guest sees their own.</p>
+                    </section>
+                }
+
+                <div class="row-acts rm-acts">
+                    <button type="submit" form="rankForm" class="btn btn-wine">Save messages</button>
+                    <form method="post" asp-page-handler="RestoreDefaults" class="inl" data-confirm="Put the standard seven bands and their wording back? Your tier messages stay as they are.">
+                        <button type="submit" class="btn btn-line">Restore the defaults</button>
+                    </form>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+<dialog class="modal" id="tierDlg" style="--w:520px" aria-labelledby="tierT">
+    <form method="post" asp-page-handler="SaveTier" class="form">
+        <input type="hidden" id="tierDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="tierT" data-dialog-title>Tier</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label for="tierDlg_name">Name</label>
+                <input class="in" id="tierDlg_name" name="name" maxlength="40" required />
+            </div>
+            <div class="field">
+                <label for="tierDlg_minpoints">Lifetime points needed</label>
+                <input class="in" id="tierDlg_minpoints" name="minPoints" type="number" inputmode="numeric" min="0" max="10000000" required />
+                <p class="hint">The lowest tier must be 0. Guests move up on their own as they earn points.</p>
+            </div>
+            <div class="field">
+                <label for="tierDlg_blurb">Short description</label>
+                <input class="in" id="tierDlg_blurb" name="blurb" maxlength="200" />
+            </div>
+            <div class="field">
+                <label for="tierDlg_colorhex">Badge colour</label>
+                <input class="in in-color" id="tierDlg_colorhex" name="colorHex" type="color" value="#84592B" />
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save tier</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="delTierDlg" style="--w:480px" aria-labelledby="delTierT">
+    <form method="post" asp-page-handler="DeleteTier" class="form">
+        <input type="hidden" id="delTierDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="delTierT">Delete the <span id="delTierDlg_name">this</span> tier?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>Guests who sit in it move down to the tier below, based on their points. Nothing they have earned is lost.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Delete</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="perkDlg" style="--w:560px" aria-labelledby="perkT">
+    <form method="post" asp-page-handler="SavePerk" class="form">
+        <input type="hidden" id="perkDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="perkT" data-dialog-title>Perk</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label for="perkDlg_name">Title</label>
+                <input class="in" id="perkDlg_name" name="title" maxlength="80" required />
+            </div>
+            <div class="field">
+                <label for="perkDlg_description">What the guest gets</label>
+                <textarea class="in" id="perkDlg_description" name="description" rows="2" maxlength="300"></textarea>
+                <p class="hint">Only promise what your team can really give. Claims are honoured by a person.</p>
+            </div>
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="perkDlg_tierid">Unlocked at</label>
+                    <select class="in" id="perkDlg_tierid" name="tierId" required>
+                        @foreach (var t in Model.Tiers) { <option value="@t.Id">@t.Name (@t.MinPoints.ToString("N0")+ points)</option> }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="perkDlg_frequency">How often</label>
+                    <select class="in" id="perkDlg_frequency" name="frequency">
+                        <option value="0">One time</option>
+                        <option value="1">Once a month</option>
+                        <option value="2">Once a year</option>
+                        <option value="3">Always on (nothing to claim)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="perkDlg_group">Heading on the guest page</label>
+                    <input class="in" id="perkDlg_group" name="group" list="perkGroups" maxlength="40" />
+                    <datalist id="perkGroups">
+                        @foreach (var g in Model.PerkGroups) { <option value="@g"></option> }
+                    </datalist>
+                </div>
+                <div class="field">
+                    <label for="perkDlg_icon">Icon</label>
+                    <select class="in" id="perkDlg_icon" name="icon">
+                        @foreach (var icon in PerkIcons.All) { <option value="@icon">@IconWord(icon)</option> }
+                    </select>
+                </div>
+            </div>
+            <label class="swx"><input type="checkbox" id="perkDlg_isactive" name="isActive" value="true" /><span class="sw"></span> Show to guests</label>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save perk</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="delPerkDlg" style="--w:480px" aria-labelledby="delPerkT">
+    <form method="post" asp-page-handler="DeletePerk" class="form">
+        <input type="hidden" id="delPerkDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="delPerkT">Delete <span id="delPerkDlg_name">this perk</span>?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>Guests no longer see it. Claims already made keep their record. To hide it for a while instead, edit it and switch off "Show to guests".</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Delete</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="fulfilDlg" style="--w:520px" aria-labelledby="fulfilT">
+    <form method="post" asp-page-handler="ResolveClaim" class="form">
+        <input type="hidden" id="fulfilDlg_claimid" name="claimId" />
+        <input type="hidden" name="decision" value="fulfil" />
+        <div class="modal-head">
+            <h2 id="fulfilT">Mark as fulfilled</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p class="claim-what" id="fulfilDlg_name"></p>
+            <div class="field">
+                <label for="fulfilNote">A note for the guest (optional)</label>
+                <textarea class="in" id="fulfilNote" name="note" rows="3" maxlength="300"></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Mark as fulfilled</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="declineDlg" style="--w:520px" aria-labelledby="declineT">
+    <form method="post" asp-page-handler="ResolveClaim" class="form">
+        <input type="hidden" id="declineDlg_claimid" name="claimId" />
+        <input type="hidden" name="decision" value="decline" />
+        <div class="modal-head">
+            <h2 id="declineT">Decline this claim</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p class="claim-what" id="declineDlg_name"></p>
+            <div class="field">
+                <label for="declineNote">Why is it declined? The guest will read this.</label>
+                <textarea class="in" id="declineNote" name="note" rows="3" maxlength="300" required></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Decline claim</button>
+        </div>
+    </form>
+</dialog>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminRewards.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/AdminRankMessages.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/admin-rewards.js" asp-append-version="true"></script>
+}

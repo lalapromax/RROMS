@@ -22,6 +22,7 @@ namespace RROMS.Data
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<Collaboration> Collaborations => Set<Collaboration>();
+        public DbSet<RewardTier> RewardTiers => Set<RewardTier>();
         public DbSet<SetMenu> SetMenus => Set<SetMenu>();
         public DbSet<SetMenuCourse> SetMenuCourses => Set<SetMenuCourse>();
         protected override void OnModelCreating(ModelBuilder builder)
@@ -142,8 +143,28 @@ namespace RROMS.Data
                 .WithMany()
                 .HasForeignKey(r => r.SetMenuId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // ---- Reward tiers, perks and claims ----
+            builder.Entity<RewardTier>().HasIndex(t => t.MinPoints).IsUnique()
+
+            // ---- RewardLedgerEntry ----
+            builder.Entity<RewardLedgerEntry>()
+                .HasOne(r => r.Customer)
+                .WithMany()
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<RewardLedgerEntry>()
+                .HasOne(r => r.Order)
+                .WithMany()
+                .HasForeignKey(r => r.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One award per order, enforced by the database itself (brief 6.F: no duplicate rewards).
+            builder.Entity<RewardLedgerEntry>().HasIndex(r => r.OrderId).IsUnique();
+            builder.Entity<RewardLedgerEntry>().HasIndex(r => r.CustomerId);
         }
-    }
+    }   
 }
 
 
