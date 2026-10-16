@@ -1,0 +1,28 @@
+@model DietaryChipsVM
+@using RROMS.Services
+@{
+    // A stored need that is not one of the six chips (older accounts) stays ticked so saving never silently drops it.
+    var needs = DietaryRules.NeedChips.Concat(Model.Needs.Where(n => !DietaryRules.NeedChips.Contains(n, StringComparer.OrdinalIgnoreCase) && !n.Equals("None", StringComparison.OrdinalIgnoreCase))).ToList();
+    var otherOn = !string.IsNullOrWhiteSpace(Model.Other);
+}
+@if (Model.Sub) { <h3 class="sec-t">Dietary needs</h3> } else { <h2 class="sec-t">Dietary needs</h2> }
+@if (!Model.Sub) { <p class="sec-s">Optional. We pass these to the kitchen with every booking, and you can change them any time.</p> }
+<div class="chips" role="group" aria-label="Dietary needs">
+    @foreach (var n in needs)
+    {
+        <label class="chipx"><input type="checkbox" name="@Model.NeedsName" value="@n" checked="@Model.Needs.Contains(n, StringComparer.OrdinalIgnoreCase)" />@Ui.Icon("check", 14, 2.4) @DietaryRules.NeedLabel(n)</label>
+    }
+</div>
+@if (Model.Sub) { <h3 class="sec-t">Allergies</h3> } else { <h2 class="sec-t">Allergies</h2> }
+<p class="sec-s">@(Model.Sub ? "Choose any that apply." : "Choose any that apply. These are shown to staff in red.")</p>
+<div class="chips" role="group" aria-label="Allergies">
+    @foreach (var a in DietaryRules.AllergyChips)
+    {
+        <label class="chipx warn"><input type="checkbox" name="@Model.AllergiesName" value="@a" checked="@Model.Allergies.Contains(a, StringComparer.OrdinalIgnoreCase)" />@Ui.Icon("check", 14, 2.4) @DietaryRules.AllergenLabel(a)</label>
+    }
+    <label class="chipx warn"><input type="checkbox" data-other-toggle="@(Model.IdPrefix)Other" checked="@otherOn" aria-controls="@(Model.IdPrefix)Other" />@Ui.Icon("check", 14, 2.4) Other</label>
+</div>
+<div class="field" id="@(Model.IdPrefix)Other" style="margin-top:12px" hidden="@(!otherOn)">
+    <label for="@(Model.IdPrefix)OtherText">Anything else we should know about</label>
+    <input class="in" id="@(Model.IdPrefix)OtherText" name="@Model.OtherName" type="text" maxlength="150" value="@Model.Other" placeholder="For example: kiwi, mustard" />
+</div>
