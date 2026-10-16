@@ -145,7 +145,28 @@ namespace RROMS.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             // ---- Reward tiers, perks and claims ----
-            builder.Entity<RewardTier>().HasIndex(t => t.MinPoints).IsUnique()
+            builder.Entity<RewardTier>().HasIndex(t => t.MinPoints).IsUnique();
+
+            builder.Entity<RewardPerk>()
+                .HasOne(p => p.Tier)
+                .WithMany(t => t.Perks)
+                .HasForeignKey(p => p.RewardTierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<RewardClaim>()
+                .HasOne(c => c.Perk)
+                .WithMany()
+                .HasForeignKey(c => c.RewardPerkId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<RewardClaim>()
+                .HasOne(c => c.Customer)
+                .WithMany()
+                .HasForeignKey(c => c.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<RewardClaim>().HasIndex(c => new { c.Status, c.CreatedAt });
+            builder.Entity<RewardClaim>().HasIndex(c => new { c.CustomerId, c.RewardPerkId });
 
             // ---- RewardLedgerEntry ----
             builder.Entity<RewardLedgerEntry>()
@@ -160,9 +181,10 @@ namespace RROMS.Data
                 .HasForeignKey(r => r.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // One award per order, enforced by the database itself (brief 6.F: no duplicate rewards).
+            // One award per order, enforced by the database itself.
             builder.Entity<RewardLedgerEntry>().HasIndex(r => r.OrderId).IsUnique();
             builder.Entity<RewardLedgerEntry>().HasIndex(r => r.CustomerId);
+
         }
     }   
 }
