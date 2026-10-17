@@ -1,0 +1,9 @@
+@model RROMS.ViewModels.NoticePrefsVM
+@* The four switches: what the guest wants to hear about. Used on the Notices page and in the profile. Saves as soon as one is flipped. *@
+<form method="post" asp-page-handler="Prefs" class="prefs" data-autosubmit>
+    <label class="row"><span>Announcements and events</span><input type="checkbox" role="switch" name="announcements" value="true" checked="@Model.Announcements" /><i class="sw" aria-hidden="true"></i></label>
+    <label class="row"><span>Reward and tier updates</span><input type="checkbox" role="switch" name="rewards" value="true" checked="@Model.Rewards" /><i class="sw" aria-hidden="true"></i></label>
+    <label class="row"><span>Offers and promotions</span><input type="checkbox" role="switch" name="offers" value="true" checked="@Model.Offers" /><i class="sw" aria-hidden="true"></i></label>
+    <label class="row"><span>By email as well</span><input type="checkbox" role="switch" name="email" value="true" checked="@Model.ByEmail" /><i class="sw" aria-hidden="true"></i></label>
+    <button type="submit" class="btn btn-line btn-sm" data-no-js-only style="margin-top:14px">Save choices</button>
+</form>

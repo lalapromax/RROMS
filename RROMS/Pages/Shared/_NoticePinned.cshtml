@@ -1,0 +1,16 @@
+@model RROMS.Models.Announcement
+@* The one notice the restaurant wants every guest to see first. *@
+<article class="pin" id="a@(Model.Id)">
+    <div>
+        @Ui.Pic(Model.ImageUrl, Model.Title, null, "none", "cocoa", alt: Model.Title)
+    </div>
+    <div class="c">
+        <span class="tg">pinned</span>
+        <h2>@Model.Title</h2>
+        <p>@Model.Content</p>
+        @if (!string.IsNullOrWhiteSpace(Model.ButtonText) && !string.IsNullOrWhiteSpace(Model.ButtonUrl) && Model.ButtonUrl.StartsWith('/') && !Model.ButtonUrl.StartsWith("//"))
+        {
+            <a class="btn btn-paper btn-sm" href="@Model.ButtonUrl" style="margin-top:20px">@Model.ButtonText</a>
+        }
+    </div>
+</article>

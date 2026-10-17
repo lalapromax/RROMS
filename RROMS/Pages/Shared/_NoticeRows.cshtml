@@ -1,0 +1,42 @@
+@model RROMS.ViewModels.NoticeListVM
+@* The list under the tabs. Rows that lead somewhere are links; unread rows carry a dot and a word for screen readers. *@
+@if (Model.Rows.Count == 0)
+{
+    @if (!Model.HasPinned)
+    {
+        <div class="empty-card">
+            <h2>All quiet</h2>
+            <p>@Model.EmptyText</p>
+        </div>
+    }
+}
+else
+{
+    <div class="nl">
+        @foreach (var r in Model.Rows)
+        {
+            if (r.Link != null && r.NotificationId != null)
+            {
+                <a class="ni@(r.IsNew ? " new" : "")" id="@r.Id" asp-page="/Notifications/Index" asp-page-handler="Open" asp-route-id="@r.NotificationId">
+                    <span class="ico" aria-hidden="true">@Ui.Icon(r.Icon, 24, 1.6)</span>
+                    <div>
+                        <h3>@r.Title@if (r.IsNew) { <i aria-hidden="true"></i><span class="sr-only"> (new)</span> }</h3>
+                        <p>@r.Body</p>
+                    </div>
+                    <time datetime="@r.When.ToString("s")">@Ui.When(r.When)</time>
+                </a>
+            }
+            else
+            {
+                <div class="ni@(r.IsNew ? " new" : "")" id="@r.Id">
+                    <span class="ico" aria-hidden="true">@Ui.Icon(r.Icon, 24, 1.6)</span>
+                    <div>
+                        <h3>@r.Title@if (r.IsNew) { <i aria-hidden="true"></i><span class="sr-only"> (new)</span> }</h3>
+                        <p>@r.Body</p>
+                    </div>
+                    <time datetime="@r.When.ToString("s")">@Ui.When(r.When)</time>
+                </div>
+            }
+        }
+    </div>
+}

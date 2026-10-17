@@ -1,0 +1,7 @@
+@model RROMS.ViewModels.NoticeTabsVM
+<nav class="tabs" aria-label="Notices">
+    @foreach (var (key, label) in Model.Tabs)
+    {
+        <a asp-page="/Notifications/Index" asp-route-tab="@(key == "all" ? null : key)" aria-current="@(Model.Current == key ? "page" : null)">@label<small>@(Model.Counts.TryGetValue(key, out var n) ? n : 0)</small></a>
+    }
+</nav>
