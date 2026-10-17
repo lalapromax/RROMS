@@ -1,0 +1,45 @@
+@* Google Identity Services button. The browser only ever receives a signed ID token from Google;
+   the server verifies that token (IGoogleAuthService) before anyone is signed in or linked.
+   When no Google Client ID has been pasted in yet, the button is still shown - but as an honest "not set up"
+   note that explains what to do, instead of disappearing or pretending to work. *@
+@model GoogleSignInVM
+@inject IGoogleAuthService Google
+@inject IWebHostEnvironment Env
+@if (Google.IsConfigured)
+{
+    <div id="googleSignIn" class="google-btn-wrap"
+         data-client-id="@Model.ClientId"
+         data-nonce="@Google.CreateNonce(Context.Session)"
+         data-post-url="@Model.PostUrl"
+         data-return-url="@Model.ReturnUrl"
+         data-text="@Model.ButtonText"></div>
+    <p id="googleSignInError" class="err-msg" role="alert"></p>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="~/js/google-signin.js" asp-append-version="true"></script>
+}
+else
+{
+    <button type="button" class="g-btn" data-google-off aria-expanded="false" aria-controls="googleOffNote"><b>G</b> @(Model.ButtonText == "signup_with" ? "Sign up with Google" : "Continue with Google")</button>
+    <p id="googleOffNote" class="hint" role="status" hidden>
+        @if (Env.IsDevelopment())
+        {
+            <strong>Google sign-in isn't set up yet.</strong>
+            <span>Paste your Google Client ID into <code>appsettings.Local.json</code> (key <code>GoogleSettings:ClientId</code>) and restart. Steps are in <code>INTEGRATIONS.md</code>.</span>
+        }
+        else
+        {
+            <span>Google sign-in isn't available right now. Please use your email and password.</span>
+        }
+    </p>
+    <script>
+        (function () {
+            var btn = document.querySelector('[data-google-off]');
+            var note = document.getElementById('googleOffNote');
+            if (!btn || !note) return;
+            btn.addEventListener('click', function () {
+                note.hidden = !note.hidden;
+                btn.setAttribute('aria-expanded', note.hidden ? 'false' : 'true');
+            });
+        })();
+    </script>
+}
