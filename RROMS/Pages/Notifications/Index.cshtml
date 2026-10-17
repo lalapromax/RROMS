@@ -1,30 +1,72 @@
 @page
 @model RROMS.Pages.Notifications.IndexModel
+@using RROMS.ViewModels
 @{
-    ViewData["Title"] = "Notifications";
+    ViewData["Title"] = "Notices";
+    var audience = ViewData["Audience"] as string ?? "guest";
+    var app = audience != "guest";
+    var tabs = new List<(string Key, string Label)> { ("all", "All"), ("announcements", "Announcements"), ("orders", "Orders") };
+    if (Model.IsCustomer) tabs.Add(("rewards", "Rewards"));
+    var empty = Model.Tab switch
+    {
+        "announcements" => "No news from the restaurant right now.",
+        "orders" => "Updates about your orders will appear here.",
+        "rewards" => "Points, tier changes and reward claims will appear here.",
+        _ => "Nothing new. Updates about your bookings, orders and rewards will appear here."
+    };
+    var rows = new NoticeListVM(Model.Items, Model.Pinned != null, empty);
+    var tabsVm = new NoticeTabsVM(tabs, Model.Tab, Model.Counts);
 }
-<h1 class="h3 mb-4">Notifications</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Notices.css" asp-append-version="true" />
+}
 
-@if (!Model.Notifications.Any())
+@if (app)
 {
-    <div class="rroms-card p-5 text-center text-muted-warm">You're all caught up - no notifications yet.</div>
+    <div class="wrap main stage">
+        <div class="page-head">
+            <div>
+                <h1>Notices</h1>
+                <p>News from the restaurant, and updates for you.</p>
+            </div>
+            @if (Model.UnreadCount > 0)
+            {
+                <form method="post" asp-page-handler="MarkAllRead" asp-route-tab="@Model.Tab"><button type="submit" class="link">Mark all as read</button></form>
+            }
+        </div>
+        <partial name="_NoticeTabs" model="tabsVm" />
+        @if (Model.Pinned != null) { <partial name="_NoticePinned" model="Model.Pinned" /> }
+        <div class="two solo">
+            <div>
+                <partial name="_NoticeRows" model="rows" />
+            </div>
+        </div>
+    </div>
 }
 else
 {
-    <div class="list-group">
-        @foreach (var n in Model.Notifications)
+    <section class="wrap page-top">
+        <div>
+            <h1>Notices</h1>
+            <p class="lead-it">News from the restaurant, and updates on your bookings, orders and rewards.</p>
+        </div>
+        @if (Model.UnreadCount > 0)
         {
-            <div class="list-group-item rroms-card mb-2 @(n.IsRead ? "" : "border-start border-3")" style="@(n.IsRead ? "" : "border-left-color:var(--gold) !important;")">
-                <div class="d-flex justify-content-between">
-                    <strong>@n.Title</strong>
-                    <span class="small text-muted-warm">@n.CreatedAt.ToLocalTime().ToString("dd MMM, h:mm tt")</span>
-                </div>
-                <p class="mb-1">@n.Message</p>
-                @if (!string.IsNullOrEmpty(n.LinkUrl))
-                {
-                    <a href="@n.LinkUrl" class="small">View details &rarr;</a>
-                }
-            </div>
+            <form method="post" asp-page-handler="MarkAllRead" asp-route-tab="@Model.Tab"><button type="submit" class="link">Mark all as read</button></form>
         }
+    </section>
+    <div class="wrap main">
+        @if (Model.Pinned != null) { <partial name="_NoticePinned" model="Model.Pinned" /> }
+        <partial name="_NoticeTabs" model="tabsVm" />
+        <div class="two">
+            <div>
+                <partial name="_NoticeRows" model="rows" />
+            </div>
+            <aside class="side-card pref">
+                <h3>How we reach you</h3>
+                <p class="muted" style="margin:6px 0 10px">Booking and order updates always arrive, so you never miss a table.</p>
+                <partial name="_NoticePrefs" model="Model.Prefs" />
+            </aside>
+        </div>
     </div>
 }
