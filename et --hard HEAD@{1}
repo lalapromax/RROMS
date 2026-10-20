@@ -1,0 +1,268 @@
+[33m92a1b8d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: reset: moving to 92a1b8d5a72bd2f23f9460c9dcc332adc73104d6
+[33m9f8f67f[m HEAD@{1}: commit (amend): CSV , PDF, EXCEL EXPORT
+[33mfaebe4f[m HEAD@{2}: commit: CSV , PDF, EXCEL EXPORT
+[33m30602a0[m HEAD@{3}: reset: moving to HEAD~1
+[33mca18ee6[m HEAD@{4}: merge announcements: Merge made by the 'ort' strategy.
+[33m30602a0[m HEAD@{5}: commit (amend): Users can make reviews
+[33m7d91df8[m HEAD@{6}: commit: Users can make reviews
+[33m92a1b8d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{7}: commit (amend): Staff & Admin Dashboards
+[33maaeb07e[m HEAD@{8}: commit: Staff & Admin Dashboards
+[33m0353cb9[m HEAD@{9}: commit (amend): Users can make reviews
+[33m386bc6d[m HEAD@{10}: commit: Users can make reviews
+[33md7e8ed5[m HEAD@{11}: reset: moving to HEAD~1
+[33m9553efc[m HEAD@{12}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Merge made by the 'ort' strategy.
+[33md7e8ed5[m HEAD@{13}: commit (amend): ALOT OF CSS CHANGES
+[33m0c23cd9[m HEAD@{14}: commit (amend): ALOT OF CSS CHANGES
+[33m8174a03[m HEAD@{15}: commit (amend): ALOT OF CSS CHANGES
+[33m696e54f[m HEAD@{16}: commit: ALOT OF CSS CHANGES
+[33m99113d1[m HEAD@{17}: commit (amend): Starting on chatbot stuff
+[33ma4b2770[m HEAD@{18}: commit: Starting on chatbot stuff
+[33m4d9a692[m HEAD@{19}: commit (amend): Merge branch 'notifications'
+[33m4118ab5[m HEAD@{20}: merge notifications: Merge made by the 'ort' strategy.
+[33mdbdb3db[m HEAD@{21}: commit (amend): google fixes
+[33m2b763f4[m HEAD@{22}: commit: google fixes
+[33m15645e7[m HEAD@{23}: commit (amend): Promotions
+[33m3f819d3[m HEAD@{24}: commit: Promotions
+[33m2bff2aa[m HEAD@{25}: commit (amend): edited how dietary restrictions work
+[33mb1cd2fe[m HEAD@{26}: commit: edited how dietary restrictions work
+[33m1d960e5[m HEAD@{27}: checkout: moving from announcements to master
+[33m9001019[m[33m ([m[1;31morigin/announcements[m[33m, [m[1;32mannouncements[m[33m)[m HEAD@{28}: checkout: moving from master to announcements
+[33m1d960e5[m HEAD@{29}: commit (amend): Reward Perks + claiming
+[33mdabac24[m HEAD@{30}: commit: Reward Perks + claiming
+[33m2888620[m HEAD@{31}: commit (amend): Reward Perks + claiming
+[33m8217aaf[m HEAD@{32}: commit: Reward Perks + claiming
+[33mc0d3f9b[m HEAD@{33}: commit (amend): Rewards System WIP
+[33m665c052[m HEAD@{34}: commit: Rewards System WIP
+[33m67deff3[m HEAD@{35}: reset: moving to HEAD~1
+[33m069d9eb[m HEAD@{36}: commit: Reviews system
+[33m67deff3[m HEAD@{37}: checkout: moving from announcements to master
+[33m9001019[m[33m ([m[1;31morigin/announcements[m[33m, [m[1;32mannouncements[m[33m)[m HEAD@{38}: commit (amend): Changed the way announcements are handled
+[33m59f9017[m HEAD@{39}: commit: Changed the way announcements are handled
+[33m67deff3[m HEAD@{40}: merge origin: Fast-forward
+[33mda3df60[m HEAD@{41}: checkout: moving from announcements to announcements
+[33mda3df60[m HEAD@{42}: checkout: moving from notifications to announcements
+[33m5bd8391[m[33m ([m[1;31morigin/notifications[m[33m, [m[1;32mnotifications[m[33m)[m HEAD@{43}: commit (amend): Pinning IMPORTANT notifications
+[33m051f74d[m HEAD@{44}: checkout: moving from notifications to notifications
+[33m051f74d[m HEAD@{45}: commit: Pinning IMPORTANT notifications
+[33me2025c2[m HEAD@{46}: checkout: moving from master to notifications
+[33m67deff3[m HEAD@{47}: checkout: moving from notifications to master
+[33me2025c2[m HEAD@{48}: checkout: moving from master to notifications
+[33m67deff3[m HEAD@{49}: reset: moving to HEAD
+[33m67deff3[m HEAD@{50}: commit (amend): Navbar complete rework
+[33m8beed46[m HEAD@{51}: commit: Navbar complete rework
+[33m992d469[m HEAD@{52}: reset: moving to HEAD~1
+[33m894f5a2[m HEAD@{53}: merge notifications: Merge made by the 'ort' strategy.
+[33m992d469[m HEAD@{54}: commit (amend): Merge branch 'payments'
+[33mb1ddbd0[m HEAD@{55}: merge payments: Merge made by the 'ort' strategy.
+[33m78bb8fa[m HEAD@{56}: reset: moving to HEAD~1
+[33mb5b2f97[m HEAD@{57}: merge payments: Merge made by the 'ort' strategy.
+[33m78bb8fa[m HEAD@{58}: checkout: moving from notifications to master
+[33me2025c2[m HEAD@{59}: merge payments: Merge made by the 'ort' strategy.
+[33m3fd9635[m HEAD@{60}: reset: moving to HEAD~1
+[33me2025c2[m HEAD@{61}: commit (amend): Merge branch 'payments' into notifications
+[33me2025c2[m HEAD@{62}: merge payments: Merge made by the 'ort' strategy.
+[33m3fd9635[m HEAD@{63}: reset: moving to HEAD~1
+[33md2cebb8[m HEAD@{64}: commit (amend): Merge branch 'payments' into notifications
+[33me2025c2[m HEAD@{65}: merge payments: Merge made by the 'ort' strategy.
+[33m3fd9635[m HEAD@{66}: commit (amend): Updated Notification System!
+[33me66350e[m HEAD@{67}: commit: Updated Notification System!
+[33mee9b50f[m HEAD@{68}: commit (amend): Added a Notification System
+[33mbae301d[m HEAD@{69}: commit: Added a Notification System
+[33m78bb8fa[m HEAD@{70}: checkout: moving from master to notifications
+[33m78bb8fa[m HEAD@{71}: commit (amend): reservation JS
+[33mf33b630[m HEAD@{72}: commit: reservation JS
+[33mc7eae3f[m HEAD@{73}: commit (amend): Some additions in admin JS
+[33mf0bb0c0[m HEAD@{74}: commit: Some additions in admin JS
+[33ma218848[m HEAD@{75}: checkout: moving from admin-stuff to master
+[33m65c8bb1[m[33m ([m[1;31morigin/admin-stuff[m[33m, [m[1;32madmin-stuff[m[33m)[m HEAD@{76}: reset: moving to HEAD
+[33m65c8bb1[m[33m ([m[1;31morigin/admin-stuff[m[33m, [m[1;32madmin-stuff[m[33m)[m HEAD@{77}: reset: moving to HEAD
+[33m65c8bb1[m[33m ([m[1;31morigin/admin-stuff[m[33m, [m[1;32madmin-stuff[m[33m)[m HEAD@{78}: checkout: moving from payments to admin-stuff
+[33m85673d6[m[33m ([m[1;31morigin/payments[m[33m, [m[1;32mpayments[m[33m)[m HEAD@{79}: commit (amend): integrations...
+[33m04160a0[m HEAD@{80}: commit: integrations...
+[33m0070ae8[m HEAD@{81}: commit (amend): Payment service
+[33m8a50db9[m HEAD@{82}: commit: Payment service
+[33m1575602[m HEAD@{83}: commit (amend): Adjustments to order for stripe
+[33md150d88[m HEAD@{84}: commit: Adjustments to order for stripe
+[33m78217c8[m HEAD@{85}: checkout: moving from announcements to payments
+[33mda3df60[m HEAD@{86}: checkout: moving from payments to announcements
+[33m78217c8[m HEAD@{87}: commit (amend): Stripe credentials
+[33mcad4f2d[m HEAD@{88}: commit: Stripe credentials
+[33md4b1fc2[m HEAD@{89}: commit (amend): Initial payment logic
+[33m8d170d0[m HEAD@{90}: commit: Initial payment logic
+[33m78aa6e8[m HEAD@{91}: commit (amend): Initial payment logic
+[33md1977f1[m HEAD@{92}: commit: Initial payment logic
+[33ma218848[m HEAD@{93}: checkout: moving from master to payments
+[33ma218848[m HEAD@{94}: commit (amend): Merge branch 'announcements'
+[33me30b158[m HEAD@{95}: merge announcements: Merge made by the 'ort' strategy.
+[33m20076a4[m[33m ([m[1;31morigin/set-menus[m[33m, [m[1;32mset-menus[m[33m)[m HEAD@{96}: checkout: moving from set-menus to master
+[33m20076a4[m[33m ([m[1;31morigin/set-menus[m[33m, [m[1;32mset-menus[m[33m)[m HEAD@{97}: reset: moving to HEAD~1
+[33m3b610fa[m HEAD@{98}: checkout: moving from master to set-menus
+[33m20076a4[m[33m ([m[1;31morigin/set-menus[m[33m, [m[1;32mset-menus[m[33m)[m HEAD@{99}: reset: moving to HEAD~1
+[33m3b610fa[m HEAD@{100}: merge set-menus: Fast-forward
+[33mda3df60[m HEAD@{101}: checkout: moving from set-menus to master
+[33m3b610fa[m HEAD@{102}: merge origin: Merge made by the 'ort' strategy.
+[33m20076a4[m[33m ([m[1;31morigin/set-menus[m[33m, [m[1;32mset-menus[m[33m)[m HEAD@{103}: reset: moving to HEAD~1
+[33mc2a2eee[m HEAD@{104}: reset: moving to c2a2eee
+[33mc2a2eee[m HEAD@{105}: merge origin: Merge made by the 'ort' strategy.
+[33m20076a4[m[33m ([m[1;31morigin/set-menus[m[33m, [m[1;32mset-menus[m[33m)[m HEAD@{106}: checkout: moving from master to set-menus
+[33mda3df60[m HEAD@{107}: merge announcements: Fast-forward
+[33m222d440[m HEAD@{108}: checkout: moving from announcements to master
+[33mda3df60[m HEAD@{109}: commit (amend): Customers can view announcements
+[33m340e4f2[m HEAD@{110}: commit: Customers can view announcements
+[33m100bfc9[m HEAD@{111}: commit (amend): Admins can make announcements
+[33mdb1db9e[m HEAD@{112}: commit: Admins can make announcements
+[33m222d440[m HEAD@{113}: checkout: moving from master to announcements
+[33m222d440[m HEAD@{114}: commit (amend): Clean Up The Overall App
+[33m1084102[m HEAD@{115}: commit: Clean Up The Overall App
+[33mc5a4d75[m HEAD@{116}: checkout: moving from menu to master
+[33m20076a4[m[33m ([m[1;31morigin/set-menus[m[33m, [m[1;32mset-menus[m[33m)[m HEAD@{117}: commit (amend): Create, Edit, View Set menus :D
+[33m38de43f[m HEAD@{118}: commit (amend): Create, Edit, View Set menus :D
+[33m5bfbac3[m HEAD@{119}: commit (amend): Create, Edit, View Set menus :D
+[33m58ea464[m HEAD@{120}: commit: Create, Edit, View Set menus :D
+[33m0039d9e[m HEAD@{121}: reset: moving to HEAD~1
+[33m39d2987[m HEAD@{122}: commit: Create, Edit View Set Menus :D
+[33m0039d9e[m HEAD@{123}: commit (amend): More set menu stuff
+[33m86d0e63[m HEAD@{124}: commit: More set menu stuff
+[33m66ced79[m HEAD@{125}: commit (amend): Created set menu models
+[33meff4c3e[m HEAD@{126}: commit: Created set menu models
+[33m4678fae[m HEAD@{127}: commit (amend): fix menu items
+[33m6d17702[m HEAD@{128}: commit: fix menu items
+[33mc5a4d75[m HEAD@{129}: checkout: moving from master to menu
+[33mc5a4d75[m HEAD@{130}: commit (amend): good coding practices
+[33mcb3314e[m HEAD@{131}: commit: good coding practices
+[33mb7199ba[m HEAD@{132}: commit (amend): additions to reservations
+[33mada9712[m HEAD@{133}: commit: additions to reservations
+[33m1ea3787[m HEAD@{134}: commit (amend): Adding default UI Icons
+[33ma391356[m HEAD@{135}: commit: Adding default UI Icons
+[33m56bfd80[m HEAD@{136}: commit (amend): Order fixes
+[33m9db8cbd[m HEAD@{137}: commit: Order fixes
+[33mf5f84ce[m HEAD@{138}: commit (amend): order overhaul
+[33m4c118b3[m HEAD@{139}: commit: order overhaul
+[33m680f206[m[33m ([m[1;31morigin/reservations[m[33m, [m[1;32mreservations[m[33m)[m HEAD@{140}: merge reservations: Fast-forward
+[33m4232acb[m HEAD@{141}: checkout: moving from reservations to master
+[33m680f206[m[33m ([m[1;31morigin/reservations[m[33m, [m[1;32mreservations[m[33m)[m HEAD@{142}: commit (amend): Change reservation creation
+[33m12b4f4f[m HEAD@{143}: commit: Change reservation creation
+[33m067f1b4[m HEAD@{144}: merge origin: Merge made by the 'ort' strategy.
+[33m8b1e48f[m HEAD@{145}: checkout: moving from master to reservations
+[33m4232acb[m HEAD@{146}: checkout: moving from reservations to master
+[33m8b1e48f[m HEAD@{147}: commit (amend): Reservation overhaul
+[33m51a8aad[m HEAD@{148}: commit: Reservation overhaul
+[33m514aca9[m HEAD@{149}: checkout: moving from master to reservations
+[33m4232acb[m HEAD@{150}: commit (amend): Added some layouts
+[33m4cbb069[m HEAD@{151}: commit: Added some layouts
+[33m93e1188[m HEAD@{152}: commit (amend): added restaurant operating hours
+[33me65adc5[m HEAD@{153}: commit: added restaurant operating hours
+[33m834995e[m HEAD@{154}: commit (amend): edited admin settings
+[33mdb60ac7[m HEAD@{155}: commit: edited admin settings
+[33m08ff9f2[m HEAD@{156}: reset: moving to HEAD~1
+[33mf45c416[m HEAD@{157}: commit: Made some changes to admin settings
+[33m08ff9f2[m HEAD@{158}: reset: moving to HEAD~1
+[33m86dad95[m HEAD@{159}: reset: moving to HEAD
+[33m86dad95[m HEAD@{160}: commit: Changed
+[33m08ff9f2[m HEAD@{161}: commit (amend): Staff orders
+[33m062f9ff[m HEAD@{162}: commit: Staff orders
+[33m650ef5d[m HEAD@{163}: commit (amend): new JS stuff
+[33mc2e7652[m HEAD@{164}: commit: new JS stuff
+[33mf259cf2[m HEAD@{165}: commit (amend): Added Validation to Register and Login
+[33m818ed6e[m HEAD@{166}: commit: Added Validation to Register and Login
+[33mb58203e[m HEAD@{167}: commit (amend): Email Function
+[33m8a8725c[m HEAD@{168}: commit: Email Function
+[33m08aa48a[m HEAD@{169}: commit (amend): ApplicationDbContext Relationship Fixes
+[33m4a4c314[m HEAD@{170}: commit: ApplicationDbContext Relationship Fixes
+[33m4a03aa4[m HEAD@{171}: commit (amend): User Orders
+[33m2dba4a4[m HEAD@{172}: reset: moving to HEAD
+[33m2dba4a4[m HEAD@{173}: commit (amend): User Orders
+[33m4a03aa4[m HEAD@{174}: commit (amend): User Orders
+[33md9fa895[m HEAD@{175}: commit: User Orders
+[33m01e0a47[m HEAD@{176}: commit (amend): Fixed up Collaborations
+[33mcc6020a[m HEAD@{177}: commit: Fixed up Collaborations
+[33m6c2ab99[m HEAD@{178}: merge reservations: Merge made by the 'ort' strategy.
+[33m18dc161[m[33m ([m[1;31morigin/google-sign-in[m[33m, [m[1;32mgoogle-sign-in[m[33m)[m HEAD@{179}: checkout: moving from reservations to master
+[33m514aca9[m HEAD@{180}: commit (amend): staff reservations
+[33mb493f91[m HEAD@{181}: commit: staff reservations
+[33m957bdb4[m HEAD@{182}: commit (amend): reservation service + js
+[33ma5c3a36[m HEAD@{183}: commit: reservation service + js
+[33m791bc0f[m HEAD@{184}: commit (amend): basic reservation functions
+[33mf38a0a9[m HEAD@{185}: commit: basic reservation functions
+[33mf0ff63e[m HEAD@{186}: commit (amend): change google post method
+[33mf11c1de[m HEAD@{187}: reset: moving to HEAD~1
+[33m944d5ae[m HEAD@{188}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Merge made by the 'ort' strategy.
+[33mf11c1de[m HEAD@{189}: commit (amend): change google post method
+[33m18dc161[m[33m ([m[1;31morigin/google-sign-in[m[33m, [m[1;32mgoogle-sign-in[m[33m)[m HEAD@{190}: reset: moving to HEAD~1
+[33mb8210fc[m HEAD@{191}: reset: moving to HEAD~1
+[33m71eac9a[m HEAD@{192}: revert: Revert "basic reservation function"
+[33mb8210fc[m HEAD@{193}: reset: moving to HEAD~1
+[33m8fbe62c[m HEAD@{194}: commit: reservation service
+[33mb8210fc[m HEAD@{195}: commit (amend): basic reservation function
+[33m6dc8006[m HEAD@{196}: commit: basic reservation function
+[33m18dc161[m[33m ([m[1;31morigin/google-sign-in[m[33m, [m[1;32mgoogle-sign-in[m[33m)[m HEAD@{197}: checkout: moving from master to reservations
+[33m18dc161[m[33m ([m[1;31morigin/google-sign-in[m[33m, [m[1;32mgoogle-sign-in[m[33m)[m HEAD@{198}: merge google-sign-in: Fast-forward
+[33m7c811e0[m HEAD@{199}: checkout: moving from google-sign-in to master
+[33m18dc161[m[33m ([m[1;31morigin/google-sign-in[m[33m, [m[1;32mgoogle-sign-in[m[33m)[m HEAD@{200}: commit (amend): change google post method
+[33m643b22d[m HEAD@{201}: commit: change google post method
+[33m56cc554[m HEAD@{202}: commit (amend): google sign-in WIP
+[33m0f5b49b[m HEAD@{203}: commit: google sign-in WIP
+[33m7c811e0[m HEAD@{204}: checkout: moving from admin-stuff to google-sign-in
+[33m65c8bb1[m[33m ([m[1;31morigin/admin-stuff[m[33m, [m[1;32madmin-stuff[m[33m)[m HEAD@{205}: commit (amend): Some Javascript
+[33m41ebbad[m HEAD@{206}: commit: Some Javascript
+[33mebcb1a5[m HEAD@{207}: commit (amend): Admins can change restauraunt details, change user roles.
+[33mb8bc834[m HEAD@{208}: commit: Admins can change restauraunt details, change user roles.
+[33m9233929[m HEAD@{209}: reset: moving to HEAD~1
+[33m7c811e0[m HEAD@{210}: checkout: moving from master to admin-stuff
+[33m7c811e0[m HEAD@{211}: reset: moving to 7c811e0
+[33m7c811e0[m HEAD@{212}: merge admin-stuff: Fast-forward
+[33m9233929[m HEAD@{213}: checkout: moving from admin-stuff to master
+[33m7c811e0[m HEAD@{214}: commit (amend): Admins can change restauraunt details, change user roles.
+[33md92c72b[m HEAD@{215}: commit (amend): Admins can change restauraunt details, change user roles.
+[33md92c72b[m HEAD@{216}: checkout: moving from master to admin-stuff
+[33m9233929[m HEAD@{217}: reset: moving to ORIG_HEAD
+[33md92c72b[m HEAD@{218}: merge admin-stuff: Fast-forward
+[33m9233929[m HEAD@{219}: checkout: moving from admin-stuff to master
+[33md92c72b[m HEAD@{220}: commit (amend): Admins can change restauraunt details, change user roles.
+[33meffaa33[m HEAD@{221}: commit: Admins can change restauraunt details, change user roles.
+[33m9233929[m HEAD@{222}: checkout: moving from master to admin-stuff
+[33m9233929[m HEAD@{223}: commit (amend): create & edit dining areas
+[33m485c2c6[m HEAD@{224}: commit: create & edit dining areas
+[33mecd918b[m HEAD@{225}: commit (amend): admin add menu items & fixes
+[33md5bca2d[m HEAD@{226}: commit (amend): admin add menu items & fixes
+[33m11b5523[m HEAD@{227}: commit (amend): admin add menu items & fixes
+[33mfb42b7b[m HEAD@{228}: commit (amend): admin add menu items & fixes
+[33mf5a3055[m HEAD@{229}: commit (amend): admin add menu items & fixes
+[33m8cc5870[m HEAD@{230}: commit (amend): admin add menu items & fixes
+[33m8b521f2[m HEAD@{231}: commit: admin add menu items & fixes
+[33m8047997[m HEAD@{232}: commit (amend): Added collaborations section WIP and profile page
+[33m0ecbae6[m HEAD@{233}: commit: Added collaborations section WIP and profile page
+[33mdd62208[m HEAD@{234}: commit (amend): admin & staff layout
+[33m7ef929b[m HEAD@{235}: commit: admin & staff layout
+[33m9d363d4[m HEAD@{236}: commit (amend): staff dashboard
+[33m2213d9a[m HEAD@{237}: commit: staff dashboard
+[33m9b675de[m HEAD@{238}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{239}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{240}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{241}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{242}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{243}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{244}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{245}: commit (amend): login, logout & register pages
+[33m2d7d95f[m HEAD@{246}: commit (amend): login, logout & register pages
+[33mafca1af[m HEAD@{247}: commit (amend): login, logout & register pages
+[33md86fe42[m HEAD@{248}: commit: login, logout & register pages
+[33m16bf8e2[m HEAD@{249}: commit (amend): Menu Category
+[33m88b7b35[m HEAD@{250}: commit (amend): Menu Category
+[33m8dae11b[m HEAD@{251}: commit (amend): Menu Category
+[33m8dae11b[m HEAD@{252}: commit (amend): Menu Category
+[33mcf0628f[m HEAD@{253}: commit (amend): Menu Category
+[33m9a9112a[m HEAD@{254}: commit (amend): Menu Category
+[33m9dd2b84[m HEAD@{255}: commit (amend): Menu Category
+[33m7d4e3b1[m HEAD@{256}: commit (amend): Menu Category
+[33m9a9112a[m HEAD@{257}: commit (amend): Menu Category
+[33m497e0f7[m HEAD@{258}: commit (amend): Menu Category
+[33m9a9112a[m HEAD@{259}: commit (amend): Menu Category
+[33mba70572[m HEAD@{260}: commit (amend): Menu Category
+[33m952f03a[m HEAD@{261}: commit: Menu Category
+[33me91dcd0[m HEAD@{262}: reset: moving to HEAD~1
+[33m790b79c[m HEAD@{263}: commit (amend): Menu creation & user
+[33m244bd54[m HEAD@{264}: commit (amend): Menu creation & user
+[33m726a201[m HEAD@{265}: commit: Menu creation & user
+[33me91dcd0[m HEAD@{266}: commit: Add project files.
+[33m260eaad[m HEAD@{267}: commit (initial): Add .gitattributes and .gitignore.
