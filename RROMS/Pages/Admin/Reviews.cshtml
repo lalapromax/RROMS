@@ -1,0 +1,179 @@
+@page
+@model RROMS.Pages.Admin.ReviewsModel
+@using RROMS.Models
+@using RROMS.Presentation
+@using RROMS.ViewModels
+@{
+    ViewData["Title"] = "Guest reviews";
+    var s = Model.Summary;
+    var keep = Model.Keep.Where(k => k.Value != null).ToDictionary(k => k.Key, k => k.Value!);
+    string W(double v, double max) => max <= 0 ? "0%" : Math.Round(v / max * 100, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+    var issueMax = s.TopIssues.Count == 0 ? 0 : s.TopIssues.Max(i => i.Count);
+    var iso = "yyyy-MM-dd";
+    Dictionary<string, string> Page(int n) { var d = new Dictionary<string, string>(keep); if (n > 1) d["PageNo"] = n.ToString(); else d.Remove("PageNo"); return d; }
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Guest reviews</h1>
+            <p>Everything guests have told you, with a place to answer.</p>
+        </div>
+        <div class="row-acts">
+            <a class="link" asp-page="/Admin/Dashboard">Back to Overview</a>
+        </div>
+    </div>
+
+    <div class="rkpis">
+        <div class="rk">
+            <span class="lab">Average rating</span>
+            <b>@(s.TotalCount >= FeedbackSummaryVM.MinResponsesForAverage ? s.AverageRating.ToString("0.0") : "None yet")</b>
+            <span class="delta rk-sub">@Model.Total @(Model.Total == 1 ? "review" : "reviews")</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Would recommend</span>
+            <b>@(s.Nps.HasEnoughData ? (s.Nps.Score >= 0 ? "+" : "") + s.Nps.Score : "None yet")</b>
+            <span class="delta rk-sub">@(s.Nps.HasEnoughData ? "Net promoter score" : "Needs " + FeedbackSummaryVM.MinResponsesForNps + " answers")</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Reviews with comments</span>
+            <b>@(Model.Total == 0 ? "0%" : Math.Round(Model.WithComments * 100.0 / Model.Total) + "%")</b>
+            <span class="delta rk-sub">@Model.WithComments of @Model.Total</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Waiting for a reply</span>
+            <b>@Model.Waiting</b>
+            <span class="delta rk-sub">Reply within two days</span>
+        </div>
+    </div>
+
+    <form method="get" class="filter" aria-label="Filter reviews">
+        <div class="field">
+            <label for="st">Stars</label>
+            <select class="in" id="st" name="Stars" style="width:150px" data-autosubmit>
+                <option value="0" selected="@(Model.Stars == 0)">All</option>
+                @for (var n = 5; n >= 1; n--) { <option value="@n" selected="@(Model.Stars == n)">@n @(n == 1 ? "star" : "stars")</option> }
+            </select>
+        </div>
+        <div class="field">
+            <label for="is">Issue</label>
+            <select class="in" id="is" name="Issue" style="width:210px" data-autosubmit>
+                <option value="" selected="@string.IsNullOrEmpty(Model.Issue)">Any</option>
+                @foreach (var t in ReviewOptions.IssueTags) { <option value="@t" selected="@(Model.Issue == t)">@t</option> }
+            </select>
+        </div>
+        <div class="field">
+            <label for="rp">Reply</label>
+            <select class="in" id="rp" name="Reply" style="width:170px" data-autosubmit>
+                <option value="" selected="@string.IsNullOrEmpty(Model.Reply)">Any</option>
+                <option value="waiting" selected="@(Model.Reply == "waiting")">Waiting for a reply</option>
+                <option value="replied" selected="@(Model.Reply == "replied")">Replied to</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="df">From</label>
+            <input class="in" id="df" name="StartDate" type="date" value="@Model.StartDate.ToString(iso)" max="@DateTime.Today.ToString(iso)" style="width:160px" />
+        </div>
+        <div class="field">
+            <label for="dt">To</label>
+            <input class="in" id="dt" name="EndDate" type="date" value="@Model.EndDate.ToString(iso)" max="@DateTime.Today.ToString(iso)" style="width:160px" />
+        </div>
+        <button type="submit" class="btn btn-line">Apply</button>
+        <span class="sp"></span>
+        <label class="swx">
+            <input type="checkbox" name="OnlyComments" value="true" checked="@Model.OnlyComments" data-autosubmit />
+            <span class="sw"></span>
+            Only with comments
+        </label>
+    </form>
+
+    <div class="grid2 g75">
+        <div class="stack">
+            @if (Model.Items.Count == 0)
+            {
+                <div class="empty-card"><p>No reviews match. Widen the dates or clear a filter.</p><a class="btn btn-line" asp-page="/Admin/Reviews">Clear filters</a></div>
+            }
+            @foreach (var it in Model.Items)
+            {
+                var f = it.F;
+                var hasReply = !string.IsNullOrWhiteSpace(f.StaffResponse);
+                <article class="panel" id="rev@(f.Id)">
+                    <div class="sp-b">
+                        <div>
+                            <b style="font-size:17px">@it.Name</b>
+                            <span class="muted">· @f.CreatedAt.ToLocalTime().ToString("d MMM")@(it.Context.Length > 0 ? " · " + it.Context : "")</span>
+                        </div>
+                        @Ui.Stars(f.Rating, 18)
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(f.Comments)) { <p style="margin-top:10px">@f.Comments</p> }
+                    else { <p class="muted" style="margin-top:10px">Stars only, no comment.</p> }
+                    @if (f.IssueTagList().Count > 0)
+                    {
+                        <div class="rv-tags">@foreach (var tag in f.IssueTagList()) { <span class="flag soft">@tag</span> }</div>
+                    }
+                    @if (f.ImageList().Count > 0)
+                    {
+                        <div class="rphotos">@foreach (var img in f.ImageList()) { <a href="@img" target="_blank" rel="noopener"><img src="@img" alt="A photo from the review" loading="lazy" /></a> }</div>
+                    }
+                    @if (hasReply)
+                    {
+                        <div class="reply-box">
+                            <b>Your reply@(f.RespondedAt.HasValue ? " · " + f.RespondedAt.Value.ToLocalTime().ToString("d MMM") : "")</b>
+                            <p>@f.StaffResponse</p>
+                        </div>
+                    }
+                    <details class="reply-edit" open="@(!hasReply)">
+                        @if (hasReply) {  class="link">Change your reply }
+                        <form method="post" asp-page-handler="Reply" asp-all-route-data="keep" class="form" style="margin-top:14px">
+                            <input type="hidden" name="id" value="@f.Id" />
+                            <div class="field" style="margin:0">
+                                <label for="r@(f.Id)t">@(it.FirstName.Length > 0 ? "Reply to " + it.FirstName : "Reply to this guest")</label>
+                                <textarea class="in" id="r@(f.Id)t" name="reply" rows="2" maxlength="600" placeholder="Your reply is shown under their review">@f.StaffResponse</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-wine btn-sm2" style="margin-top:10px">@(hasReply ? "Save reply" : "Send reply")</button>
+                        </form>
+                    </details>
+                </article>
+            }
+
+            @if (Model.Pages > 1)
+            {
+                <nav class="pager" aria-label="Pages of reviews">
+                    @if (Model.PageNo > 1) { <a class="btn btn-line btn-sm2" asp-page="/Admin/Reviews" asp-all-route-data="Page(Model.PageNo - 1)">Newer</a> }
+                    <span class="muted">Page @Model.PageNo of @Model.Pages</span>
+                    @if (Model.PageNo < Model.Pages) { <a class="btn btn-line btn-sm2" asp-page="/Admin/Reviews" asp-all-route-data="Page(Model.PageNo + 1)">Older</a> }
+                </nav>
+            }
+        </div>
+
+        <aside class="stack">
+            <section class="panel">
+                <h3 style="font-size:26px;font-weight:500">By part of the evening</h3>
+                @foreach (var m in s.Metrics)
+                {
+                    <div class="mrow">
+                        <span>@m.Label</span>
+                        <b>@(m.HasEnoughData ? m.Average.ToString("0.0") : "Too few")</b>
+                        <i class="meter" role="presentation"><u style="width:@(m.HasEnoughData ? W(m.Average, 5) : "0%")"></u></i>
+                    </div>
+                }
+            </section>
+            <section class="panel">
+                <h3 style="font-size:26px;font-weight:500">What went wrong</h3>
+                <p class="panel-sub">From the issue boxes guests ticked.</p>
+                @if (s.TopIssues.Count == 0)
+                {
+                    <p class="muted" style="margin-top:10px">Nothing flagged in this period.</p>
+                }
+                @foreach (var i in s.TopIssues)
+                {
+                    <div class="mrow">
+                        <span>@i.Tag</span>
+                        <b>@i.Count</b>
+                        <i class="meter" role="presentation"><u style="width:@W(i.Count, issueMax)"></u></i>
+                    </div>
+                }
+            </section>
+        </aside>
+    </div>
+</div>
