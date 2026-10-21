@@ -1,0 +1,137 @@
+@page
+@model RROMS.Pages.Feedback.IndexModel
+@using RROMS.Models
+@{
+    ViewData["Title"] = "My reviews";
+    var metrics = new (string Label, Func<Models.Feedback, int?> Get)[]
+    {
+        ("Food", f => f.FoodRating),
+        ("Service", f => f.ServiceRating),
+        ("Atmosphere", f => f.CleanlinessRating),
+        ("Waiting time", f => f.WaitTimeRating),
+        ("Value", f => f.ValueRating)
+    };
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/MyReviews.css" asp-append-version="true" />
+}
+
+<section class="wrap page-top">
+    <div>
+        <h1>My reviews</h1>
+        <p class="lead-it">What you told us, and what we said back.</p>
+    </div>
+</section>
+
+<div class="wrap main">
+    <div class="two">
+        <div class="rvl">
+            @if (Model.Cards.Count == 0)
+            {
+                <div class="empty-card">
+                    <h2>No reviews yet</h2>
+                    @if (Model.Waiting.Count > 0)
+                    {
+                        <p>You have @Model.Waiting.Count @(Model.Waiting.Count == 1 ? "visit" : "visits") waiting. Two minutes is plenty.</p>
+                        <a class="btn btn-wine" asp-page="/Feedback/Create">Write a review</a>
+                    }
+                    else
+                    {
+                        <p>Once you have dined with us or an order is finished, you can tell us how it was here.</p>
+                        <a class="btn btn-line" asp-page="/Menu/Index">See the menu</a>
+                    }
+                </div>
+            }
+            @foreach (var card in Model.Cards)
+            {
+                var f = card.Review;
+                var shown = metrics.Where(m => m.Get(f).HasValue).ToList();
+                <article class="rcard" aria-label="@card.Title">
+                    <div class="top">
+                        <div>
+                            <h2>@card.Title</h2>
+                            <p class="when">@card.When</p>
+                        </div>
+                        @Ui.Stars(f.Rating, 24, "stars-in")
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(f.Comments))
+                    {
+                        <p class="t">@f.Comments</p>
+                    }
+                    @if (shown.Count > 0)
+                    {
+                        <div class="mets">
+                            @foreach (var m in shown)
+                            {
+                                <span>@m.Label<b>@m.Get(f)</b></span>
+                            }
+                        </div>
+                    }
+                    @if (f.ImageList().Count > 0)
+                    {
+                        <div class="rphotos">
+                            @foreach (var img in f.ImageList())
+                            {
+                                <a href="@img" target="_blank" rel="noopener"><img src="@img" alt="A photo from your review" loading="lazy" /></a>
+                            }
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(f.StaffResponse))
+                    {
+                        <div class="reply">
+                            <b>Reply from @Brand.Name@(f.RespondedAt.HasValue ? " · " + f.RespondedAt.Value.ToLocalTime().ToString("d MMM") : "")</b>
+                            <p>@f.StaffResponse</p>
+                        </div>
+                    }
+                    <div class="acts">
+                        @if (f.GuestCanEdit)
+                        {
+                            <a class="link" asp-page="/Feedback/Create" asp-route-edit="@f.Id">Edit</a>
+                        }
+                        <button type="button" class="link" data-dialog-open="deleteReviewDlg" data-fields="id,summary" data-id="@f.Id" data-summary="@card.Title, @card.When">Delete</button>
+                        <span class="muted">@(f.GuestCanEdit ? $"You can edit until {f.EditableUntil.ToLocalTime():d MMM}." : "Reviews can be edited for 7 days.")</span>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <aside>
+            @if (Model.Cards.Count > 0)
+            {
+                <div class="side-card">
+                    <h3>Your ratings</h3>
+                    <p class="big" style="margin-top:8px">@Model.Average.ToString("0.0")</p>
+                    @Ui.Stars((int)Math.Round(Model.Average, MidpointRounding.AwayFromZero), 18, "stars-in")
+                    <p class="muted" style="margin-top:8px">across @Model.Cards.Count @(Model.Cards.Count == 1 ? "review" : "reviews"). Thank you, they help.</p>
+                </div>
+            }
+            @if (Model.Waiting.Count > 0 && Model.Cards.Count > 0)
+            {
+                <div class="side-card" style="margin-top:22px">
+                    <h3>@(Model.Waiting.Count == 1 ? "One to write" : Model.Waiting.Count + " to write")</h3>
+                    <p class="muted" style="margin-top:8px">
+                        @if (Model.Waiting.Count == 1) { <text>@Model.Waiting[0].Label has no review yet.</text> }
+                        else { <text>These visits have no review yet. Tell us about the one you remember best.</text> }
+                    </p>
+                    <a class="btn btn-wine btn-sm" asp-page="/Feedback/Create" style="margin-top:16px">Write a review</a>
+                </div>
+            }
+        </aside>
+    </div>
+</div>
+
+<dialog class="modal" id="deleteReviewDlg" style="--w:520px" aria-labelledby="deleteReviewTitle">
+    <div class="modal-head">
+        <h2 id="deleteReviewTitle">Take this review down?</h2>
+        <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+    </div>
+    <form method="post" asp-page-handler="Delete" id="deleteReviewForm">
+        <input type="hidden" name="id" id="deleteReviewDlg_id" />
+        <p id="deleteReviewDlg_summary" style="font-weight:600"></p>
+        <p class="muted" style="margin-top:8px">The team will no longer see it, and neither will your photos. You can write a new one for the same visit afterwards.</p>
+    </form>
+    <div class="modal-foot">
+        <button type="button" class="btn btn-line" data-dialog-close>Keep my review</button>
+        <button type="submit" form="deleteReviewForm" class="btn btn-danger">Delete review</button>
+    </div>
+</dialog>

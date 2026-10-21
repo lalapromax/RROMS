@@ -1,0 +1,222 @@
+@page
+@model RROMS.Pages.Feedback.CreateModel
+@using RROMS.Models
+@{
+    var editing = Model.EditId.HasValue;
+    ViewData["Title"] = editing ? "Edit your review" : "Write a review";
+
+    var errs = ViewData.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
+    var input = Model.Input;
+    var fieldName = new Dictionary<string, string>
+    {
+        ["food"] = "Food", ["service"] = "Service", ["cleanliness"] = "Cleanliness", ["wait"] = "Wait", ["value"] = "Value"
+    };
+    int? Current(string key) => key switch
+    {
+        "food" => input.Food, "service" => input.Service, "cleanliness" => input.Cleanliness, "wait" => input.Wait, _ => input.Value
+    };
+    var isOrder = (input.Target ?? "").StartsWith("order:");
+    var number = Model.Visit?.Number;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/WriteReview.css" asp-append-version="true" />
+}
+
+<section class="wrap page-top">
+    <div>
+        <p class="crumb">
+            @if (isOrder) { <a asp-page="/Orders/Index">My orders</a> <text>/ </text><a asp-page="/Orders/Details" asp-route-id="@(input.Target!.Split(':')[1])">@number</a> <text>/ Review</text> }
+            else { <a asp-page="/Feedback/Index">My reviews</a> <text>/ @(editing ? "Edit" : "Review")</text> }
+        </p>
+        <h1>@(editing ? "Edit your review" : "How was your visit?")</h1>
+        <p class="lead-it">
+            @if (editing) { <text>You can change it until @Model.EditableUntil?.ToString("d MMMM").</text> }
+            else { <text>Two minutes, and it helps us look after the next table.</text> }
+        </p>
+    </div>
+</section>
+
+<div class="wrap main">
+    @if (Model.Targets.Count == 0 && !editing)
+    {
+        <div class="empty-card">
+            <h2>Nothing to review just yet</h2>
+            <p>You can review an order once it is finished, or a booking once you have dined with us.</p>
+            <a class="btn btn-wine" asp-page="/Feedback/Index">See my reviews</a>
+        </div>
+    }
+    else if (Model.NeedsPick)
+    {
+        <div class="pick">
+            <h2 class="h3" style="margin-top:0">Which visit?</h2>
+            <p class="sub">Pick the one you would like to tell us about.</p>
+            <ul class="pick-list">
+                @foreach (var t in Model.Targets)
+                {
+                    var parts = t.Key.Split(':');
+                    <li>
+                        @if (parts[0] == "order")
+                        {
+                            <a class="pick-opt" asp-page="/Feedback/Create" asp-route-orderId="@parts[1]"><span>@t.Label</span><span class="link">Review</span></a>
+                        }
+                        else
+                        {
+                            <a class="pick-opt" asp-page="/Feedback/Create" asp-route-reservationId="@parts[1]"><span>@t.Label</span><span class="link">Review</span></a>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="rv">
+            <form class="form" method="post" enctype="multipart/form-data" id="reviewForm" data-draft-key="@(input.Target ?? "none")" data-editing="@(editing ? "true" : "false")" data-max-photos="@ReviewOptions.MaxImages">
+                <input type="hidden" name="Input.Target" value="@input.Target" />
+                @if (editing) { <input type="hidden" name="EditId" value="@Model.EditId" /> }
+
+                @if (errs.Count > 0)
+                {
+                    <div class="form-alert" role="alert">
+                        @Ui.Icon("warn", 18, 2)
+                        <div>@foreach (var m in errs) { <p>@m</p> }</div>
+                    </div>
+                }
+
+                <h2 class="h3" style="margin-top:0">Rate each part of the evening</h2>
+                <p class="sub">Tap a star. Five is wonderful, one is poor.</p>
+
+                @foreach (var (key, label, hint) in ReviewOptions.Metrics)
+                {
+                    var cur = Current(key);
+                    <div class="qrow" role="radiogroup" aria-labelledby="q-@key">
+                        <div>
+                            <b id="q-@key">@label</b>
+                            <small>@hint</small>
+                        </div>
+                        <span class="stars-in star-pick">
+                            @for (var v = 1; v <= 5; v++)
+                            {
+                                <label>
+                                    <input type="radio" name="Input.@fieldName[key]" value="@v" checked="@(cur == v)" />
+                                    @Ui.Star(30)
+                                    <span class="sr-only">@v out of 5</span>
+                                </label>
+                            }
+                        </span>
+                    </div>
+                }
+
+                <h2 class="h3">Would you recommend us?</h2>
+                <p class="sub">0 is not at all likely. 10 is extremely likely.</p>
+                <div class="nps" role="radiogroup" aria-label="Likelihood to recommend">
+                    @for (var n = 0; n <= 10; n++)
+                    {
+                        <label>
+                            <input type="radio" name="Input.RecommendScore" value="@n" checked="@(input.RecommendScore == n)" />
+                            <span>@n</span>
+                        </label>
+                    }
+                </div>
+                <div class="nps-l">
+                    <span>Not likely</span>
+                    <span>Extremely likely</span>
+                </div>
+
+                <h2 class="h3">Was anything not right?</h2>
+                <p class="sub">Choose any that apply. Only the team sees these.</p>
+                <div class="chips" role="group" aria-label="Anything not right">
+                    @foreach (var tag in ReviewOptions.IssueTags)
+                    {
+                        <label class="chipx warn"><input type="checkbox" name="Input.IssueTags" value="@tag" checked="@input.IssueTags.Contains(tag, StringComparer.OrdinalIgnoreCase)" />@Ui.Icon("check", 14, 2.4) @tag</label>
+                    }
+                    <label class="chipx"><input type="checkbox" data-none-of-the-above />@Ui.Icon("check", 14, 2.4) Nothing, all good</label>
+                </div>
+
+                <h2 class="h3">Tell us in your own words</h2>
+                <p class="sub">Optional. A line or two is plenty.</p>
+                <div class="field">
+                    <label for="c">Your comments</label>
+                    <textarea class="in" id="c" name="Input.Comments" rows="4" maxlength="@ReviewOptions.MaxCommentLength">@input.Comments</textarea>
+                </div>
+
+                <h2 class="h3">Add a photo</h2>
+                <p class="sub">Optional. Up to @ReviewOptions.MaxImages.</p>
+                <div class="photos" id="photos">
+                    @foreach (var img in Model.ExistingImages)
+                    {
+                        <div class="photo has" data-kept>
+                            <img src="@img" alt="A photo already on your review" loading="lazy" />
+                            <label class="photo-keep"><input type="checkbox" name="Keep" value="@img" checked="@Model.Keep.Contains(img)" /> Keep</label>
+                        </div>
+                    }
+                    @for (var i = Model.ExistingImages.Count; i < ReviewOptions.MaxImages; i++)
+                    {
+                        <label class="photo" for="reviewImages" data-slot>
+                            @Ui.Icon("plus", 22, 1.6)<br />
+                            Add photo
+                        </label>
+                    }
+                </div>
+                <input type="file" id="reviewImages" name="Images" class="sr-only" accept="image/jpeg,image/png,image/webp" multiple aria-describedby="photoNote" />
+                <p class="muted" id="photoNote" style="margin-top:10px;font-size:14px">JPG, PNG or WebP, 3 MB each. <span id="photoMsg" role="status"></span></p>
+
+                <div style="margin-top:26px">
+                    <label class="ckb"><input asp-for="Input.ShowFirstName" type="checkbox" /><i>@Ui.Icon("check", 13, 3)</i> Show my first name with my review</label>
+                </div>
+
+                <div class="form-acts">
+                    <button type="submit" class="btn btn-wine btn-lg" id="sendReview">@(editing ? "Save changes" : "Send my review")</button>
+                    @if (editing)
+                    {
+                        <a class="btn btn-line btn-lg" asp-page="/Feedback/Index">Cancel</a>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-line btn-lg" id="saveLater" hidden>Save for later</button>
+                    }
+                </div>
+                <p class="muted" id="draftNote" role="status" style="margin-top:12px;font-size:14px"></p>
+            </form>
+
+            <aside class="visit">
+                <div class="printed">
+                    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+                    <h3>Your visit</h3>
+                    @if (Model.Visit != null)
+                    {
+                        var v = Model.Visit;
+                        <dl class="kv">
+                            @if (!string.IsNullOrEmpty(v.Number))
+                            {
+                                <dt>Order</dt>
+                                <dd>@v.Number</dd>
+                            }
+                            <dt>Date</dt>
+                            <dd>@v.When.ToString("ddd d MMM, HH:mm")</dd>
+                            <dt>Table</dt>
+                            <dd>@v.TableText</dd>
+                        </dl>
+                        @if (!string.IsNullOrEmpty(v.PicUrl) || v.PicName != null)
+                        {
+                            @Ui.Pic(v.PicUrl, v.PicName, v.PicCategory, "sq", decorative: true)
+                        }
+                        else
+                        {
+                            @Ui.Plate("d-house", "linen", "sq")
+                        }
+                    }
+                    @if (!editing && Model.Targets.Count > 1)
+                    {
+                        <p style="margin-top:14px"><a class="link" asp-page="/Feedback/Create" asp-route-pick="true">Review a different visit</a></p>
+                    }
+                    <p class="thanks">Thank you for dining with us. Only our team reads your review.</p>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/review-form.js" asp-append-version="true"></script>
+}

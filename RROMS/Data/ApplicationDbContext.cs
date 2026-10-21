@@ -22,10 +22,12 @@ namespace RROMS.Data
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<Payment> Payments => Set<Payment>();
+        public DbSet<Feedback> Feedbacks => Set<Feedback>();
         public DbSet<Collaboration> Collaborations => Set<Collaboration>();
         public DbSet<RewardTier> RewardTiers => Set<RewardTier>();
         public DbSet<SetMenu> SetMenus => Set<SetMenu>();
         public DbSet<SetMenuCourse> SetMenuCourses => Set<SetMenuCourse>();
+        public DbSet<RankBand> RankBands => Set<RankBand>();
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -193,6 +195,15 @@ namespace RROMS.Data
             builder.Entity<RewardLedgerEntry>().HasIndex(r => r.OrderId).IsUnique();
             builder.Entity<RewardLedgerEntry>().HasIndex(r => r.CustomerId);
 
+
+            // ---- Feedback: one review per order / per dining experience ----
+            // Filtered unique indexes: many reviews may have a null OrderId or ReservationId, but a
+            // given order or reservation can only ever be reviewed once, even if the form is
+            // double-submitted or two browser tabs race each other.
+
+            builder.Entity<Feedback>().HasIndex(f => f.OrderId).IsUnique().HasFilter("[OrderId] IS NOT NULL");
+            builder.Entity<Feedback>().HasIndex(f => f.ReservationId).IsUnique().HasFilter("[ReservationId] IS NOT NULL");
+            builder.Entity<Feedback>().HasIndex(f => f.CreatedAt);
         }
     }   
 }
