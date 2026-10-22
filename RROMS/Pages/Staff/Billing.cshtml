@@ -1,0 +1,151 @@
+@page
+@model RROMS.Pages.Staff.BillingModel
+@using RROMS.Models
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Billing";
+    var cur = Model.Current;
+    string Place(Order o) => o.Table != null ? "Table " + o.Table.TableNumber.TrimStart('T', 't') : "Takeaway";
+    string Where(Order o) => Place(o) + (o.Table == null && o.Customer is { IsSystemAccount: false } c ? ", " + c.FullName : "");
+    string Stage(Order o)
+    {
+        var m = (int)Math.Max(0, (DateTime.UtcNow - o.OrderDate).TotalMinutes);
+        var ago = m < 60 ? m + " min ago" : (m / 60) + " h " + (m % 60).ToString("00") + " ago";
+        return o.Status switch
+        {
+            OrderStatus.Served => "Ready to settle, served " + ago,
+            OrderStatus.ReadyToServe => "Ready to serve",
+            OrderStatus.Preparing => "Preparing",
+            OrderStatus.Placed => "Placed " + ago,
+            _ => o.Status.ToString()
+        };
+    }
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Billing</h1>
+            <p>Settle each table. The guest's points are added the moment a bill is paid.</p>
+        </div>
+    </div>
+
+    <div class="grid2 g84">
+        <section class="panel" style="padding:0" aria-labelledby="openT">
+            <div style="padding:22px 22px 8px"><h2 id="openT" style="font-size:28px;font-weight:500">Open bills</h2></div>
+            @if (Model.Open.Count == 0)
+            {
+                <p class="muted" style="padding:6px 22px 18px">Every bill is settled.</p>
+            }
+            @foreach (var o in Model.Open)
+            {
+                var sel = cur != null && cur.Id == o.Id;
+                <a class="opt-row bill-row" style="padding:16px 20px;@(sel ? "background:var(--linen);" : "")" asp-page="/Staff/Billing" asp-route-searchOrderId="@o.Id" aria-current="@(sel ? "true" : null)">
+                    <div>
+                        <b>@Where(o)</b>
+                        <small>@Stage(o)</small>
+                    </div>
+                    <b>@Ui.Rm2(o.TotalAmount)</b>
+                </a>
+            }
+            <form method="get" class="bill-find" role="search">
+                <label for="fo">Find an order by its number</label>
+                <div style="display:flex;gap:10px">
+                    <input class="in" id="fo" name="searchOrderId" inputmode="numeric" pattern="[0-9]*" placeholder="For example 128" style="flex:1" />
+                    <button class="btn btn-line btn-sm2" style="min-height:44px">Open</button>
+                </div>
+                @if (Model.NotFound != null) { <p class="err-msg" role="alert">@Model.NotFound</p> }
+            </form>
+        </section>
+
+        <section class="panel" aria-live="polite">
+            @if (cur == null)
+            {
+                <div class="empty-card" style="box-shadow:none;border:0">
+                    <h2>Nothing to settle</h2>
+                    <p>Choose a bill on the left when there is one.</p>
+                </div>
+            }
+            else
+            {
+                var pill = OrderView.Pill(cur);
+                var lines = OrderView.Lines(cur);
+                var paid = OrderView.Pay(cur) == "paid";
+                var cancelled = cur.Status == OrderStatus.Cancelled;
+                var who = cur.Customer is { IsSystemAccount: false } cu ? cu.FullName : "At the counter";
+                <div class="sp-b">
+                    <div>
+                        <h2 style="font-size:36px;font-weight:500">@Where(cur)</h2>
+                        <p class="muted">
+                            @who
+                            @if (Model.Tier != null) { <text> · @Model.Tier member</text> }
+                            @if (cur.Reservation != null) { <text> · @cur.Reservation.PartySize @(cur.Reservation.PartySize == 1 ? "guest" : "guests")</text> }
+                            · Order #@cur.Id
+                        </p>
+                    </div>
+                    <span class="st @pill.Css">@pill.Text</span>
+                </div>
+
+                <div>
+                    <table class="t">
+                        <thead><tr><th scope="col">Item</th><th scope="col" class="n">Qty</th><th scope="col" class="n">Price</th></tr></thead>
+                        <tbody>
+                            @foreach (var l in lines)
+                            {
+                                <tr>
+                                    <td>@l.Title@if (l.IsSet && !string.IsNullOrEmpty(l.Sub)) { <small>@l.Sub</small> }</td>
+                                    <td class="n">@l.Quantity</td>
+                                    <td class="n">@Ui.Rm2(l.Amount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <dl class="kv bill-kv">
+                    <dt>Subtotal</dt><dd>@Ui.Rm2(cur.SubTotal)</dd>
+                    @if (cur.DiscountAmount > 0) { <dt>Discount</dt><dd>- @Ui.Rm2(cur.DiscountAmount)</dd> }
+                    @if (cur.ServiceChargeAmount > 0) { <dt>Service charge</dt><dd>@Ui.Rm2(cur.ServiceChargeAmount)</dd> }
+                    @if (cur.TaxAmount > 0) { <dt>Tax</dt><dd>@Ui.Rm2(cur.TaxAmount)</dd> }
+                    <dt class="due-l">@(paid ? "Total paid" : "Total due")</dt><dd class="due-v">@Ui.Rm2(cur.TotalAmount)</dd>
+                </dl>
+
+                @if (cancelled)
+                {
+                    <p class="note-box" style="margin-top:20px">This order was cancelled, so there is nothing to pay.</p>
+                }
+                else if (paid)
+                {
+                    <p class="note-box" style="margin-top:20px">Paid @(cur.Payment?.PaidAt?.ToLocalTime().ToString("d MMM, HH:mm")). @OrderView.Method(cur.Payment).</p>
+                    <div class="row-acts" style="margin-top:14px">
+                        <a class="btn btn-line btn-sm2" asp-page="/Orders/Details" asp-route-id="@cur.Id">Open the receipt</a>
+                    </div>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="Pay">
+                        <input type="hidden" name="orderId" value="@cur.Id" />
+                        <fieldset class="pay-pick">
+                            <legend class="lab">How is the guest paying?</legend>
+                            <div class="chips">
+                                <label class="chipx"><input type="radio" name="method" value="Card" checked />@Ui.Icon("check", 14, 2.4) Card</label>
+                                <label class="chipx"><input type="radio" name="method" value="Cash" />@Ui.Icon("check", 14, 2.4) Cash</label>
+                                <label class="chipx"><input type="radio" name="method" value="QrPayment" />@Ui.Icon("check", 14, 2.4) QR payment</label>
+                            </div>
+                        </fieldset>
+                        <button class="btn btn-wine" style="width:100%;margin-top:22px;min-height:52px">Mark as paid</button>
+                        <p class="muted" style="margin-top:10px;font-size:13.5px;text-align:center">
+                            @if (cur.Status is OrderStatus.Placed or OrderStatus.Preparing or OrderStatus.ReadyToServe)
+                            {
+                                <text>The kitchen has not served this yet. It stays on the board until it is.</text>
+                            }
+                            else
+                            {
+                                <text>Points are added to the guest's Rewards the moment this is paid.</text>
+                            }
+                        </p>
+                    </form>
+                }
+            }
+        </section>
+    </div>
+</div>
