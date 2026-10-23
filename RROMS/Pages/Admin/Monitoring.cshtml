@@ -1,0 +1,197 @@
+@page
+@model RROMS.Pages.Admin.MonitoringModel
+@using RROMS.Pages.Admin
+@{
+    ViewData["Title"] = "Monitoring";
+    var tab = Model.Tab ?? "reservations";
+    var lostPct = Model.ResCount == 0 ? 0 : (int)Math.Round(Model.LostCount * 100.0 / Model.ResCount);
+
+    Dictionary<string, string> Keep(int page = 1)
+    {
+        var d = new Dictionary<string, string> { ["tab"] = tab, ["from"] = Model.FromText, ["to"] = Model.ToText };
+        if (Model.Status != null) d["status"] = Model.Status;
+        if (page > 1) d["p"] = page.ToString();
+        return d;
+    }
+    var shownFrom = (Model.P - 1) * MonitoringModel.PageSize + 1;
+    var upTo = Math.Min(Model.Total, Model.P * MonitoringModel.PageSize);
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Monitoring</h1>
+            <p>A plain record of what happened, for checking and for your accountant.</p>
+        </div>
+    </div>
+
+    <div class="rkpis" role="group" aria-label="The figures for these days">
+        <div class="rk">
+            <span class="lab">Reservations</span>
+            <b>@Model.ResCount.ToString("N0")</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@(Model.Days == 1 ? "That day" : Model.Days + " days")</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Orders</span>
+            <b>@Model.OrdCount.ToString("N0")</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@Ui.Rm(Model.PaidSum) paid</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Cancelled or no-show</span>
+            <b>@Model.LostCount.ToString("N0")</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@(Model.ResCount == 0 ? "No reservations" : lostPct + "% of reservations")</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Failed payments</span>
+            <b>@Model.FailedCount.ToString("N0")</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@(Model.FailedCount == 0 ? "None to chase" : "Check with the guest")</span>
+        </div>
+    </div>
+
+    <form method="get" class="filter" role="search" aria-label="Choose the days and status">
+        <input type="hidden" name="tab" value="@tab" />
+        <div class="field">
+            <label for="mf">From</label>
+            <input class="in" id="mf" name="from" type="date" value="@Model.FromText" style="width:170px" />
+        </div>
+        <div class="field">
+            <label for="mt">To</label>
+            <input class="in" id="mt" name="to" type="date" value="@Model.ToText" style="width:170px" />
+        </div>
+        <div class="field">
+            <label for="ms">@(tab == "reservations" ? "Reservation status" : tab == "orders" ? "Order status" : "Payment status")</label>
+            <select class="in" id="ms" name="status" style="width:200px">
+                <option value="">All</option>
+                @foreach (var (v, l) in Model.StatusChoices)
+                {
+                    <option value="@v" selected="@(string.Equals(Model.Status, v, StringComparison.OrdinalIgnoreCase))">@l</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-wine">Apply filters</button>
+        <span class="sp"></span>
+        <a class="btn btn-line" asp-page="/Admin/Monitoring" asp-page-handler="Download" asp-all-route-data="Keep()">@Ui.Icon("dl", 16, 1.6) Download CSV</a>
+    </form>
+    @if (Model.RangeNote != null) { <p class="hint" role="status" style="margin:-8px 0 16px">@Model.RangeNote</p> }
+
+    <section class="panel" aria-labelledby="monList">
+        <h2 class="sr-only" id="monList">The record</h2>
+        <nav class="tabs" aria-label="What to list">
+            @foreach (var (key, label) in MonitoringModel.Tabs)
+            {
+                var keep = new Dictionary<string, string> { ["tab"] = key, ["from"] = Model.FromText, ["to"] = Model.ToText };
+                <a asp-page="/Admin/Monitoring" asp-all-route-data="keep" aria-current="@(tab == key ? "page" : null)">@label<small>@Model.Counts.GetValueOrDefault(key).ToString("N0")</small></a>
+            }
+        </nav>
+
+        @if (Model.Total == 0)
+        {
+            <div class="empty-card">
+                <h3>Nothing in these days</h3>
+                <p>@(Model.Status != null ? "Nothing matches that status. Choose All, or a different stretch of days." : "Try a longer stretch of days.")</p>
+            </div>
+        }
+        else
+        {
+            <div class="t-scroll">
+                @if (tab == "orders")
+                {
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Order</th>
+                                <th scope="col">Guest</th>
+                                <th scope="col">Placed</th>
+                                <th scope="col">Type</th>
+                                <th scope="col" class="n">Total</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var o in Model.Orders)
+                            {
+                                <tr>
+                                    <td data-l="Order"><a asp-page="/Orders/Details" asp-route-id="@o.Id">#@o.Id</a></td>
+                                    <td data-l="" class="c-guest"><b>@o.Guest</b></td>
+                                    <td data-l="Placed">@o.When</td>
+                                    <td data-l="Type">@o.Type</td>
+                                    <td data-l="Total" class="n">@Ui.Rm2(o.Total)</td>
+                                    <td data-l="Status"><span class="st @o.Css">@o.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else if (tab == "payments")
+                {
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Order</th>
+                                <th scope="col">Guest</th>
+                                <th scope="col">Taken</th>
+                                <th scope="col" class="n">Amount</th>
+                                <th scope="col">Method</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Reference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.Payments)
+                            {
+                                <tr>
+                                    <td data-l="Order"><a asp-page="/Orders/Details" asp-route-id="@p.OrderId">#@p.OrderId</a></td>
+                                    <td data-l="" class="c-guest"><b>@p.Guest</b></td>
+                                    <td data-l="Taken">@p.When</td>
+                                    <td data-l="Amount" class="n">@Ui.Rm2(p.Amount)</td>
+                                    <td data-l="Method">@p.Method</td>
+                                    <td data-l="Status"><span class="st @p.Css">@p.Status</span></td>
+                                    <td data-l="Reference" class="mon-ref">@(string.IsNullOrEmpty(p.Reference) ? "None" : p.Reference)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Guest</th>
+                                <th scope="col">Date and time</th>
+                                <th scope="col" class="n">Guests</th>
+                                <th scope="col">Table</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Model.Reservations)
+                            {
+                                <tr>
+                                    <td data-l="" class="c-guest"><b>@r.Guest</b></td>
+                                    <td data-l="Date and time">@r.When</td>
+                                    <td data-l="Guests" class="n">@r.Party</td>
+                                    <td data-l="Table">@r.Table</td>
+                                    <td data-l="Status"><span class="st @r.Css">@r.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
+            @if (Model.Pages > 1)
+            {
+                <nav class="pager" aria-label="Pages of the record">
+                    @if (Model.P > 1) { <a class="btn btn-line btn-sm2" asp-page="/Admin/Monitoring" asp-all-route-data="Keep(Model.P - 1)">Newer</a> }
+                    <span class="muted">@shownFrom.ToString("N0") to @upTo.ToString("N0") of @Model.Total.ToString("N0")</span>
+                    @if (Model.P < Model.Pages) { <a class="btn btn-line btn-sm2" asp-page="/Admin/Monitoring" asp-all-route-data="Keep(Model.P + 1)">Older</a> }
+                </nav>
+            }
+        }
+    </section>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminMonitoring.css" asp-append-version="true" />
+}

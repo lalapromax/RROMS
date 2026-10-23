@@ -1,0 +1,543 @@
+@page
+@model RROMS.Pages.Admin.DashboardModel
+@using System.Text.Json
+@using RROMS.Presentation
+@using RROMS.ViewModels
+@{
+    ViewData["Title"] = "Overview";
+    var d = Model.Data;
+    var today = DateTime.Today;
+    var fb = d.Feedback;
+    var stats = d.ReservationStats;
+    var isToday = Model.StartDate == Model.EndDate && Model.EndDate == today;
+    var days = (int)(Model.EndDate - Model.StartDate).TotalDays + 1;
+    var rangeTitle = Model.StartDate == Model.EndDate ? Model.StartDate.ToString("d MMMM") : $"{Model.StartDate:d MMM} to {Model.EndDate:d MMM}";
+
+    string Json(object o) => JsonSerializer.Serialize(o);
+    string Pct(int n, int total) => total == 0 ? "0%" : Math.Round(n * 100.0 / total) + "%";
+    string W(double v, double max) => max <= 0 ? "0%" : Math.Round(v / max * 100, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+    string Plural(int n, string one, string many) => n == 1 ? one : many;
+
+    // "12% more than yesterday" and friends; null means there was nothing yesterday to compare with
+    (string Text, bool Up, bool Flat) Change(decimal? pct, string more, string less, string same, string none)
+    {
+        if (pct == null) return (none, true, true);
+        var a = Math.Abs(pct.Value).ToString("0.#");
+        if (pct == 0) return (same, true, true);
+        return (pct > 0 ? $"{a}% {more}" : $"{a}% {less}", pct > 0, false);
+    }
+    var cRev = Change(d.RevenueChangePercent, "more than yesterday", "less than yesterday", "Same as yesterday", "Nothing to compare with yesterday");
+    var cRes = Change(d.ReservationsChangePercent, "vs yesterday", "vs yesterday", "Same as yesterday", "No reservations yesterday");
+    var cOrd = Change(d.OrdersChangePercent, "vs yesterday", "vs yesterday", "Same as yesterday", "No orders yesterday");
+
+    var popularMax = d.PopularItems.Count == 0 ? 0 : d.PopularItems.Max(p => p.QuantitySold);
+    var tableMax = stats.ByTable.Count == 0 ? 0 : stats.ByTable.Max(t => t.BookingCount);
+    var seatedRes = Math.Max(0, stats.TotalReservations - stats.Completed - stats.Confirmed - stats.Pending - stats.Cancelled - stats.NoShow);
+    var topCustomers = d.CustomerActivity.Take(5).ToList();
+    var peakDay = Model.Daily.OrderByDescending(x => x.Revenue).FirstOrDefault();
+    var busiest = Model.Hours.Count == 0 ? null : Model.Hours.OrderByDescending(h => h.Count).First();
+}
+
+@section Styles {
+    <noscript><style>.chart{display:none}.chart-table{display:block}.view-table{display:none}</style></noscript>
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Overview</h1>
+            <p>@today.ToString("dddd d MMMM yyyy")</p>
+        </div>
+    </div>
+
+    <section aria-labelledby="today-h">
+        <div class="sec">
+            <h2 id="today-h">Today</h2>
+            <span>Compared with yesterday</span>
+        </div>
+        <div class="today">
+            <div class="hero-kpi">
+                <div>
+                    <span class="lab">Sales today</span>
+                    <span class="val">@Ui.Rm(Math.Round(d.TodayRevenue))</span>
+                    <span class="delta">@Ui.Icon(cRev.Up || cRev.Flat ? "up" : "down", 14, 2.4) @cRev.Text</span>
+                    <p class="sub">@(d.TodayOrdersCount == 0 ? "No orders yet today" : $"From {d.TodayOrdersCount} {Plural(d.TodayOrdersCount, "order", "orders")} so far")</p>
+                </div>
+                <div class="spark" data-chart-wrap>
+                    <figure class="chart" data-chart="spark" data-src="sparkData">
+                        <div class="chart-plot"></div>
+                    </figure>
+                    <script type="application/json" id="sparkData">@Html.Raw(Json(new
+                    {
+                        label = "Sales for the last 8 days, ending today: " + string.Join(", ", Model.LastEight.Select(x => x.Date.ToString("ddd") + " " + Ui.Rm(Math.Round(x.Revenue)))),
+                        h = 96,
+                        points = Model.LastEight.Select(x => new { x = x.Date.ToString("d MMM"), v = x.Revenue })
+                    }))</script>
+                    <span>Last 8 days</span>
+                </div>
+            </div>
+
+            <div class="kpi4">
+                <div class="kpi">
+                    <div><span class="lab">Reservations</span><span class="val">@d.TodayReservationsCount</span></div>
+                    <span class="delta@(cRes.Up || cRes.Flat ? "" : " down")">@(cRes.Flat ? null : Ui.Icon(cRes.Up ? "up" : "down", 14, 2.4)) @cRes.Text</span>
+                </div>
+                <div class="kpi">
+                    <div><span class="lab">Orders</span><span class="val">@d.TodayOrdersCount</span></div>
+                    <span class="delta@(cOrd.Up || cOrd.Flat ? "" : " down")">@(cOrd.Flat ? null : Ui.Icon(cOrd.Up ? "up" : "down", 14, 2.4)) @cOrd.Text</span>
+                </div>
+                <div class="kpi">
+                    <div><span class="lab">In the kitchen</span><span class="val">@d.OrdersInKitchenCount</span></div>
+                    <span class="note">Being prepared now</span>
+                </div>
+                <div class="kpi">
+                    <div><span class="lab">Pending reservations</span><span class="val">@d.PendingReservationsCount</span></div>
+                    <span class="note">@(d.PendingReservationsCount == 0 ? "Nothing waiting" : "Waiting for a reply")</span>
+                </div>
+            </div>
+
+            <section class="panel map-panel" aria-labelledby="tt">
+                <div class="panel-head">
+                    <div>
+                        <h3 id="tt">Tonight's tables</h3>
+                        <p class="panel-sub">@Model.TablesBooked booked, @Model.TablesSeated seated, @Model.TablesFree free</p>
+                    </div>
+                </div>
+                @if (Model.Floor.Count == 0)
+                {
+                    <p class="muted" style="margin-top:10px">No tables yet. Add them in the floor plan.</p>
+                }
+                else
+                {
+                    @Html.Raw(FloorMap.Svg(Model.Floor))
+                    <div class="legend">
+                        <span><i style="background:var(--wine);border-color:var(--wine)"></i> Booked</span>
+                        <span><i style="background:var(--olive-deep);border-color:var(--olive-deep)"></i> Seated</span>
+                        <span><i style="background:var(--linen)"></i> Free</span>
+                    </div>
+                }
+                <p class="next-line">@if (Model.NextArrival != null) { <text>Next arrival <b>@Model.NextArrival</b></text> } else { <text>No one else is expected today.</text> }</p>
+            </section>
+        </div>
+    </section>
+
+    <form method="get" class="period" aria-label="Report period">
+        <div class="field">
+            <label for="from">From</label>
+            <input class="in" id="from" name="StartDate" type="date" value="@Model.StartDate.ToString("yyyy-MM-dd")" max="@today.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label for="to">To</label>
+            <input class="in" id="to" name="EndDate" type="date" value="@Model.EndDate.ToString("yyyy-MM-dd")" max="@today.ToString("yyyy-MM-dd")" />
+        </div>
+        <button type="submit" class="btn btn-wine">Apply</button>
+        <div class="quick" role="group" aria-label="Quick ranges">
+            <a class="chip" asp-page="/Admin/Dashboard" asp-route-StartDate="@today.ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" aria-pressed="@(Model.QuickRange == "today" ? "true" : "false")">Today</a>
+            <a class="chip" asp-page="/Admin/Dashboard" asp-route-StartDate="@today.AddDays(-6).ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" aria-pressed="@(Model.QuickRange == "7" ? "true" : "false")">7 days</a>
+            <a class="chip" asp-page="/Admin/Dashboard" asp-route-StartDate="@today.AddDays(-29).ToString("yyyy-MM-dd")" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" aria-pressed="@(Model.QuickRange == "30" ? "true" : "false")">30 days</a>
+            <a class="chip" asp-page="/Admin/Dashboard" asp-route-StartDate="@(new DateTime(today.Year, today.Month, 1).ToString("yyyy-MM-dd"))" asp-route-EndDate="@today.ToString("yyyy-MM-dd")" aria-pressed="@(Model.QuickRange == "month" ? "true" : "false")">This month</a>
+        </div>
+        <div class="dl-group">
+            <div class="field">
+                <label for="rep">Download report</label>
+                <select class="in" id="rep" name="report">
+                    <option value="sales">Sales</option>
+                    <option value="popular">Popular items</option>
+                    <option value="reservations">Reservations</option>
+                    <option value="customers">Customers</option>
+                </select>
+            </div>
+            <div class="dl">
+                <button class="btn btn-line" type="submit" name="format" value="csv">CSV</button>
+                <button class="btn btn-line" type="submit" name="format" value="pdf">PDF</button>
+                <button class="btn btn-line" type="submit" name="format" value="excel">Excel</button>
+            </div>
+        </div>
+    </form>
+
+    <section aria-labelledby="range-h">
+        <div class="sec">
+            <h2 id="range-h">@rangeTitle</h2>
+            <span>@days @Plural(days, "day", "days")</span>
+        </div>
+        <div class="rkpis">
+            <div class="rk"><span class="lab">Total orders</span><b>@d.Sales.TotalOrders.ToString("N0")</b></div>
+            <div class="rk"><span class="lab">Total revenue</span><b>@Ui.Rm(Math.Round(d.Sales.TotalRevenue))</b></div>
+            <div class="rk"><span class="lab">Average order value</span><b>@Ui.Rm(Math.Round(d.Sales.AverageOrderValue))</b></div>
+            <div class="rk"><span class="lab">Discounts given</span><b>@Ui.Rm(Math.Round(d.Sales.TotalDiscount))</b></div>
+        </div>
+
+        <div class="row2">
+            <section class="panel" aria-labelledby="rv" data-chart-wrap>
+                <div class="panel-head">
+                    <div>
+                        <h3 id="rv">Revenue per day</h3>
+                        <p class="panel-sub">@(isToday ? "RM, today so far." : "RM, every day in the period. The last point is " + (Model.EndDate == today ? "today so far." : Model.EndDate.ToString("d MMM") + "."))</p>
+                    </div>
+                    <button type="button" class="view-table" data-table-toggle="revTable" aria-expanded="false">View as table</button>
+                </div>
+                <figure class="chart" data-chart="line" data-src="revData">
+                    <div class="chart-plot"></div>
+                    <div class="ch-tip" hidden></div>
+                </figure>
+                <script type="application/json" id="revData">@Html.Raw(Json(new
+                {
+                    fmt = "money",
+                    cur = Brand.Currency,
+                    series = "Revenue",
+                    label = peakDay == null || peakDay.Revenue == 0
+                        ? "Revenue per day: no sales in this period."
+                        : $"Revenue per day from {Model.StartDate:d MMMM} to {Model.EndDate:d MMMM}. Highest day {peakDay.Date:dddd d MMMM}, {Ui.Rm(Math.Round(peakDay.Revenue))}.",
+                    empty = "No sales in this period yet.",
+                    points = Model.Daily.Select(x => new { x = x.Date.ToString("d MMM"), t = x.Date.ToString("ddd d MMM"), v = x.Revenue, n = x.OrderCount + " " + Plural(x.OrderCount, "order", "orders") })
+                }))</script>
+                <div class="chart-table" id="revTable">
+                    <div class="t-scroll tall">
+                        <table class="t">
+                            <thead><tr><th scope="col">Day</th><th scope="col" class="n">Orders</th><th scope="col" class="n">Revenue</th></tr></thead>
+                            <tbody>
+                                @foreach (var x in Model.Daily.AsEnumerable().Reverse())
+                                {
+                                    <tr><td>@x.Date.ToString("ddd d MMM")</td><td class="n">@x.OrderCount</td><td class="n">@Ui.Rm(Math.Round(x.Revenue))</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="pi" data-chart-wrap>
+                <div class="panel-head">
+                    <div>
+                        <h3 id="pi">Popular items</h3>
+                        <p class="panel-sub">Portions ordered</p>
+                    </div>
+                    <button type="button" class="view-table" data-table-toggle="popTable" aria-expanded="false">View as table</button>
+                </div>
+                @if (d.PopularItems.Count == 0)
+                {
+                    <p class="muted" style="margin-top:12px">Nothing has been ordered in this period.</p>
+                }
+                else
+                {
+                    <div class="chart" style="margin-top:12px">
+                        @foreach (var p in d.PopularItems.Take(6))
+                        {
+                            <div class="mrow"><span>@p.Name</span><b>@p.QuantitySold</b><i class="meter" role="presentation"><u style="width:@W(p.QuantitySold, popularMax)"></u></i></div>
+                        }
+                    </div>
+                    <div class="chart-table" id="popTable">
+                        <table class="t">
+                            <thead><tr><th scope="col">Item</th><th scope="col" class="n">Sold</th><th scope="col" class="n">Revenue</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in d.PopularItems)
+                                {
+                                    <tr><td>@p.Name<small class="muted"> @p.Category</small></td><td class="n">@p.QuantitySold</td><td class="n">@Ui.Rm(Math.Round(p.RevenueGenerated))</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        </div>
+
+        <div class="row3">
+            <section class="panel" aria-labelledby="rh" data-chart-wrap>
+                <div class="panel-head">
+                    <div>
+                        <h3 id="rh">Reservations by hour</h3>
+                        <p class="panel-sub">@stats.TotalReservations @Plural(stats.TotalReservations, "reservation", "reservations") in the period</p>
+                    </div>
+                    <button type="button" class="view-table" data-table-toggle="hourTable" aria-expanded="false">View as table</button>
+                </div>
+                <figure class="chart" data-chart="columns" data-src="hourData" style="margin-top:10px">
+                    <div class="chart-plot"></div>
+                    <div class="ch-tip" hidden></div>
+                </figure>
+                <script type="application/json" id="hourData">@Html.Raw(Json(new
+                {
+                    fmt = "int",
+                    series = "Reservations",
+                    label = busiest == null ? "Reservations by hour: none in this period." : $"Reservations by hour. Busiest hour {busiest.Hour:00}:00 with {busiest.Count}.",
+                    empty = "No reservations in this period.",
+                    points = Model.Hours.Select(h => new { x = h.Hour.ToString("00") + ":00", t = h.Hour.ToString("00") + ":00", v = h.Count, n = (string?)null })
+                }))</script>
+                <div class="chart-table" id="hourTable">
+                    <table class="t">
+                        <thead><tr><th scope="col">Hour</th><th scope="col" class="n">Reservations</th></tr></thead>
+                        <tbody>
+                            @foreach (var h in Model.Hours)
+                            {
+                                <tr><td>@h.Hour.ToString("00"):00</td><td class="n">@h.Count</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel col" aria-labelledby="rs">
+                <div class="panel-head">
+                    <div>
+                        <h3 id="rs">Reservation status</h3>
+                        <p class="panel-sub">@stats.TotalReservations in total</p>
+                    </div>
+                </div>
+                <div style="margin-top:6px;margin-bottom:24px">
+                    @foreach (var (label, n) in new[] { ("Completed", stats.Completed), ("Confirmed", stats.Confirmed), ("Seated", seatedRes), ("Pending", stats.Pending), ("Cancelled", stats.Cancelled), ("No-show", stats.NoShow) })
+                    {
+                        if (label == "Seated" && n == 0) { continue; }
+                        <div class="mrow">
+                            <span>@label</span>
+                            <b>@n <span class="pct">(@Pct(n, stats.TotalReservations))</span></b>
+                            <i class="meter" role="presentation"><u style="width:@W(n, stats.TotalReservations)"></u></i>
+                        </div>
+                    }
+                </div>
+                <div class="inline-stat">
+                    <span>Average party size</span>
+                    <b>@(stats.TotalReservations == 0 ? "None" : stats.AveragePartySize.ToString("0.#") + " " + Plural((int)Math.Round(stats.AveragePartySize), "guest", "guests"))</b>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="rt">
+                <div class="panel-head">
+                    <div>
+                        <h3 id="rt">Table bookings</h3>
+                        <p class="panel-sub">Per table</p>
+                    </div>
+                </div>
+                @if (stats.ByTable.Count == 0)
+                {
+                    <p class="muted" style="margin-top:10px">No booking has a table yet in this period.</p>
+                }
+                <div style="margin-top:6px">
+                    @foreach (var t in stats.ByTable.OrderBy(x => x.TableNumber.Length).ThenBy(x => x.TableNumber))
+                    {
+                        <div class="mrow tight"><span>@t.TableNumber</span><b>@t.BookingCount</b><i class="meter" role="presentation"><u style="width:@W(t.BookingCount, tableMax)"></u></i></div>
+                    }
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="panel fb" aria-labelledby="fb-h">
+        <div class="panel-head">
+            <div>
+                <h3 id="fb-h" style="font-size:34px">Guest feedback</h3>
+                <p class="panel-sub">@fb.TotalCount @Plural(fb.TotalCount, "review", "reviews") in the period</p>
+            </div>
+            <a class="view-table" asp-page="/Admin/Reviews" asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")" asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">All reviews</a>
+        </div>
+
+        @if (fb.TotalCount == 0)
+        {
+            <div class="empty-card"><p>No one has reviewed us in this period. Reviews appear here as soon as guests write them.</p></div>
+        }
+        else
+        {
+            <div class="fb-grid">
+                <div>
+                    <h4>Overall rating</h4>
+                    @if (fb.TotalCount >= FeedbackSummaryVM.MinResponsesForAverage)
+                    {
+                        <div class="score"><b>@fb.AverageRating.ToString("0.0")</b><span>out of 5</span></div>
+                        <div style="margin-top:6px">@Ui.Stars((int)Math.Round(fb.AverageRating), 20)</div>
+                    }
+                    else
+                    {
+                        <p class="muted" style="margin-top:8px">Too few reviews for an average yet.</p>
+                    }
+                    <div class="dist">
+                        @{ var distMax = Math.Max(1, fb.RatingCounts.Values.Max()); }
+                        @for (var star = 5; star >= 1; star--)
+                        {
+                            <div class="mrow">
+                                <span>@star @Ui.Star(14)</span>
+                                <i class="meter" role="presentation"><u style="width:@W(fb.RatingCounts[star], distMax)"></u></i>
+                                <b>@fb.RatingCounts[star]</b>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <h4>How guests rated us</h4>
+                    @foreach (var m in fb.Metrics)
+                    {
+                        <div class="mrow">
+                            <span>@m.Label</span>
+                            <b>@(m.HasEnoughData ? m.Average.ToString("0.0") : "Too few")</b>
+                            <i class="meter" role="presentation"><u style="width:@(m.HasEnoughData ? W(m.Average, 5) : "0%")"></u></i>
+                        </div>
+                    }
+                    <div class="nps">
+                        <h4>Would you recommend us?</h4>
+                        @if (fb.Nps.HasEnoughData)
+                        {
+                            <b>@(fb.Nps.Score >= 0 ? "+" : "")@fb.Nps.Score</b>
+                            <p>Net score, from @fb.Nps.Responses answers: @fb.Nps.Promoters @Plural(fb.Nps.Promoters, "promoter", "promoters"), @fb.Nps.Passives @Plural(fb.Nps.Passives, "passive", "passives"), @fb.Nps.Detractors @Plural(fb.Nps.Detractors, "detractor", "detractors").</p>
+                        }
+                        else
+                        {
+                            <p>A net score needs at least @FeedbackSummaryVM.MinResponsesForNps answers. So far there @Plural(fb.Nps.Responses, "is", "are") @fb.Nps.Responses.</p>
+                        }
+                    </div>
+                </div>
+
+                <div>
+                    <h4>Average rating each @fb.TrendPeriod</h4>
+                    @if (fb.TrendHasEnoughData)
+                    {
+                        <div data-chart-wrap>
+                            <figure class="chart" data-chart="line" data-src="trendData">
+                                <div class="chart-plot"></div>
+                                <div class="ch-tip" hidden></div>
+                            </figure>
+                            <script type="application/json" id="trendData">@Html.Raw(Json(new
+                            {
+                                fmt = "rating",
+                                series = "Average",
+                                h = 168,
+                                yMin = 1,
+                                yMax = 5,
+                                label = $"Average rating each {fb.TrendPeriod}, from {fb.Trend.First().AverageRating:0.0} to {fb.Trend.Last().AverageRating:0.0}.",
+                                points = fb.Trend.Select(t => new { x = t.Label, t = (fb.TrendPeriod == "week" ? "Week of " : "") + t.Label, v = t.AverageRating, n = t.Count + " " + Plural(t.Count, "review", "reviews") })
+                            }))</script>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="muted" style="margin-top:8px">A trend appears once reviews span at least two @(fb.TrendPeriod)s.</p>
+                    }
+                    <h4 style="margin-top:22px">What went wrong most often</h4>
+                    @if (fb.TopIssues.Count == 0)
+                    {
+                        <p class="muted" style="margin-top:8px">Nothing flagged in this period.</p>
+                    }
+                    else
+                    {
+                        <div class="pills" style="margin-top:0">
+                            @foreach (var i in fb.TopIssues)
+                            {
+                                <span class="pill">@i.Tag <b>@i.Count</b></span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="reviews-head">
+            <h3>Recent reviews</h3>
+            <form method="get" id="lowForm">
+                <input type="hidden" name="StartDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="EndDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                <label class="switch">
+                    <input type="checkbox" name="LowOnly" value="true" checked="@Model.LowOnly" data-autosubmit />
+                    <span class="tr"></span>
+                    Show only 3 stars and below
+                </label>
+            </form>
+        </div>
+        @if (Model.RecentReviews.Count == 0)
+        {
+            <p class="muted" style="margin-top:14px">@(Model.LowOnly ? "No reviews of 3 stars or below in this period." : "No reviews in this period.")</p>
+        }
+        else
+        {
+            <div class="reviews">
+                @foreach (var r in Model.RecentReviews)
+                {
+                    <article class="review">
+                        @Ui.Stars(r.Rating, 16)
+                        <div class="who">@r.CustomerName <span>@r.CreatedAt.ToString("d MMM")</span></div>
+                        @if (!string.IsNullOrWhiteSpace(r.Comments)) { <p>@r.Comments</p> }
+                        @if (r.IssueTags.Count > 0)
+                        {
+                            <div class="pills">@foreach (var tag in r.IssueTags) { <span class="pill">@tag</span> }</div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <div class="row4">
+        <section class="panel" aria-labelledby="tc">
+            <div class="panel-head">
+                <div>
+                    <h3 id="tc">Top customers</h3>
+                    <p class="panel-sub">By total spent in the period</p>
+                </div>
+                <a class="view-table" asp-page="/Admin/Dashboard" asp-route-report="customers" asp-route-format="csv" asp-route-StartDate="@Model.StartDate.ToString("yyyy-MM-dd")" asp-route-EndDate="@Model.EndDate.ToString("yyyy-MM-dd")">Download customers</a>
+            </div>
+            @if (topCustomers.Count == 0)
+            {
+                <p class="muted" style="margin-top:10px">No customer has booked or ordered in this period.</p>
+            }
+            else
+            {
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Guest</th>
+                                <th scope="col" class="n">Reservations</th>
+                                <th scope="col" class="n">Orders</th>
+                                <th scope="col" class="n">Total spent</th>
+                                <th scope="col" class="n">Last visit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in topCustomers)
+                            {
+                                <tr>
+                                    <td data-l="" class="c-guest"><div class="who"><b>@c.FullName</b><small>@c.Email</small></div></td>
+                                    <td class="n" data-l="Reservations">@c.ReservationCount</td>
+                                    <td class="n" data-l="Orders">@c.OrderCount</td>
+                                    <td class="n" data-l="Total spent">@Ui.Rm(Math.Round(c.TotalSpent))</td>
+                                    <td class="n" data-l="Last visit">@(c.LastVisit?.ToString("d MMM") ?? "")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="panel" aria-labelledby="ra">
+            <div class="panel-head">
+                <div>
+                    <h3 id="ra">Recent activity</h3>
+                    <p class="panel-sub">Reservations and orders as they happen</p>
+                </div>
+            </div>
+            @if (d.RecentActivity.Count == 0)
+            {
+                <p class="muted" style="margin-top:10px">Nothing yet.</p>
+            }
+            else
+            {
+                <ul class="feed">
+                    @foreach (var a in d.RecentActivity)
+                    {
+                        var mins = (int)Math.Max(0, (DateTime.UtcNow - DateTime.SpecifyKind(a.When, DateTimeKind.Utc)).TotalMinutes);
+                        var ago = mins < 1 ? "just now" : mins < 60 ? mins + " min ago" : mins < 1440 ? (mins / 60) + (mins / 60 == 1 ? " hour ago" : " hours ago") : (mins / 1440) + (mins / 1440 == 1 ? " day ago" : " days ago");
+                        <li>
+                            <span class="ic">@Ui.Icon(a.Kind == "Order" ? "receipt" : "cal", 18, 1.7)</span>
+                            <div>
+                                <b>@a.Title</b>
+                                <small>@a.Summary</small>
+                            </div>
+                            <time>@ago</time>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/charts.js" asp-append-version="true"></script>
+}

@@ -1,73 +1,196 @@
 @page
 @model RROMS.Pages.Staff.DashboardModel
+@using RROMS.Models
+@using RROMS.Presentation
 @{
-    ViewData["Title"] = "Staff Dashboard";
-}
-<h1 class="h3 mb-4">Staff Dashboard</h1>
+    ViewData["Title"] = "Dashboard";
+    var now = DateTime.Now;
+    var hello = now.Hour < 12 ? "Good morning" : now.Hour < 18 ? "Good afternoon" : "Good evening";
+    string Age(Order o)
+    {
+        var m = (int)Math.Max(0, (DateTime.UtcNow - o.OrderDate).TotalMinutes);
+        return m < 1 ? "just now" : m == 1 ? "1 min ago" : m < 60 ? m + " min ago" : (m / 60) + " h " + (m % 60).ToString("00") + " ago";
+    }
+    const int cell = 74, gap = 12, left = 12;
+    var perRow = 4;
+    // the plan is drawn area by area; its height follows the number of rows
+    var rowsY = new List<int>();
+    var y = 8;
+    foreach (var a in Model.Floor)
+    {
+        rowsY.Add(y);
+        y += 26 + ((a.Tables.Count + perRow - 1) / perRow) * (cell - 14 + gap) + 8;
+    }
+    var planH = Math.Max(y, 120);
+    var planW = left * 2 + perRow * cell + (perRow - 1) * gap;
 
-<div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.TodayReservations.Count</div><div class="stat-label">Reservations today</div></div></div>
-    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.ActiveOrders.Count</div><div class="stat-label">Active orders</div></div></div>
-    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.PendingPayments</div><div class="stat-label">Payments pending</div></div></div>
-    <div class="col-6 col-lg-3"><div class="rroms-stat-card"><div class="stat-value">@Model.TodayReservations.Sum(r => r.PartySize)</div><div class="stat-label">Guests expected today</div></div></div>
+    // SVG text elements are called <text>, which Razor reserves for itself, so the plan is built as a string. Every name goes through the encoder.
+    var enc = System.Text.Encodings.Web.HtmlEncoder.Default;
+    var sb = new System.Text.StringBuilder();
+    for (var i = 0; i < Model.Floor.Count; i++)
+    {
+        var area = Model.Floor[i];
+        sb.Append($"<text x=\"{left}\" y=\"{rowsY[i] + 14}\" class=\"fl-area\">{enc.Encode(area.Name)}</text>");
+        for (var k = 0; k < area.Tables.Count; k++)
+        {
+            var ft = area.Tables[k];
+            var tx = left + (k % perRow) * (cell + gap);
+            var ty = rowsY[i] + 24 + (k / perRow) * (cell - 14 + gap);
+            var href = Url.Page("/Staff/Reservations", new { tableId = ft.T.Id });
+            sb.Append($"<a href=\"{enc.Encode(href ?? "#")}\" aria-label=\"{enc.Encode(ft.Title)}\"><g class=\"fl-t fl-{ft.State.ToString().ToLowerInvariant()}\">");
+            sb.Append($"<rect x=\"{tx}\" y=\"{ty}\" width=\"{cell}\" height=\"{cell - 14}\" rx=\"10\"></rect>");
+            sb.Append($"<text x=\"{tx + cell / 2}\" y=\"{ty + 24}\" text-anchor=\"middle\" class=\"fl-n\">{enc.Encode(ft.T.TableNumber)}</text>");
+            sb.Append($"<text x=\"{tx + cell / 2}\" y=\"{ty + 43}\" text-anchor=\"middle\" class=\"fl-c\">seats {ft.T.Capacity}</text>");
+            sb.Append("</g></a>");
+        }
+    }
+    var floorMarkup = sb.ToString();
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>@hello</h1>
+            <p>@now.ToString("dddd d MMMM"). @(Model.GuestsToday == 0 ? "No one is booked yet today." : Model.GuestsToday + (Model.GuestsToday == 1 ? " guest is" : " guests are") + " booked today.")</p>
+        </div>
+        <div class="row-acts">
+            <a class="btn btn-line" asp-page="/Staff/Announcements">Announcements</a>
+        </div>
+    </div>
+
+    <div class="rkpis">
+        <div class="rk">
+            <span class="lab">Reservations today</span>
+            <b>@Model.ReservationsToday</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@Model.SeatedNow seated, @Model.ToCome to come</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Tables in use</span>
+            <b>@Model.TablesInUse of @Model.TablesTotal</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@(Model.BookedLater == 0 ? "None booked for later" : Model.BookedLater + " more booked")</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Open orders</span>
+            <b>@Model.OpenOrders</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@(Model.ReadyOrders == 0 ? "None ready to serve" : Model.ReadyOrders + " ready to serve")</span>
+        </div>
+        <div class="rk">
+            <span class="lab">Bills to settle</span>
+            <b>@Model.BillsToSettle</b>
+            <span class="delta" style="margin-top:6px;color:var(--ink2)">@Ui.Rm2(Model.BillsAmount) unpaid</span>
+        </div>
+    </div>
+
+    <div class="grid2 g75">
+        <section class="panel" aria-labelledby="nextT">
+            <div class="panel-head">
+                <div>
+                    <h2 id="nextT" style="font-size:32px;font-weight:500">Arriving next</h2>
+                    <p class="panel-sub">Allergies are shown in red, so the kitchen sees them before the guest sits.</p>
+                </div>
+                <a class="btn btn-wine btn-sm2" asp-page="/Staff/Reservations" asp-route-walkIn="true">Add walk-in</a>
+            </div>
+            @if (Model.Next.Count == 0)
+            {
+                <p class="muted" style="padding:14px 0 6px">No one else is due today.</p>
+            }
+            else
+            {
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Time</th>
+                                <th scope="col">Guest</th>
+                                <th scope="col" class="n">Guests</th>
+                                <th scope="col">Table</th>
+                                <th scope="col">Notes for the kitchen</th>
+                                <th scope="col"><span class="sr-only">Action</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.Next)
+                            {
+                                <tr>
+                                    <td data-l="Time"><b>@a.R.ReservationDateTime.ToString("HH:mm")</b></td>
+                                    <td data-l="" class="c-guest"><div class="who"><b>@a.Name</b>@if (a.Detail.Length > 0) {
+                                        <small>@a.Detail</small>
+                                    }
+                                </div></td>
+                                <td class="n" data-l="Guests">@a.R.PartySize</td>
+                                <td data-l="Table">@(a.R.Table?.TableNumber ?? "None")</td>
+                                <td data-l="Notes">
+                                    @if (a.Allergies.Count > 0)
+                                    {
+                                        <span class="flag">@Ui.Icon("warn", 13, 2.2) @string.Join(", ", a.Allergies)</span>
+                                    }
+                                    @foreach (var n in a.Needs)
+                                    {
+                                        <span class="flag soft">@n</span>
+                                    }
+                                </td>
+                                <td data-l="" class="c-acts">
+                                    @if (a.R.Status == ReservationStatus.Pending)
+                                    {
+                                        <form method="post" asp-page-handler="Confirm" class="inl"><input type="hidden" name="id" value="@a.R.Id" /><button class="btn btn-line btn-sm2">Confirm</button></form>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Seat" class="inl"><input type="hidden" name="id" value="@a.R.Id" /><button class="btn @(a.Due ? "btn-wine" : "btn-line") btn-sm2">@(a.Due ? "Seat" : "Seat early")</button></form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="panel" aria-labelledby="floorT">
+        <div class="panel-head">
+            <div>
+                <h2 id="floorT" style="font-size:32px;font-weight:500">The floor</h2>
+                <p class="panel-sub">Tap a table to see its bookings today.</p>
+            </div>
+        </div>
+        <svg class="floor" viewBox="0 0 @planW @planH" role="group" aria-label="Tables and whether they are free, booked or seated">@Html.Raw(floorMarkup)</svg>
+        <div class="legend">
+            <span><i style="background:#743014"></i> Booked</span>
+            <span><i style="background:#5C5636"></i> Seated</span>
+            <span><i style="background:#F3E8CE"></i> Free</span>
+        </div>
+    </section>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class="rroms-card p-4">
-            <div class="d-flex justify-content-between mb-3">
-                <h2 class="h5 mb-0">Today's reservations</h2>
-                <a asp-page="/Staff/Reservations" class="small">Manage all &rarr;</a>
-            </div>
-            @if (!Model.TodayReservations.Any())
-            {
-                <p class="text-muted-warm mb-0">No reservations today.</p>
-            }
-            else
-            {
-                <table class="table table-sm mb-0">
-                    <tbody>
-                        @foreach (var r in Model.TodayReservations)
-                        {
-                            <tr>
-                                <td>@r.ReservationDateTime.ToString("h:mm tt")</td>
-                                <td>@r.Customer?.FullName</td>
-                                <td>Party @r.PartySize</td>
-                                <td>@(r.Table?.TableNumber ?? "-")</td>
-                                <td><span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        </div>
+<div class="sec" style="margin:40px 0 18px">
+    <h2>In the kitchen</h2>
+    <a class="link" asp-page="/Staff/Orders">All orders</a>
+</div>
+@if (Model.Kitchen.Count == 0)
+{
+    <p class="board-none">The kitchen has nothing on right now.</p>
+}
+else
+{
+    <div class="grid2 g3">
+        @foreach (var o in Model.Kitchen.Take(6))
+        {
+            var pill = o.Status switch { OrderStatus.Placed => ("st-placed", "Placed"), OrderStatus.Preparing => ("st-preparing", "Preparing"), _ => ("st-ready", "Ready") };
+            <article class="panel" style="padding:20px 22px">
+                <div class="sp-b">
+                    <h3 style="font-size:26px;font-weight:500">@(o.Table != null ? "Table " + o.Table.TableNumber.TrimStart('T', 't') : "Takeaway")</h3>
+                    <span class="st @pill.Item1">@pill.Item2</span>
+                </div>
+                <p class="muted" style="font-size:13.5px">Placed @Age(o)</p>
+                <ul style="margin-top:10px">
+                    @foreach (var l in OrderView.Lines(o))
+                    {
+                        <li style="padding:4px 0">@l.Title@(l.Quantity > 1 ? " × " + l.Quantity : "")</li>
+                    }
+                </ul>
+            </article>
+        }
     </div>
-    <div class="col-lg-6">
-        <div class="rroms-card p-4">
-            <div class="d-flex justify-content-between mb-3">
-                <h2 class="h5 mb-0">Active orders</h2>
-                <a asp-page="/Staff/Orders" class="small">Manage all &rarr;</a>
-            </div>
-            @if (!Model.ActiveOrders.Any())
-            {
-                <p class="text-muted-warm mb-0">No active orders.</p>
-            }
-            else
-            {
-                <table class="table table-sm mb-0">
-                    <tbody>
-                        @foreach (var o in Model.ActiveOrders)
-                        {
-                            <tr>
-                                <td>#@o.Id</td>
-                                <td>@o.Customer?.FullName</td>
-                                <td>@o.OrderItems.Sum(i => i.Quantity) item(s)</td>
-                                <td><span class="status-badge status-@o.Status.ToString().ToLower()">@o.Status</span></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        </div>
-    </div>
+}
 </div>
