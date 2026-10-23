@@ -1,0 +1,27 @@
+.cart{display:grid;grid-template-columns:7fr 5fr;gap:48px;align-items:start}
+.line{display:grid;grid-template-columns:104px 1fr auto;gap:22px;align-items:center;padding:22px 0;border-top:1px solid var(--line)}
+.line:first-of-type{border-top:0}
+.line .img{width:104px;height:104px}
+.line h3{font-size:25px;font-weight:500}
+.line p{color:var(--ink2);font-size:14.5px;margin-top:3px}
+.line .rm{margin-top:10px;font-size:14px}
+.line .pr{text-align:right;font-weight:600;font-size:18px}
+.qty{display:inline-flex;align-items:center;margin-top:12px;border:1px solid var(--caramel);border-radius:999px}
+.qty span{display:grid;place-items:center;min-width:44px;height:44px;font-weight:600}
+.qty a{display:grid;place-items:center;width:44px;height:44px;color:var(--cocoa);text-decoration:none;font-size:22px}
+.for{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;background:var(--linen);border-radius:4px;margin-bottom:26px}
+.for b{display:block}
+.pay .printed{padding:36px 34px 30px}
+.pay h3{font-size:32px;font-weight:500}
+.tot{margin-top:18px;display:grid;grid-template-columns:1fr auto;gap:10px 16px;font-size:16.5px}
+.tot .sum{font:600 28px/1 'Hanken Grotesk',sans-serif;padding-top:14px;border-top:1px solid var(--cocoa)}
+.tot .disc{color:var(--olive-deep);font-weight:600}
+.promo{display:flex;gap:10px;margin-top:20px}
+.promo .in{flex:1}
+.applied{margin-top:10px;display:inline-flex;align-items:center;gap:8px;font-size:14.5px;color:var(--olive-deep);font-weight:600}
+.method{display:grid;gap:10px;margin-top:18px}
+.method .opt{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.method .opt.on{border:2px solid var(--wine)}
+.earn{margin-top:18px;display:flex;gap:12px;align-items:center;padding:14px 16px;background:var(--cocoa);color:var(--batter);border-radius:8px}
+.earn b{color:var(--paper)}
+.stripe{margin-top:12px;text-align:center;font-size:13.5px;color:var(--ink2)}

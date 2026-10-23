@@ -1,0 +1,17 @@
+.rlist{display:grid;gap:22px}
+.res{display:grid;grid-template-columns:128px 1fr auto;gap:30px;align-items:center;padding:26px 30px;background:var(--card);border:1px solid var(--line);box-shadow:var(--e1)}
+.res.past{background:transparent;box-shadow:none}
+.dateblk{display:grid;place-items:center;width:112px;height:128px;border-radius:999px 999px 6px 6px;background:var(--cocoa);color:var(--paper);text-align:center;padding-top:16px}
+.res.past .dateblk{background:var(--linen);color:var(--cocoa)}
+.dateblk b{display:block;font:500 46px/1 'Bodoni Moda',serif}
+.dateblk span{display:block;font-size:14px;margin-top:2px}
+.res h2{font-size:30px;font-weight:500;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.res .meta{display:flex;flex-wrap:wrap;gap:6px 26px;margin-top:10px;color:var(--ink2);font-size:15.5px}
+.res .meta span{display:inline-flex;align-items:center;gap:8px}
+.res .note{margin-top:12px;font-size:15px}
+.res .act{display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:190px}
+.res .act .btn{width:100%}
+.two{display:grid;grid-template-columns:8fr 4fr;gap:40px;align-items:start}
+.help h3{font-size:26px;font-weight:500}
+.help p{margin-top:10px;color:var(--ink2);font-size:15.5px}
+.help+.help{margin-top:22px}

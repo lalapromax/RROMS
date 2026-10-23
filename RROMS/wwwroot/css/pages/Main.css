@@ -1,0 +1,110 @@
+.cover{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;overflow:hidden;background:var(--paper);flex:none}
+.cover .img{width:100%;height:100%}
+.cover .img::after{box-shadow:inset 0 0 14px rgba(30,16,6,.3)}
+
+.h-xl{font-size:72px;font-weight:500;letter-spacing:-.02em}
+.h-lg{font-size:56px;font-weight:500;letter-spacing:-.015em}
+/* hero */
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:32px;align-items:center;padding-top:60px;padding-bottom:140px}
+.hero-title{font-size:100px;font-weight:500;line-height:.96;letter-spacing:-.028em}
+.hero-sub{font:italic 400 30px/1.3 'Bodoni Moda',serif;margin-top:30px;color:var(--wine);max-width:560px}
+.hero-copy{max-width:500px;margin-top:20px;color:var(--ink2);font-size:18px}
+.hero-cta{display:flex;gap:14px;margin-top:38px;flex-wrap:wrap}
+.hero-art{position:relative;height:700px}
+.arch-front{position:absolute;right:0;top:0;width:410px;height:600px;padding-bottom:120px;box-shadow:var(--e2)}
+.arch-back{position:absolute;left:0;top:126px;width:206px;height:330px;padding-top:34px;box-shadow:var(--e2)}
+.hero-card{position:absolute;left:20px;bottom:6px;width:322px;padding:24px 26px 24px;background:#FFFCF3;border:1px solid var(--caramel);outline:1px solid var(--line);outline-offset:-6px;box-shadow:var(--e2);z-index:4}
+.hero-card h3{font-size:30px;font-weight:500}
+.hero-card p{font-size:14.5px;color:var(--ink2);margin-top:6px}
+.hero-card .lead{margin-top:16px;font-weight:600}
+.faces{display:flex;margin-top:16px}
+.faces .img{width:50px;height:50px;border:3px solid #FFFCF3;margin-left:-12px}
+.faces .img:first-child{margin-left:0}
+.slip{position:absolute;left:-18px;top:26px;z-index:5;width:188px;padding:14px 16px 16px;background:#FFFDF4;box-shadow:var(--e2);transform:rotate(-4deg);font:600 26px/1.12 'Caveat',cursive;color:var(--wine)}
+/* set menus */
+.band-cocoa{position:relative;background:var(--cocoa);color:var(--batter)}
+.set-grid{position:relative;display:grid;grid-template-columns:5fr 7fr;gap:72px;align-items:start;padding-top:116px;padding-bottom:128px}
+.band-cocoa .h-xl{color:var(--paper)}
+.band-copy{margin-top:22px;font-size:18px;max-width:440px}
+.set-list{margin:38px 0 40px}
+.set-row{display:grid;grid-template-columns:76px 1fr auto;gap:20px;align-items:center;padding:14px 0;border-top:1px solid rgba(232,209,167,.26)}
+.set-row:last-child{border-bottom:1px solid rgba(232,209,167,.26)}
+.set-name{font:500 26px/1.15 'Bodoni Moda',serif;color:var(--paper);display:block}
+.set-meta{display:block;font-size:14.5px;margin-top:3px}
+.set-price{font:500 24px/1 'Bodoni Moda',serif;color:var(--paper)}
+.menu-card{position:relative;margin-top:-184px;background:#FFFCF3;color:var(--cocoa);border:1px solid var(--caramel);outline:1px solid var(--line);outline-offset:-10px;padding:48px 52px 42px;box-shadow:var(--e3);transform:rotate(-1deg)}
+.mc-head{text-align:center}
+.mc-head .logo-slot{margin:0 auto 14px;width:56px;height:56px;color:var(--wine)}
+.mc-head h3{font-size:48px;font-weight:500}
+.mc-sub{font:italic 400 20px/1.3 'Bodoni Moda',serif;color:var(--ink2);margin-top:6px}
+.mc-courses{margin-top:28px}
+.mc-row{display:grid;grid-template-columns:96px 1fr auto;gap:20px;align-items:center;padding:16px 0;border-top:1px solid var(--line)}
+.mc-row dt{font:italic 400 22px/1.3 'Bodoni Moda',serif;color:var(--wine)}
+.mc-row dd span{display:block;font-size:17px}
+.mc-row dd em{display:block;font:italic 400 15px/1.6 'Bodoni Moda',serif;color:var(--ink2)}
+.pair{display:flex}
+.pair .img{width:64px;height:64px;border:3px solid #FFFCF3;box-shadow:var(--e1)}
+.pair .img+.img{margin-left:-16px}
+.mc-foot{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:26px;border-top:1px solid var(--line)}
+.mc-price{font:500 44px/1 'Bodoni Moda',serif}
+.mc-per{margin-left:10px;font-size:14.5px;color:var(--ink2)}
+/* kitchen */
+.carte{padding-top:128px;padding-bottom:132px}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:52px}
+.feature-grid{display:grid;grid-template-columns:7fr 5fr;gap:56px;align-items:start}
+.dish-big{position:relative}
+.dish-big .img{width:100%;aspect-ratio:5/4;box-shadow:var(--e2)}
+.dish-big .img svg{transform:scale(1.06)}
+.dish-big .note-tag{left:22px;top:22px}
+.dish-big h3{font-size:46px;font-weight:500}
+.dish-big .lead{margin-top:28px}
+.dish-big .price{font-size:22px}
+.dish-desc{margin-top:8px;color:var(--ink2);font-size:16.5px;max-width:420px}
+.stack{display:grid;gap:44px;padding-top:6px}
+.dish-row{display:grid;grid-template-columns:196px 1fr;gap:28px;align-items:center}
+.dish-row .img{width:196px;height:196px;box-shadow:var(--e1)}
+.dish-row h3{font-size:30px;font-weight:500}
+.dish-row .price{display:block;margin-top:12px}
+/* cellar */
+.band-wine{position:relative;background:var(--wine);color:var(--batter)}
+.cellar{position:relative;display:grid;grid-template-columns:5fr 7fr;gap:80px;align-items:end;padding-top:120px;padding-bottom:120px}
+.cellar h2{font-size:96px;font-weight:500;color:var(--paper);letter-spacing:-.025em}
+.cellar-copy{margin-top:20px;font:italic 400 25px/1.4 'Bodoni Moda',serif;max-width:430px}
+.cellar>div{min-width:0}
+.bottles{display:flex;align-items:flex-end;gap:10px;margin:44px 0 0 0;border-bottom:2px solid rgba(232,209,167,.45)}
+.bottles svg{flex:none;display:block;height:280px;width:157px;margin-bottom:-14px}
+.bottles svg:nth-child(2){height:316px;width:177px}
+.wine-list{padding-bottom:0}
+.wine-head,.wine-row{display:grid;grid-template-columns:76px 1fr 92px 92px;gap:20px;align-items:center}
+.wine-head{padding-bottom:12px;font-size:14px;font-weight:600;text-align:right}
+.wine-head span:nth-child(2){text-align:left}
+.wine-row{padding:16px 0;border-top:1px solid rgba(232,209,167,.3)}
+.wine-row:last-of-type{border-bottom:1px solid rgba(232,209,167,.3)}
+.wine-row .img{width:76px;height:76px}
+.wine-name{font:500 25px/1.2 'Bodoni Moda',serif;color:var(--paper)}
+.wine-sub{display:block;font-size:14.5px;margin-top:3px}
+.wine-row .num{text-align:right;font-weight:600;color:var(--paper)}
+/* rewards */
+.rewards{padding-top:132px;padding-bottom:0}
+.rewards-intro{max-width:540px;margin-top:16px;color:var(--ink2);font-size:18px}
+.tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:36px;align-items:end;margin-top:64px}
+.tier{position:relative;background:var(--card);border-radius:240px 240px 0 0;overflow:hidden;box-shadow:var(--e1)}
+.tier-arch{display:flex;align-items:flex-end;justify-content:center;height:190px;padding-bottom:26px}
+.tier-arch h3{font-size:42px;font-weight:500}
+.tier-bronze .tier-arch{background:var(--caramel);color:var(--paper)}
+.tier-silver .tier-arch{background:var(--olive);color:var(--cocoa)}
+.tier-gold .tier-arch{background:var(--batter);color:var(--cocoa)}
+.tier-bronze{min-height:430px}
+.tier-silver{min-height:500px}
+.tier-gold{min-height:570px;box-shadow:var(--e2)}
+.tier-body{padding:28px 40px 40px}
+.tier-from{font:italic 400 21px/1.3 'Bodoni Moda',serif;color:var(--wine);margin-bottom:12px}
+.tier li{padding:11px 0;border-top:1px solid var(--line);font-size:16.5px}
+/* cta */
+.cta{position:relative;background:var(--linen);border-top:1px solid var(--line);margin-top:0}
+.cta-in{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;padding-top:104px;padding-bottom:104px}
+.cta h2{font-size:68px;font-weight:500;letter-spacing:-.02em}
+.cta p{margin-top:18px;color:var(--ink2);font-size:18px;max-width:440px}
+.cta .btn{margin-top:34px}
+.floor-card{background:#FFFCF3;padding:14px;box-shadow:var(--e2);transform:rotate(1.2deg);border:1px solid var(--line)}
+.floor-note{display:block;margin-top:18px;text-align:right;font:600 28px/1 'Caveat',cursive;color:var(--wine);transform:rotate(-2deg)}

@@ -1,0 +1,16 @@
+/* ---- Monitoring: figures, filters, three plain lists ---- */
+.rk .delta{display:block;font-size:14px}
+.filter .sp{flex:1}
+.t .n{text-align:right;font-variant-numeric:tabular-nums}
+.t-cards .c-guest b{font-weight:600}
+.mon-ref{font-size:13.5px;color:var(--ink2);overflow-wrap:anywhere}
+.t a:not(.btn){color:var(--wine);font-weight:600}
+@media (max-width:700px){
+  .t-cards td.n{justify-content:space-between}
+  .filter .sp{display:none}
+  .filter .btn{width:100%}
+}
+.panel .pager{margin-top:22px}
+@media (max-width:700px){
+  .panel .tabs{gap:20px;overflow-x:auto;white-space:nowrap}
+}

@@ -1,0 +1,24 @@
+/* ---- Promotions: list, one add/edit dialog, phone ---- */
+.promo-code{font-family:'Hanken Grotesk',sans-serif;font-weight:700;letter-spacing:.06em;margin-right:6px}
+.promo-code-in{text-transform:uppercase;letter-spacing:.06em}
+.promo-used{display:block;margin-top:2px}
+.t .who small{display:block;margin-top:2px;color:var(--ink2);font-size:13px}
+.c-acts .row-acts{display:flex;gap:8px;justify-content:flex-end}
+#promoDlg fieldset.field{border:0;padding:0;margin:0 0 20px;min-width:0}
+#promoDlg legend.lab{padding:0;margin-bottom:8px}
+#promoDlg .kind-row,#promoDlg .stack-ck{display:flex;flex-direction:column;gap:6px}
+#promoDlg .ck-row{display:flex;flex-wrap:wrap;gap:6px 24px}
+#promoDlg #scopeCategory,#promoDlg #scopeItem,#promoDlg #eligEmails{margin-top:10px}
+#promoDlg #scopeCategory[hidden],#promoDlg #scopeItem[hidden],#promoDlg #eligEmails[hidden],#promoDlg #kindPercent[hidden],#promoDlg #kindAmount[hidden]{display:none}
+#promoDlg .promo-flags{display:flex;flex-wrap:wrap;align-items:center;gap:10px 32px;margin-top:4px}
+#promoDlg .promo-flags [hidden]{display:none}
+#promoDlg .hint{margin-top:8px}
+@media (max-width:700px){
+  #promoDlg .f-row{grid-template-columns:1fr!important}
+}
+.c-acts{white-space:nowrap}
+.c-acts .row-acts{flex-wrap:nowrap}
+@media (max-width:700px){
+  .promo-rules{text-align:right}
+  .c-acts .row-acts{justify-content:flex-start}
+}

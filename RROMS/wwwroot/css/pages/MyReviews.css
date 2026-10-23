@@ -1,0 +1,32 @@
+.rvl{display:grid;gap:22px}
+.rcard{padding:30px 34px;background:var(--card);border:1px solid var(--line);box-shadow:var(--e1)}
+.rcard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.rcard h2{font-size:28px;font-weight:500}
+.rcard .when{color:var(--ink2);font-size:14.5px;margin-top:2px}
+.rcard .stars-in{color:var(--wine)}
+.rcard p.t{margin-top:14px;max-width:760px}
+.mets{display:flex;flex-wrap:wrap;gap:6px 30px;margin-top:16px;font-size:14.5px;color:var(--ink2)}
+.mets b{color:var(--cocoa);margin-left:6px}
+.reply{margin-top:20px;padding:18px 22px;background:var(--linen);border-left:3px solid var(--wine);border-radius:0 8px 8px 0}
+.reply b{display:block;font-size:14.5px}
+.reply p{margin-top:4px;font:italic 400 17px/1.45 'Bodoni Moda',serif}
+.rcard .acts{display:flex;gap:16px;margin-top:18px;font-size:14.5px}
+.two{display:grid;grid-template-columns:8fr 4fr;gap:40px;align-items:start}
+.big{font:500 84px/1 'Bodoni Moda',serif;color:var(--wine)}
+
+/* ---- real-app additions: photos, link-style buttons, phone layout ---- */
+.rphotos{display:flex;gap:10px;margin-top:16px}
+.rphotos img{display:block;width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.rphotos a:focus-visible{outline:2px solid var(--wine);outline-offset:3px;border-radius:8px}
+.rcard .acts{align-items:center;flex-wrap:wrap}
+.rcard .acts button.link{border:0;background:none;padding:0;font:inherit;cursor:pointer}
+@media (max-width:1000px){
+  .two{grid-template-columns:1fr;gap:32px}
+}
+@media (max-width:560px){
+  .rcard{padding:22px 20px}
+  .rcard .top{flex-direction:column;gap:10px}
+  .rcard h2{font-size:24px}
+  .mets{gap:6px 20px}
+  .big{font-size:64px}
+}

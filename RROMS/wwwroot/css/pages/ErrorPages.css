@@ -1,0 +1,26 @@
+.er{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;padding-top:56px;padding-bottom:104px}
+.ec{position:relative;background:var(--card);border:1px solid var(--line);box-shadow:var(--e2);padding:44px 38px 38px;text-align:center;display:flex;flex-direction:column;align-items:center;outline:1px solid var(--line);outline-offset:-10px}
+.ec .img{width:176px;height:176px;margin-bottom:26px;box-shadow:var(--e2)}
+.ec .code{font:italic 400 20px/1 'Bodoni Moda',serif;color:var(--wine)}
+.ec h2{margin-top:10px;font-size:42px;font-weight:500;line-height:1.05}
+.ec p{margin-top:12px;color:var(--ink2);font-size:16.5px;max-width:300px}
+.ec .acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:24px}
+.ec .ref{margin-top:18px;font-size:13px;color:var(--ink2)}
+
+/* ---- The real page shows one card, centred. The board showed all three side by side. ---- */
+.er-one{display:flex;justify-content:center;padding-top:72px;padding-bottom:120px}
+.er-one .ec{width:100%;max-width:520px}
+.ec h1{margin-top:10px;font-size:42px;font-weight:500;line-height:1.05}
+.ec .acts form{margin:0;display:inline-flex}
+.ec .ref b{font-weight:600;letter-spacing:.04em;color:var(--cocoa)}
+.nav-plain{justify-content:center}
+.nav-plain .seal{margin:0 auto}
+.stage.er-one{padding-top:48px}
+@media (max-width:640px){
+  .er-one{padding-top:32px;padding-bottom:72px}
+  .ec{padding:34px 22px 30px}
+  .ec .img{width:132px;height:132px;margin-bottom:20px}
+  .ec h1{font-size:32px}
+  .ec .acts{flex-direction:column;align-self:stretch}
+  .ec .acts .btn,.ec .acts form,.ec .acts form .btn{width:100%;justify-content:center}
+}

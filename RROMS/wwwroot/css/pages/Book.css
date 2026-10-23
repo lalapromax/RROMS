@@ -1,0 +1,34 @@
+.book{display:grid;grid-template-columns:8fr 4fr;gap:40px;align-items:start}
+.step{padding:34px 0;border-top:1px solid var(--line)}
+.step:first-child{border-top:0;padding-top:0}
+.step h2{display:flex;align-items:center;gap:16px;font-size:34px;font-weight:500}
+.step h2 .no{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--cocoa);color:var(--paper);font:600 16px/1 'Hanken Grotesk',sans-serif}
+.step .body{margin-top:20px;padding-left:56px}
+.party{display:flex;gap:10px;flex-wrap:wrap}
+.party span{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:1px solid var(--caramel);font:500 22px/1 'Bodoni Moda',serif}
+.party span.on{background:var(--cocoa);border-color:var(--cocoa);color:var(--paper)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;max-width:520px}
+.days span{display:grid;place-items:center;aspect-ratio:1;border-radius:10px;border:1px solid var(--line);font-weight:600}
+.days .dn{border:0;aspect-ratio:auto;color:var(--ink2);font-size:13px;font-weight:500}
+.days .off{color:rgba(107,84,64,.5);border-style:dashed;text-decoration:line-through}
+.days .on{background:var(--cocoa);color:var(--paper);border-color:var(--cocoa)}
+.month{display:flex;align-items:center;justify-content:space-between;max-width:520px;margin-bottom:12px}
+.month b{font:500 24px/1 'Bodoni Moda',serif}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-width:560px}
+.slots span{display:grid;place-items:center;min-height:52px;border-radius:10px;border:1px solid var(--caramel);font-weight:600}
+.slots .full{border-style:dashed;border-color:var(--line);color:rgba(107,84,64,.55);font-weight:500;font-size:14px}
+.slots .on{background:var(--wine);border-color:var(--wine);color:var(--paper)}
+.slots-note{margin-top:12px;font-size:14.5px;color:var(--ink2)}
+.set-opt{display:grid;grid-template-columns:96px 1fr auto;gap:18px;align-items:center;padding:16px;border:1px solid var(--line);background:var(--card)}
+.set-opt.on{border:2px solid var(--wine)}
+.set-opt .img{width:96px;height:96px}
+.set-opt h3{font-size:24px;font-weight:500}
+.set-opt p{color:var(--ink2);font-size:15px;margin-top:2px}
+.sum{position:sticky;top:104px}
+.sum .printed{padding:34px 32px 30px}
+.sum h3{font-size:30px;font-weight:500}
+.sum .hold{margin-top:20px;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:var(--linen);border-radius:8px;font-size:14.5px}
+.sum .hold svg{flex:none;color:var(--wine);margin-top:1px}
+.sum .btn{width:100%;margin-top:22px}
+.sum .fine{margin-top:12px;font-size:13.5px;color:var(--ink2);text-align:center}
+.askus{margin-top:20px;font-size:15px;color:var(--ink2);padding:0 6px}

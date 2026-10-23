@@ -1,0 +1,16 @@
+.auth{display:grid;grid-template-columns:5fr 7fr;min-height:760px}
+.auth-art{position:relative;background:var(--cocoa);color:var(--batter);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:56px 56px 52px}
+.auth-art .arch{position:absolute;left:56px;right:56px;top:56px;height:430px;box-shadow:var(--e3)}
+.auth-art h2{position:relative;font-size:46px;font-weight:500;color:var(--paper);line-height:1.04;letter-spacing:-.02em}
+.auth-art p{position:relative;margin-top:12px;font:italic 400 20px/1.4 'Bodoni Moda',serif}
+.auth-form{display:flex;align-items:center;justify-content:center;padding:56px}
+.auth-card{width:100%;max-width:520px}
+.auth-card h1{font-size:64px;font-weight:500;letter-spacing:-.025em}
+.auth-card .lead-it{margin-top:10px;font:italic 400 21px/1.4 'Bodoni Moda',serif;color:var(--ink2)}
+.auth-card .form{margin-top:30px}
+.row-sp{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 22px}
+.pw{position:relative}
+.pw .show{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-weight:600;font-size:14px;color:var(--wine);text-underline-offset:4px}
+.alt{margin-top:26px;text-align:center;color:var(--ink2)}
+.banner{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-radius:10px;border:1px solid var(--wine);background:#FFF4E8;color:var(--cocoa);margin-top:22px;font-size:15px}
+.banner svg{flex:none;color:var(--wine);margin-top:2px}

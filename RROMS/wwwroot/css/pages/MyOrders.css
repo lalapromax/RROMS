@@ -1,0 +1,39 @@
+.ofil{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.olist{display:grid;gap:0;border:1px solid var(--line);background:var(--card);box-shadow:var(--e1)}
+.orow{display:grid;grid-template-columns:100px 1.3fr 2.2fr auto auto;gap:24px;align-items:center;padding:22px 28px;border-top:1px solid var(--line)}
+.orow:first-child{border-top:0}
+.orow .thumbs{display:flex}
+.orow .thumbs .img{width:56px;height:56px;margin-right:-12px;border:3px solid var(--card)}
+.orow .no b{font:500 24px/1 'Bodoni Moda',serif}
+.orow .no small{display:block;color:var(--ink2);margin-top:4px;font-size:14px}
+.orow .sum{color:var(--ink2);font-size:15.5px}
+.orow .amt{font-weight:700;font-size:18px;text-align:right;min-width:90px}
+
+/* ---- real-app additions: links, search box, empty states and the phone layout ---- */
+.ofil .chips{display:flex;flex-wrap:wrap;gap:10px}
+.ofil-search{width:260px}
+.ofil-search .in{width:100%}
+a.chipx{text-decoration:none}
+a.chipx:focus-visible,.orow:focus-visible{outline:2px solid var(--wine);outline-offset:3px}
+.orow{grid-template-columns:140px 1.3fr 2.2fr auto auto;text-decoration:none;color:inherit;transition:background .15s}
+.orow .thumbs .img{flex:none}
+.orow:hover{background:var(--linen)}
+.orow .no b{display:block}
+.showing{margin-top:22px}
+@media (max-width:1000px){
+  .orow{grid-template-columns:96px 1fr auto;grid-template-areas:"th no amt" "th sum st";gap:6px 20px;padding:20px 22px}
+  .orow .thumbs{grid-area:th}
+  .orow .no{grid-area:no}
+  .orow .sum{grid-area:sum}
+  .orow .st{grid-area:st;justify-self:end}
+  .orow .amt{grid-area:amt}
+}
+@media (max-width:560px){
+  .ofil{gap:10px}
+  .ofil-search{width:100%;order:3}
+  .ofil>span{display:none}
+  .orow{grid-template-columns:1fr auto;grid-template-areas:"no amt" "sum st" "th th";padding:18px 18px}
+  .orow .thumbs{margin-top:6px}
+  .orow .thumbs .img{width:44px;height:44px;margin-right:-10px}
+  .orow .amt{min-width:0}
+}

@@ -1,0 +1,102 @@
+.tag-line{background:transparent;color:var(--cocoa);border:1px solid var(--cocoa)}
+.head-actions{display:flex;gap:12px;align-items:center}
+.grid{display:grid;grid-template-columns:7fr 5fr;gap:32px;align-items:start;padding-bottom:88px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px;margin-top:22px}
+.field.full{grid-column:1 / -1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--caramel);background:transparent;color:var(--cocoa);font:600 14px/1 'Hanken Grotesk',sans-serif;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--cocoa);border-color:var(--cocoa);color:var(--paper)}
+.courses{margin:22px 0 0;padding:0;list-style:none;display:grid;gap:16px}
+.course{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:18px 18px 18px 14px}
+.course-top{display:flex;gap:12px;align-items:flex-end}
+.grip{display:grid;place-items:center;width:28px;height:44px;color:var(--ink2);cursor:grab}
+.course-top .grow{flex:1}
+.course-top .pick{width:150px}
+.icon-x{display:grid;place-items:center;width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ink2);cursor:pointer}
+.dishes{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0 42px;padding:0;list-style:none;align-items:center}
+.dchip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px 0 14px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+.dchip small{font-size:13px;font-weight:600;color:var(--ink2)}
+.dchip .np{display:inline-flex;align-items:center;gap:5px;font-weight:500}
+.dchip button{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer}
+.add-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:22px;padding-top:22px;border-top:1px solid var(--line)}
+.add-row .btn{margin-right:8px}
+.add-row .chip{min-height:40px;padding:0 14px}
+.add-row .lab2{font-size:14px;color:var(--ink2)}
+.preview{position:sticky;top:88px}
+.pv-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.pv-head h2{font-size:26px;font-weight:500}
+.menu-card{position:relative;background:var(--card);border:1px solid var(--caramel);outline:1px solid var(--line);outline-offset:-8px;padding:38px 38px 30px;margin-bottom:16px;box-shadow:var(--e2)}
+.mc-head{text-align:center}
+.mc-head .logo-slot{margin:0 auto 10px;width:48px;height:48px;color:var(--wine)}
+.mc-head h3{font-size:40px;font-weight:500}
+.mc-sub{font:italic 400 18px/1.3 'Bodoni Moda',serif;color:var(--ink2);margin-top:4px}
+.mc-courses{margin-top:20px}
+.mc-row{display:grid;grid-template-columns:92px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.mc-row dt{font:italic 400 19px/1.3 'Bodoni Moda',serif;color:var(--wine)}
+.mc-row dd span{display:block;font-size:15px}
+.mc-row dd em{display:block;font:italic 400 14px/1.5 'Bodoni Moda',serif;color:var(--ink2)}
+.pair{display:flex}
+.pair .img{width:46px;height:46px;border:2px solid var(--card);box-shadow:var(--e1)}
+.pair .img+.img{margin-left:-12px}
+.mc-foot{padding-top:16px;border-top:1px solid var(--line);text-align:center}
+.mc-price{font:500 36px/1 'Bodoni Moda',serif}
+.mc-per{margin-left:8px;font-size:13.5px;color:var(--ink2)}
+.pv-note{display:flex;gap:12px;align-items:center;margin-bottom:24px;font-size:13.5px;color:var(--ink2)}
+.pv-note .img{flex:none;width:44px;height:44px}
+.check h3{font-size:24px;font-weight:500}
+.check table{width:100%;border-collapse:collapse;margin-top:14px}
+.check td{padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+.check td:last-child{text-align:right;font-weight:600;white-space:nowrap}
+.check td small{display:block;color:var(--ink2);font-size:13.5px}
+.check tr.sum td{font-size:15px}
+.check tr.save td{color:var(--wine);font-weight:700}
+.note{margin-top:14px;font-size:13.5px;color:var(--ink2)}
+
+/* ---- the real builder: what the board did not draw, and fixes for drawing it inside the shared .form ---- */
+.form .fields .field,.form .course-top .field{margin-bottom:0}
+.form .fields .field label,.form .course-top .field label{margin-bottom:6px}
+.form .fields .field label .muted{font-weight:400}
+.course-top .field.pick{flex:none}
+.course-empty{padding:18px;border:1px dashed var(--caramel);border-radius:12px;color:var(--ink2);text-align:center}
+.grip{background:transparent;border:0;padding:0;touch-action:none;border-radius:8px}
+.grip:focus-visible,.icon-x:focus-visible,.dchip button:focus-visible,.dchip .sup:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.grip:active{cursor:grabbing}
+.course.dragging{box-shadow:var(--e3);background:var(--card);position:relative;z-index:2}
+.dchip .sup{width:auto;height:auto;min-height:32px;padding:0 8px;border-radius:8px;font:600 13px/1 'Hanken Grotesk',sans-serif;color:var(--ink2);text-decoration:underline dotted;text-underline-offset:4px;display:inline-flex;align-items:center}
+.dchip .sup:hover{background:var(--linen);color:var(--cocoa)}
+.dchip .dx{margin-left:0}
+.dchip .sup-in{width:96px;min-height:36px;padding:0 10px}
+.dchip .np{color:var(--ink2)}
+.ph-row{display:flex;gap:16px;align-items:flex-start}
+.ph-thumb{flex:none;width:96px;height:72px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--linen)}
+.ph-thumb .img{width:100%;height:100%}
+.ph-ctl{flex:1;min-width:0}
+.ph-ctl input[type=file]{padding:9px 12px}
+.mc-row dd em.lead{margin-bottom:2px}
+.mc-row dd .muted{font-size:14px}
+.del-row{margin-top:18px;text-align:right}
+/* the dish picker */
+.pk-list{max-height:min(52vh,420px);overflow:auto;margin:0 -4px;padding:0 4px}
+.pk-cat{border:0;margin:0 0 16px;padding:0}
+.pk-cat legend{font:italic 400 19px/1.3 'Bodoni Moda',serif;color:var(--wine);margin-bottom:4px;padding:0}
+.pk-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 8px;border-radius:10px;cursor:pointer}
+.pk-row:hover{background:var(--linen)}
+.pk-name{flex:1;min-width:0}
+.pk-row small{font-size:12.5px;color:var(--ink2);display:inline-flex;align-items:center;gap:4px}
+.pk-price{flex:none;font-weight:600;font-size:14.5px}
+@media (max-width:1100px){.grid{grid-template-columns:1fr}.preview{position:static}}
+@media (max-width:760px){
+  .fields{grid-template-columns:1fr}
+  .page-head{flex-wrap:wrap}
+  .head-actions{flex-wrap:wrap}
+  .course-top{flex-wrap:wrap}
+  .course-top .grow{flex:1 1 calc(100% - 100px)}
+  .course-top .pick{width:calc(100% - 56px)}
+  .dishes{margin-left:0}
+  .menu-card{padding:30px 22px 24px}
+  .mc-row{grid-template-columns:1fr auto;gap:6px 14px}
+  .mc-row dt{grid-column:1 / -1}
+  .ph-row{flex-direction:column}
+}
+.grid>div>.panel{margin-bottom:24px}
+.dchip .np{white-space:nowrap}

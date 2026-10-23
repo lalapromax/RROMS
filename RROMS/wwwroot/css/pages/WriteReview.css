@@ -1,0 +1,75 @@
+.rv{display:grid;grid-template-columns:8fr 4fr;gap:48px;align-items:start}
+.prog{display:flex;align-items:center;gap:14px;margin-bottom:34px;color:var(--ink2);font-size:15px}
+.prog i{flex:1;max-width:70px;border-top:2px solid var(--line)}
+.prog b{display:inline-flex;align-items:center;gap:10px;color:var(--cocoa);font-weight:600}
+.prog b em{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--cocoa);color:var(--paper);font:600 14px/1 'Hanken Grotesk',sans-serif;font-style:normal}
+.prog span em{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--caramel);font:600 14px/1 'Hanken Grotesk',sans-serif;font-style:normal;margin-right:10px}
+.prog span{display:inline-flex;align-items:center}
+.prog b.done em{background:var(--olive-deep)}
+.qrow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:20px 0;border-top:1px solid var(--line)}
+.qrow:first-of-type{border-top:0}
+.qrow b{font-size:19px;font-weight:600}
+.qrow small{display:block;color:var(--ink2);font-size:14.5px;margin-top:2px}
+.nps{display:grid;grid-template-columns:repeat(11,1fr);gap:8px}
+.nps span{display:grid;place-items:center;aspect-ratio:1;border-radius:50%;border:1px solid var(--caramel);font-weight:600}
+.nps span.on{background:var(--wine);border-color:var(--wine);color:var(--paper)}
+.nps-l{display:flex;justify-content:space-between;margin-top:8px;color:var(--ink2);font-size:14px}
+.h3{font:500 30px/1.1 'Bodoni Moda',serif;margin:44px 0 6px}
+.sub{color:var(--ink2);margin-bottom:16px}
+.photos{display:flex;gap:14px}
+.photo{display:grid;place-items:center;width:132px;height:132px;border-radius:8px;border:1.5px dashed var(--caramel);color:var(--ink2);text-align:center;font-size:14px}
+.photo.has{border:0;background:radial-gradient(ellipse at 40% 30%,#BE8F58,#6F4B26);color:var(--paper);position:relative}
+.visit .printed{padding:30px 30px 26px}
+.visit h3{font-size:28px;font-weight:500}
+.visit .img{width:100%;height:150px;margin-top:16px}
+.visit .thanks{margin-top:18px;font:italic 400 18px/1.4 'Bodoni Moda',serif;color:var(--ink2)}
+
+/* ---- real-app additions: clickable stars, 0-10 picker, photo slots, picking a visit, phone layout ---- */
+.star-pick{gap:0}
+.star-pick label{position:relative;display:grid;place-items:center;width:44px;height:44px;cursor:pointer;border-radius:8px}
+.star-pick input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.star-pick svg{fill:none;transition:transform .12s}
+.star-pick label:hover svg{transform:scale(1.08)}
+.star-pick label:has(input:focus-visible){outline:2px solid var(--wine);outline-offset:-2px}
+.star-pick:has(label:nth-child(1) input:checked) label:nth-child(-n+1) svg,
+.star-pick:has(label:nth-child(2) input:checked) label:nth-child(-n+2) svg,
+.star-pick:has(label:nth-child(3) input:checked) label:nth-child(-n+3) svg,
+.star-pick:has(label:nth-child(4) input:checked) label:nth-child(-n+4) svg,
+.star-pick:has(label:nth-child(5) input:checked) label:nth-child(-n+5) svg,
+.star-pick:has(label:nth-child(1):hover) label:nth-child(-n+1) svg,
+.star-pick:has(label:nth-child(2):hover) label:nth-child(-n+2) svg,
+.star-pick:has(label:nth-child(3):hover) label:nth-child(-n+3) svg,
+.star-pick:has(label:nth-child(4):hover) label:nth-child(-n+4) svg,
+.star-pick:has(label:nth-child(5):hover) label:nth-child(-n+5) svg{fill:currentColor}
+.nps label{display:contents;cursor:pointer}
+.nps input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.nps span{cursor:pointer;min-height:40px}
+.nps input:checked+span{background:var(--wine);border-color:var(--wine);color:var(--paper)}
+.nps input:focus-visible+span{outline:2px solid var(--wine);outline-offset:3px}
+.photos{flex-wrap:wrap}
+.photo{position:relative;overflow:hidden;cursor:pointer}
+.photo[hidden]{display:none}
+.photo.has{background:var(--linen);border:0}
+.photo.has img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-keep{position:absolute;left:6px;bottom:6px;display:flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:rgba(255,252,243,.94);color:var(--cocoa);font-size:13px;font-weight:600;cursor:pointer}
+.photo-keep input{width:18px;height:18px;accent-color:var(--wine)}
+.photo-rm{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:50%;background:rgba(68,45,28,.88);color:var(--paper);font:400 20px/1 'Hanken Grotesk',sans-serif;cursor:pointer}
+.photo-rm:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
+.photo:has(+input:focus-visible),label.photo:focus-within{outline:2px solid var(--wine);outline-offset:3px}
+.form-acts{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px}
+.pick-list{list-style:none;padding:0;margin:0;display:grid;gap:12px;max-width:640px}
+.pick-opt{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 22px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:var(--e1);color:inherit;text-decoration:none;font-weight:600}
+.pick-opt:hover{background:var(--linen)}
+.pick-opt:focus-visible{outline:2px solid var(--wine);outline-offset:3px}
+@media (max-width:1000px){
+  .rv{grid-template-columns:1fr;gap:36px}
+}
+@media (max-width:560px){
+  .qrow{grid-template-columns:1fr}
+  .qrow .stars-in{justify-self:start;margin-left:-8px}
+  .nps{grid-template-columns:repeat(6,1fr)}
+  .photos{gap:10px}
+  .photo{width:calc((100% - 20px)/3);height:auto;aspect-ratio:1}
+  .form-acts .btn{width:100%}
+  .h3{font-size:26px;margin-top:36px}
+}

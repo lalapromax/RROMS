@@ -1,0 +1,46 @@
+.tiercol{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:start}
+.tier{padding:0;overflow:hidden}
+.tier-h{padding:22px 26px;color:var(--cocoa)}
+.tier-h h2{font-size:34px;font-weight:500}
+.tier-h p{font-size:14px;margin-top:2px}
+.perk{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:12px 26px;border-top:1px solid var(--line)}
+.perk .i{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--linen);color:var(--olive-deep)}
+.perk b{font-weight:600}.perk small{display:block;color:var(--ink2);font-size:13px}
+.perk .b{display:flex;gap:6px}
+.ib{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);color:var(--cocoa);background:transparent}
+.add-p{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 26px 22px;min-height:44px;border-radius:999px;border:1px dashed var(--caramel);font-weight:600;color:var(--cocoa)}
+
+/* ---- the real Rewards admin: tier colours come from the tier, perks are buttons, empty and phone states ---- */
+.tier{--tier:#84592B}
+.tier-h{background:var(--linen);background:color-mix(in srgb,var(--tier) 26%,var(--paper));border-bottom:3px solid var(--tier)}
+.tier-h .sp-b{align-items:center;gap:12px}
+.tier-h .btn{background:var(--paper)}
+.tier-n{margin-top:6px;font-size:13.5px;color:var(--ink2)}
+.perk b .st{margin-left:8px;vertical-align:1px}
+.perk .perk-d{margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.perk.is-off b,.perk.is-off .i{opacity:.55}
+.perk-inherit .i{background:transparent;border:1px dashed var(--caramel)}
+.perk-inherit small{color:var(--ink2)}
+button.ib{cursor:pointer;font:inherit}
+button.ib:hover{background:var(--linen)}
+button.ib:focus-visible,button.add-p:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+button.add-p{width:calc(100% - 52px);background:transparent;font:600 15px/1 'Hanken Grotesk',sans-serif;cursor:pointer}
+button.add-p:hover{background:var(--linen)}
+.tier-none{margin:0;padding:16px 26px;color:var(--ink2);font-size:14.5px;border-top:1px solid var(--line)}
+.tier-del{width:auto;display:block;margin:-8px 26px 18px}
+.in-color{width:96px;height:48px;padding:4px;cursor:pointer}
+.claim-what{margin-bottom:14px;font-weight:600}
+.filter .chipx small{font-size:12.5px;opacity:.8}
+.t .who small{display:block;margin-top:2px;color:var(--ink2);font-size:13px}
+.c-acts .row-acts{display:flex;gap:8px;justify-content:flex-end}
+@media (pointer:coarse){.ib{width:44px;height:44px}}
+@media (max-width:1100px){.tiercol{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){
+  .tiercol{grid-template-columns:1fr}
+  .tier-h{padding:18px 20px}
+  .perk{padding:12px 20px}
+  button.add-p{margin:14px 20px 20px;width:calc(100% - 40px)}
+  .tier-none{padding:14px 20px}
+  .tier-del{margin:-8px 20px 16px}
+}
+a.chipx{text-decoration:none}

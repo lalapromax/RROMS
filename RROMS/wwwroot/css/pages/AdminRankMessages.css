@@ -1,0 +1,48 @@
+.rm{display:grid;grid-template-columns:7fr 5fr;gap:28px;align-items:start}
+.band{display:grid;grid-template-columns:150px 1fr;gap:20px;padding:20px 0;border-top:1px solid var(--line)}
+.band:first-of-type{border-top:0}
+.band .l b{display:block;font:500 24px/1.1 'Bodoni Moda',serif}
+.band .l small{color:var(--ink2);font-size:13.5px}
+.band .cut{display:flex;align-items:center;gap:8px;margin-top:10px}
+.band .cut .in{width:78px;min-height:40px}
+.band textarea.in{width:100%;min-height:78px}
+.rule-row{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.rule-row:first-of-type{border-top:0}
+.rule-row b{display:block}
+.rule-row small{color:var(--ink2);font-size:13.5px}
+.prev{background:var(--cocoa);color:var(--batter);padding:28px;border-radius:12px;box-shadow:var(--e2)}
+.prev .card2{background:var(--paper);color:var(--cocoa);padding:24px;transform:rotate(-.8deg);box-shadow:var(--e3)}
+.prev .big{font:500 64px/1 'Bodoni Moda',serif;color:var(--wine)}
+.prev .msg{margin-top:10px;font:italic 400 20px/1.4 'Bodoni Moda',serif}
+.tl{display:grid;grid-template-columns:90px 1fr 1fr 1fr;gap:12px;align-items:start;padding:14px 0;border-top:1px solid var(--line)}
+.tl b{font:500 22px/1.1 'Bodoni Moda',serif}
+.tl textarea.in{min-height:76px;width:100%;font-size:14px}
+.tl-h{font-weight:600;font-size:13.5px;color:var(--ink2)}
+
+/* ---- the real Ranking and messages tab: one form, live label and preview, phone layout ---- */
+.rm-h{font-size:32px;font-weight:500}
+.rm-h2{font-size:26px;font-weight:500}
+.rm>*{min-width:0}
+.bands{margin-top:14px}
+.band .cut label{font-size:14px}
+.band textarea.in,.tl textarea.in{resize:vertical;font-family:'Hanken Grotesk',sans-serif;line-height:1.45}
+.tl-head{border-top:0;padding-bottom:0;margin-top:10px}
+.tl b{padding-top:10px}
+.tl>div{min-width:0}
+.rule-row .lock-tag{flex:none;margin-top:2px}
+.prev-t{font-size:14px;margin-bottom:12px}
+.prev-n{margin-top:16px;font-size:13px;opacity:.85}
+.rm-acts{justify-content:flex-start;gap:12px}
+.rm-acts form{display:inline-flex;margin:0}
+@media (max-width:1100px){.rm{grid-template-columns:1fr}}
+@media (max-width:700px){
+  .rm-h{font-size:28px}
+  .band{grid-template-columns:1fr;gap:12px}
+  .band .cut{margin-top:6px}
+  .tl{grid-template-columns:1fr;gap:6px}
+  .tl-head{display:none}
+  .tl b{padding-top:0}
+  .tl>div{margin-top:8px}
+  .tl .sr-only{position:static;width:auto;height:auto;margin:0 0 4px;clip:auto;display:block;overflow:visible;white-space:normal;font-weight:600;font-size:13.5px;color:var(--ink2)}
+  .prev{padding:22px}
+}
