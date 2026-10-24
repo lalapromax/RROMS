@@ -1,0 +1,81 @@
+/* Brasserie La Mélancolie design system. Generated from the approved design (Design canvas v10). Tokens are CSS variables on :root. */
+body{margin:0;background:var(--paper);color:var(--cocoa);font:400 17px/1.6 'Hanken Grotesk',system-ui,sans-serif}
+
+/* status */
+.st{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0 12px;border-radius:999px;border:1px solid var(--cocoa);font:600 12.5px/1 'Hanken Grotesk',sans-serif;white-space:nowrap;color:var(--cocoa);background:transparent}
+.st-confirmed,.st-paid,.st-ready,.st-active,.st-published{background:var(--olive-deep);border-color:var(--olive-deep);color:var(--paper)}
+.st-seated,.st-preparing,.st-served{background:var(--cocoa);border-color:var(--cocoa);color:var(--paper)}
+.st-completed{background:var(--linen);border-color:var(--line);color:var(--cocoa)}
+.st-pending,.st-placed,.st-draft,.st-waiting{border-color:var(--caramel);color:var(--cocoa);background:transparent}
+.st-cancelled,.st-unpaid,.st-declined,.st-terminated{border-color:var(--wine);color:var(--wine)}
+.st-noshow{background:var(--wine);border-color:var(--wine);color:var(--paper)}
+/* forms */
+.form .field{margin-bottom:16px}
+.form .field label,.form .field .lab{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.form .in{width:100%}
+.form textarea.in{min-height:84px;resize:vertical}
+.form select.in{width:100%;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23442D1C' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center}
+.form .hint{margin-top:6px;font-size:13.5px;color:var(--ink2)}
+.f-row{display:grid;gap:16px}
+.f-2{grid-template-columns:1fr 1fr}.f-3{grid-template-columns:1fr 1fr 1fr}.f-4{grid-template-columns:repeat(4,1fr)}
+.in{min-height:44px;padding:9px 14px;border-radius:10px;border:1px solid var(--caramel);background:#fff;font:400 15px/1.4 'Hanken Grotesk',sans-serif;color:var(--cocoa)}
+.in[disabled]{background:var(--linen);border-color:var(--line);color:var(--ink2)}
+.in.err{border-color:var(--wine);box-shadow:0 0 0 3px rgba(116,48,20,.14)}
+.err-msg{margin-top:6px;font-size:13.5px;color:var(--wine);font-weight:600}
+.ck{display:flex;align-items:center;gap:10px;min-height:32px;font-size:15px}
+.ck i{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:5px;border:1.5px solid var(--caramel);background:#fff;color:var(--paper)}
+.ck i.on{background:var(--cocoa);border-color:var(--cocoa)}
+.ck i.rad{border-radius:50%}
+.ck i.rad.on{background:#fff;border-color:var(--cocoa);position:relative}
+.ck i.rad.on::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--wine)}
+.ck-row{display:flex;flex-wrap:wrap;gap:6px 24px}
+/* tabs */
+.tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.tabs a{display:inline-block;padding:12px 0;color:var(--ink2);font-weight:600;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a[aria-current]{color:var(--cocoa);border-bottom-color:var(--wine)}
+.tabs small{font-weight:500;margin-left:6px;color:var(--ink2)}
+/* filter */
+.filter{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:16px 20px;background:var(--linen);border:1px solid var(--line);border-radius:12px;margin-bottom:24px}
+.filter .field label{display:block;font-weight:600;font-size:13.5px;margin-bottom:5px}
+.filter .sp{flex:1}
+/* panels, tables */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:26px 28px;box-shadow:var(--e1)}
+.card+.card{margin-top:24px}
+.card h2{font-size:30px;font-weight:500}
+.card h3{font-size:24px;font-weight:500}
+.card-sub{margin-top:4px;color:var(--ink2);font-size:14.5px}
+.head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.t{width:100%;border-collapse:collapse;margin-top:6px}
+.t th{text-align:left;font-size:13.5px;font-weight:600;color:var(--ink2);padding:8px 12px 8px 0;border-bottom:1px solid var(--caramel);white-space:nowrap}
+.t td{padding:13px 12px 13px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.t tr:last-child td{border-bottom:0}
+.t th:last-child,.t td:last-child{padding-right:0}
+.t .n{text-align:right}
+.t .acts{display:flex;gap:8px;justify-content:flex-end}
+.t b{font-weight:600}
+.t small{display:block;color:var(--ink2);font-size:13.5px}
+.btn-sm2{min-height:36px;padding:0 14px;font-size:13.5px}
+.link{color:var(--wine);font-weight:600;text-underline-offset:4px}
+.muted{color:var(--ink2)}
+.sp-b{display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* modal */
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.modal-head h2{font-size:34px;font-weight:500}
+.modal-foot{display:flex;justify-content:flex-end;gap:12px;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.x-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);color:var(--cocoa);background:transparent}
+/* empty + notes */
+.empty{padding:36px 20px;text-align:center;color:var(--ink2)}
+.empty b{display:block;font:500 24px/1.2 'Bodoni Moda',serif;color:var(--cocoa);margin-bottom:6px}
+.note-box{padding:16px 20px;background:var(--linen);border-radius:10px;font-size:14.5px}
+.toast{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:10px;background:var(--olive-deep);color:var(--paper);font-weight:600;font-size:14.5px;box-shadow:var(--e2)}
+.sample{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;background:var(--linen);font:600 12.5px/1 'Hanken Grotesk',sans-serif;color:var(--cocoa)}
+.avatar{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;background:var(--batter);color:var(--cocoa);font:600 15px/1 'Hanken Grotesk',sans-serif}
+
+.page-top{padding-top:56px;padding-bottom:36px;display:flex;align-items:flex-end;justify-content:space-between;gap:32px}
+.page-top h1{font-size:88px;font-weight:500;letter-spacing:-.025em;line-height:1}
+.page-top .lead-it{margin-top:16px;font:italic 400 24px/1.35 'Bodoni Moda',serif;color:var(--ink2);max-width:640px}
+.in{min-height:48px;font-size:16px}
+.btn-sm{min-height:44px}
+.main{padding-bottom:104px}
+.card{border-radius:4px}
+.card h2{font-size:36px}

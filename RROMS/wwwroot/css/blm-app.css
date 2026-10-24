@@ -1,3 +1,5 @@
+/* Brasserie La Mélancolie design system. Generated from the approved design (Design canvas v10). Tokens are CSS variables on :root. */
+
 body{margin:0;background:var(--paper);color:var(--cocoa);font:400 15px/1.55 'Hanken Grotesk',system-ui,sans-serif}
 .btn{min-height:44px;padding:0 22px;font-size:14.5px;box-shadow:none}
 .btn-wine{box-shadow:none}
@@ -21,7 +23,6 @@ body{margin:0;background:var(--paper);color:var(--cocoa);font:400 15px/1.55 'Han
 .sec{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin:0 0 18px}
 .sec h2{font-size:34px;font-weight:500}
 .sec span{color:var(--ink2)}
-
 /* today */
 .today{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:24px;align-items:stretch}
 .hero-kpi{grid-column:span 4;position:relative;background:var(--cocoa);color:var(--batter);border-radius:12px;padding:30px 32px 28px;box-shadow:var(--e2);display:flex;flex-direction:column;justify-content:space-between;min-height:0}
@@ -48,7 +49,6 @@ body{margin:0;background:var(--paper);color:var(--cocoa);font:400 15px/1.55 'Han
 .legend i{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--caramel)}
 .next-line{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);font-size:14px;color:var(--ink2)}
 .next-line b{color:var(--cocoa);font-weight:600}
-
 /* period bar */
 .period{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:56px 0 24px;padding:18px 24px;background:var(--linen);border:1px solid var(--line);border-radius:12px}
 .field label{display:block;font-weight:600;font-size:13.5px;margin-bottom:5px}
@@ -60,7 +60,6 @@ select.in{width:164px}
 .period .spacer{flex:1}
 .dl{display:flex;gap:8px;align-items:flex-end}
 .dl .btn{min-height:44px;padding:0 16px}
-
 /* range */
 .rkpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--e1);margin-bottom:24px}
 .rk{padding:22px 28px}
@@ -80,7 +79,40 @@ select.in{width:164px}
 .inline-stat{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;padding-top:14px;border-top:1px solid var(--line)}
 .col{display:flex;flex-direction:column}
 .inline-stat b{font:600 22px/1 'Hanken Grotesk',sans-serif}
-
+/* feedback */
+.fb{margin-bottom:24px}
+.fb-grid{display:grid;grid-template-columns:4fr 4fr 4fr;gap:44px;margin-top:20px}
+.fb-grid>div+div{border-left:1px solid var(--line);padding-left:44px}
+.fb h4{font:600 15px/1.3 'Hanken Grotesk',sans-serif;letter-spacing:0;margin-bottom:10px}
+.score{display:flex;align-items:baseline;gap:10px}
+.score b{font:600 64px/1 'Hanken Grotesk',sans-serif;letter-spacing:-.02em}
+.score span{color:var(--ink2)}
+.stars{display:inline-flex;gap:2px;color:var(--wine);vertical-align:middle}
+.dist{margin-top:14px}
+.dist .mrow{grid-template-columns:70px 1fr 40px;gap:12px;align-items:center;padding:5px 0}
+.dist .mrow .meter{grid-column:auto;order:0}
+.dist .mrow span{display:inline-flex;align-items:center;gap:6px;color:var(--ink2)}
+.dist .mrow b{text-align:right}
+.metric .mrow{padding:7px 0}
+.nps{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.nps b{font:600 40px/1 'Hanken Grotesk',sans-serif;letter-spacing:-.015em}
+.nps p{margin-top:6px;color:var(--ink2);font-size:14px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 6px 0 14px;border-radius:999px;border:1px solid var(--caramel);font-size:13.5px}
+.pill b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--cocoa);color:var(--paper);font-size:12.5px;font-weight:600}
+.reviews-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:40px;padding-top:26px;border-top:1px solid var(--line)}
+.reviews-head h3{font-size:26px;font-weight:500}
+.switch{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:14px;cursor:pointer;min-height:44px}
+.switch input{position:absolute;opacity:0}
+.switch .tr{position:relative;width:44px;height:26px;border-radius:999px;background:rgba(132,89,43,.35)}
+.switch .tr::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.reviews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:16px}
+.review{padding:20px 22px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.review .who{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-weight:600}
+.review .who span{font-weight:400;color:var(--ink2)}
+.review p{margin-top:8px}
+.review .pills{margin-top:12px}
+.review .pill{padding:0 12px;min-height:28px;font-size:13px}
 /* tables */
 .row4{display:grid;grid-template-columns:7fr 5fr;gap:24px;margin-bottom:72px}
 table{width:100%;border-collapse:collapse;margin-top:10px}
@@ -206,6 +238,26 @@ div[style*="height"]>.img{width:100%;height:100%}
 .switch .tr{flex:none}
 .lock-tag{display:inline-flex;align-items:center;gap:6px;color:var(--ink2);font-size:13.5px}
 
+/* ---- staff and admin bars: the boards' bar, plus the parts that have to work ---- */
+.app-bar{z-index:60}
+.app-bar .burger{display:none;color:inherit;border-color:rgba(232,209,167,.5)}
+.app-bar .nav-main{display:flex;gap:26px;align-items:center;flex:1;margin-left:12px}
+.app-bar .nav-main>a,.app-bar .nav-main .more>button{color:var(--batter);text-decoration:none;font-weight:500;font-size:15px;padding:10px 0;border:0;border-bottom:1px solid transparent;background:none;font-family:inherit;cursor:pointer}
+.app-bar .nav-main>a:hover,.app-bar .nav-main>a[aria-current],.app-bar .nav-main .more>button:hover,.app-bar .nav-main .more>button[aria-current]{color:var(--paper);border-bottom-color:var(--paper)}
+.app-bar .badge{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--wine);color:var(--paper);font:700 12px/20px 'Hanken Grotesk',sans-serif}
+.app-bar.staff .badge{background:var(--batter);color:var(--cocoa)}
+.more{position:relative}
+.more>button{display:inline-flex;align-items:center;gap:6px}
+.more .menu-pop{top:calc(100% + 12px);right:auto;left:-14px}
+.app-bar .acct .pop{right:0}
+@media (max-width:1280px){.app-bar{gap:18px;padding:0 20px}.app-bar .nav-main{gap:16px;margin-left:4px}.app-bar .seal-name{font-size:17px}}
+@media (max-width:1120px){
+  .app-bar .nav-main{display:none}
+  .app-bar .burger{display:grid}
+  .app-bar .role-pill{margin-left:auto}
+}
+@media (max-width:640px){.app-bar .seal-name{display:none}.app-bar .role-pill{display:none}.app-bar .acct{margin-left:auto}}
+
 /* ---- staff/admin pages collapse the way the guest pages do ---- */
 @media (max-width:1100px){
   .today{grid-template-columns:1fr 1fr}
@@ -234,6 +286,14 @@ div[style*="height"]>.img{width:100%;height:100%}
   .period{margin-top:36px}
   .sec h2{font-size:28px}
 }
+
+/* ---- shared pages (receipts) drawn inside the staff and admin bars ---- */
+.crumb{font-size:15px;color:var(--ink2)}
+.crumb a{color:var(--ink2);text-underline-offset:4px}
+.printed{position:relative;background:var(--card);box-shadow:var(--e2);outline:1px solid var(--line);outline-offset:-9px}
+.stage .row-acts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+
 /* ---- Staff reservations (and every table that becomes cards on a phone) ---- */
 .inl{display:inline-flex;margin:0}
 select.in.tbl-pick{width:98px;min-height:36px;padding:0 8px}
@@ -289,6 +349,20 @@ select.in.tbl-pick{width:98px;min-height:36px;padding:0 8px}
 @media (max-width:640px){.no-row{align-items:flex-start;flex-direction:column}.no-qty{width:100%;justify-content:flex-start}.no-qty label{align-items:flex-start}}
 
 
+/* ---- Staff billing ---- */
+.bill-row{text-decoration:none;color:inherit;border-top:1px solid var(--line)}
+.bill-row:hover{background:var(--linen)}
+.bill-row[aria-current]{box-shadow:inset 3px 0 0 var(--wine)}
+.bill-find{padding:18px 20px 22px;border-top:1px solid var(--line)}
+.bill-find label{display:block;font-weight:600;font-size:13.5px;margin-bottom:6px}
+.bill-kv{grid-template-columns:1fr auto;margin-top:12px;border-top:1px solid var(--line);padding-top:14px}
+.bill-kv .due-l{font-weight:700;color:var(--cocoa);font-size:18px}
+.bill-kv .due-v{font-size:24px}
+.pay-pick{border:0;padding:0;margin:20px 0 0}
+.pay-pick legend{font-weight:600;margin-bottom:10px;padding:0}
+.pay-pick .chips{display:flex;gap:10px;flex-wrap:wrap}
+
+
 /* ---- selectable chips in the staff and admin pages (radio and checkbox chips) ---- */
 .chipx{position:relative;min-height:44px;cursor:pointer}
 .chipx input{position:absolute;opacity:0;width:100%;height:100%;inset:0;margin:0;cursor:pointer}
@@ -301,6 +375,20 @@ select.in.tbl-pick{width:98px;min-height:36px;padding:0 8px}
 .grid2>*,.board>*,.no-grid>*{min-width:0}
 
 
+/* ---- Staff dashboard: the floor ---- */
+svg.floor{display:block;width:100%;height:auto;max-width:420px;margin:6px auto 0}
+.fl-area{font:italic 400 15px 'Bodoni Moda',serif;fill:var(--ink2)}
+.fl-t rect{stroke:var(--caramel);stroke-width:1.5}
+.fl-t{cursor:pointer}
+.fl-n{font:600 17px 'Hanken Grotesk',sans-serif}
+.fl-c{font:400 12px 'Hanken Grotesk',sans-serif}
+.fl-free rect{fill:var(--linen)}
+.fl-free .fl-n,.fl-free .fl-c{fill:var(--cocoa)}
+.fl-booked rect{fill:var(--wine);stroke:var(--wine)}
+.fl-seated rect{fill:var(--olive-deep);stroke:var(--olive-deep)}
+.fl-booked text,.fl-seated text{fill:var(--paper)}
+a:focus-visible .fl-t rect,.fl-t:hover rect{stroke:var(--cocoa);stroke-width:3}
+
 
 /* ---- selection controls inside .form .field keep their own look (the form rule makes every label a bold block) ---- */
 .form .field label.ckb{display:flex;font-weight:400;font-size:15px;margin-bottom:0}
@@ -310,6 +398,21 @@ select.in.tbl-pick{width:98px;min-height:36px;padding:0 8px}
 /* a modal's fields never touch the dialog's edge on a phone */
 .modal-body .f-row{margin-bottom:0}
 @media (max-width:760px){.f-row.f-2{grid-template-columns:1fr}}
+
+
+/* ---- Set menus: the cards (staff and admin) ---- */
+.sm-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;align-items:stretch}
+.sm-card{padding:0;overflow:hidden;display:flex;flex-direction:column;margin:0}
+.sm-pic{height:170px;flex:none;background:var(--linen)}
+.sm-pic .img{width:100%;height:100%}
+.sm-body{padding:22px 24px 24px;display:flex;flex-direction:column;flex:1}
+.sm-body h3{font-size:28px;font-weight:500;line-height:1.1}
+.sm-tag{margin-top:6px}
+.sm-when{margin-top:4px;font-size:14px}
+.sm-foot{margin-top:auto;padding-top:16px}
+.sm-price{font-size:22px}
+@media (max-width:1180px){.sm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.sm-grid{grid-template-columns:1fr}}
 
 
 /* ---- Admin: settings ---- */
@@ -349,13 +452,72 @@ select.in.tbl-pick{width:98px;min-height:36px;padding:0 8px}
 .invite-row .in{flex:1;min-width:0;width:100%}
 @media (max-width:1180px){.add-form{grid-template-columns:1fr 1fr}.add-form .btn{grid-column:1/-1;justify-self:start}}
 @media (max-width:640px){.add-form{grid-template-columns:1fr}.fixed{padding:24px 22px 4px}.invite-row{flex-direction:column;align-items:stretch}.invite-row .in{flex:none}}
+
+/* ---- Admin: small charts (drawn by charts.js) ---- */
+.chart{position:relative;margin:0}
+.chart-plot svg{display:block;width:100%;height:auto;overflow:visible}
+.ch-grid{stroke:rgba(132,89,43,.22);stroke-width:1}
+.ch-axis{stroke:rgba(132,89,43,.5);stroke-width:1}
+.ch-tick{font:400 12px 'Hanken Grotesk',sans-serif;fill:var(--ink2)}
+.ch-val{font:600 13px 'Hanken Grotesk',sans-serif;fill:var(--cocoa)}
+.ch-line{stroke:var(--wine);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ch-area{fill:rgba(116,48,20,.10)}
+.ch-bar{fill:var(--wine)}
+.ch-dot{fill:var(--wine);stroke:var(--card);stroke-width:2}
+.ch-cross{stroke:rgba(68,45,28,.4);stroke-width:1}
+.ch-hit{touch-action:pan-y}
+.ch-tip{position:absolute;z-index:3;pointer-events:none;display:flex;gap:14px;align-items:baseline;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:var(--e3);font-size:13.5px;white-space:nowrap}
+.ch-tip b{font-weight:600}
+.ch-tip strong{font-weight:600}
+.spark .ch-line{stroke:var(--batter)}
+.spark .ch-dot{fill:var(--paper);stroke:var(--cocoa)}
+.chart-empty{margin:24px 0;color:var(--ink2)}
+.chart-table{display:none;margin-top:10px}
+.show-table .chart{display:none}
+.show-table .chart-table{display:block}
+button.view-table{background:none;border:0;padding:0;font-family:inherit;cursor:pointer;text-decoration:underline}
+.fl-t circle{stroke:var(--caramel);stroke-width:1.5}
+.fl-free circle{fill:var(--linen)}
+.fl-booked circle{fill:var(--wine);stroke:var(--wine)}
+.fl-seated circle{fill:var(--olive-deep);stroke:var(--olive-deep)}
+.floor-static .fl-t{cursor:default}
+.floor-static .fl-t:hover rect,.floor-static .fl-t:hover circle{stroke-width:1.5}
+.mrow .pct{font-weight:400;color:var(--ink2)}
+.kpi .delta.down{color:var(--wine)}
+.t-scroll.tall{max-height:340px;overflow:auto}
+.period .dl{display:flex;gap:8px;flex-wrap:wrap}
+form.period .chip{text-decoration:none;display:inline-flex;align-items:center}
+.reviews-head form{margin:0}
+.period input[type=date].in{width:160px}
+.period .dl-group{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-left:auto}
+@media (max-width:1100px){.row4{grid-template-columns:1fr}.period .dl-group{margin-left:0;width:100%}}
+@media (max-width:640px){.period input[type=date].in{width:100%}.period .field{flex:1 1 140px}}
+.chip{white-space:nowrap}
+.quick{flex-wrap:wrap}
+
+/* ---- Admin: guest reviews ---- */
+.rk-sub{margin-top:6px;color:var(--ink2)}
+.filter .swx{margin-bottom:6px;font-weight:600}
+.rv-tags{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.rphotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.rphotos img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
+.reply-box{margin-top:14px;padding:14px 18px;background:var(--linen);border-left:3px solid var(--wine);border-radius:0 8px 8px 0}
+.reply-box b{font-size:13.5px}
+.reply-box p{font:italic 400 16px/1.45 'Bodoni Moda',serif;margin-top:4px}
+.reply-edit{margin-top:14px}
+.reply-edit summary{cursor:pointer;display:inline-block;min-height:32px}
+.reply-box+.reply-edit{margin-top:10px}
+.pager{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:8px}
+
 /* a switch with words beside it: keep them apart */
 .form .swx{gap:12px}
 
 /* a round choice shows its dot only (the tick is for square boxes) */
 .ckb input[type=radio]+i svg{display:none}
 
-/* ---- forms: stacked columns on a phone ----*/
+/* ---- forms: stacked columns on a phone ----
+   blm.css collapses .f-3 on phones but this file declares it again afterwards, so the collapse is repeated here.
+   A stacked row also drops its row gap, otherwise the field's own bottom margin is added twice. */
 @media (max-width:760px){.f-row{row-gap:0}.f-row.f-4{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.f-row.f-3,.f-row.f-4{grid-template-columns:1fr}}
 

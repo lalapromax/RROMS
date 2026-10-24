@@ -1,0 +1,21 @@
+/* Brasserie La Mélancolie design system. Generated from the approved design (Design canvas v10). Tokens are CSS variables on :root. */
+
+.main{padding-top:0}
+.crumb{font-size:15px;color:var(--ink2)}
+.crumb a{color:var(--ink2);text-underline-offset:4px}
+.page-top h1{font-size:76px}
+.chipx{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--caramel);background:transparent;color:var(--cocoa);font:500 15px/1 'Hanken Grotesk',sans-serif;cursor:pointer}
+.chipx.on{background:var(--cocoa);border-color:var(--cocoa);color:var(--paper)}
+.chipx.warn.on{background:var(--wine);border-color:var(--wine)}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.g-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:52px;border-radius:999px;border:1px solid var(--caramel);background:#fff;color:var(--cocoa);font:600 15.5px/1 'Hanken Grotesk',sans-serif;text-decoration:none}
+.g-btn b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--cocoa);color:var(--paper);font:700 14px/1 'Hanken Grotesk',sans-serif}
+.or{display:flex;align-items:center;gap:16px;margin:22px 0;color:var(--ink2);font-size:14px}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.printed{position:relative;background:var(--card);box-shadow:var(--e2);outline:1px solid var(--line);outline-offset:-9px}
+.side-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:26px 28px;box-shadow:var(--e1)}
+.side-card h3{font-size:26px;font-weight:500}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin-top:14px;font-size:15.5px}
+.kv dt{color:var(--ink2)}
+.kv dd{margin:0;text-align:right;font-weight:600}
+.stars-in{display:inline-flex;gap:6px;color:var(--wine)}
