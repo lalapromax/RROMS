@@ -1,137 +1,399 @@
 @page
 @model RROMS.Pages.Admin.VenueModel
+@using RROMS.Presentation
 @{
-    ViewData["Title"] = "Dining Areas & Tables";
+    ViewData["Title"] = "Tables and floor plan";
+    var tab = Model.Tab ?? "plan";
+    var hasAreas = Model.DiningAreas.Any();
+    var tableCount = Model.Tables.Count;
+    var firstArea = Model.Area ?? Model.DiningAreas.Select(a => (int?)a.Id).FirstOrDefault() ?? 0;
+
+    // Table data for the floor plan's script (wwwroot/js/floor-plan.js). Field names are lowercase on purpose.
+    // Switched-off tables ARE included (shown muted): the server's collision check counts every table in an area,
+    // so hiding them would leave the admin unable to see why a square is "already taken".
+    var floorPlanTables = Model.Tables.Select(t => new
+    {
+        id = t.Id,
+        tableNumber = t.TableNumber,
+        capacity = t.Capacity,
+        diningAreaId = t.DiningAreaId,
+        positionX = t.PositionX,
+        positionY = t.PositionY,
+        isActive = t.IsActive
+    });
+    var tablesPerArea = Model.Tables.GroupBy(t => t.DiningAreaId).ToDictionary(g => g.Key, g => g.Count());
 }
-<h1 class="h3 mb-4">Dining Areas &amp; Tables</h1>
 
-<ul class="nav nav-tabs mb-3">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#areasTab">Dining Areas</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tablesTab">Tables</button></li>
-</ul>
-
-<div class="tab-content">
-    <div class="tab-pane fade show active" id="areasTab">
-        <div class="d-flex justify-content-end mb-2">
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAreaModal"><i class="bi bi-plus-lg"></i> Add dining area</button>
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Tables and floor plan</h1>
+            <p>See who is where right now, or switch to Edit layout and drag tables into place.</p>
         </div>
-        <div class="rroms-card p-2">
-            <table class="table rroms-table mb-0 align-middle">
-                <thead><tr><th>Name</th><th>Description</th><th>Tables</th><th>Active</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var a in Model.DiningAreas)
-                    {
-                        <tr>
-                            <td>@a.Name</td>
-                            <td class="small text-muted-warm">@a.Description</td>
-                            <td>@Model.Tables.Count(t => t.DiningAreaId == a.Id)</td>
-                            <td>@(a.IsActive ? "Yes" : "No")</td>
-                            <td class="text-nowrap">
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editAreaModal"
-                                        data-edit-modal="editAreaModal" data-fields="id,name,description,isActive"
-                                        data-id="@a.Id" data-name="@a.Name" data-description="@a.Description" data-isactive="@a.IsActive.ToString().ToLower()">Edit</button>
-                                <form method="post" asp-page-handler="DeleteArea" asp-route-id="@a.Id" class="d-inline" onsubmit="return confirm('Delete this dining area?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="row-acts">
+            @if (tab == "areas")
+            {
+                <button type="button" class="btn btn-wine" data-dialog-open="areaDlg" data-fields="id,name,description,imageurl,active" data-title="Add a dining area" data-id="0" data-active="true">Add a dining area</button>
+            }
+            else if (hasAreas)
+            {
+                <button type="button" class="btn btn-wine" data-dialog-open="tableDlg" data-fields="id,number,area,seats,active" data-title="Add a table" data-id="0" data-area="@firstArea" data-seats="2" data-active="true">Add a table</button>
+            }
         </div>
     </div>
 
-    <div class="tab-pane fade" id="tablesTab">
-        <div class="d-flex justify-content-end mb-2">
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTableModal"><i class="bi bi-plus-lg"></i> Add table</button>
-        </div>
-        <div class="rroms-card p-2">
-            <table class="table rroms-table mb-0 align-middle">
-                <thead><tr><th>Table #</th><th>Dining area</th><th>Capacity</th><th>Active</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var t in Model.Tables)
-                    {
-                        <tr>
-                            <td>@t.TableNumber</td>
-                            <td>@t.DiningArea?.Name</td>
-                            <td>@t.Capacity</td>
-                            <td>@(t.IsActive ? "Yes" : "No")</td>
-                            <td class="text-nowrap">
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTableModal"
-                                        data-edit-modal="editTableModal" data-fields="id,tablenumber,diningareaid,capacity,isactive"
-                                        data-id="@t.Id" data-tablenumber="@t.TableNumber" data-diningareaid="@t.DiningAreaId" data-capacity="@t.Capacity" data-isactive="@t.IsActive.ToString().ToLower()">Edit</button>
-                                <form method="post" asp-page-handler="DeleteTable" asp-route-id="@t.Id" class="d-inline" onsubmit="return confirm('Delete this table?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <nav class="tabs" role="tablist" aria-label="Floor plan sections">
+        <a role="tab" asp-page="/Admin/Venue" asp-route-tab="plan" aria-current="@(tab == "plan" ? "page" : null)">Floor plan</a>
+        <a role="tab" asp-page="/Admin/Venue" asp-route-tab="tables" aria-current="@(tab == "tables" ? "page" : null)">Tables<small>@tableCount</small></a>
+        <a role="tab" asp-page="/Admin/Venue" asp-route-tab="areas" aria-current="@(tab == "areas" ? "page" : null)">Dining areas<small>@Model.DiningAreas.Count</small></a>
+    </nav>
+
+    @if (tab == "plan")
+    {
+        if (!hasAreas)
+        {
+            <div class="empty-card">
+                <h2>No dining areas yet</h2>
+                <p>Add a dining area first, then you can place tables on its floor plan.</p>
+                <a class="btn btn-wine" asp-page="/Admin/Venue" asp-route-tab="areas">Add a dining area</a>
+            </div>
+        }
+        else
+        {
+            <div class="fp-bar">
+                <div class="l">
+                    <div class="field">
+                        <label for="fpAreaSelect">Dining area</label>
+                        <select class="in" id="fpAreaSelect" style="width:190px">
+                            @foreach (var a in Model.DiningAreas)
+                            {
+                                <option value="@a.Id" selected="@(a.Id == firstArea)">@a.Name@(a.IsActive ? "" : " (hidden)")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="fpDate">Date</label>
+                        <input class="in" id="fpDate" type="date" style="width:170px" />
+                    </div>
+                    <div class="field">
+                        <label for="fpTime">Time</label>
+                        <input class="in" id="fpTime" type="time" step="900" style="width:130px" />
+                    </div>
+                    <button type="button" class="btn btn-line" id="fpNow">@Ui.Icon("hist", 18, 1.6) Right now</button>
+                </div>
+                <div class="seg" role="group" aria-label="Mode">
+                    <button type="button" id="fpModeLive" aria-pressed="true">@Ui.Icon("eye", 18, 1.6) Live view</button>
+                    <button type="button" id="fpModeEdit" aria-pressed="false">@Ui.Icon("move", 18, 1.6) Edit layout</button>
+                </div>
+            </div>
+
+            <div class="fp" id="fpLayout">
+                <div class="fp-main">
+                    <div class="fp-legend" id="fpLegend" aria-label="What the colours mean">
+                        <span><i class="lg lg-free"></i>Free</span>
+                        <span><i class="lg lg-later"></i>Free now, booked later</span>
+                        <span><i class="lg lg-booked"></i>Booked</span>
+                        <span><i class="lg lg-seated"></i>Seated</span>
+                        <span><i class="lg lg-off"></i>Switched off</span>
+                    </div>
+                    <div class="fp-scroll">
+                        <div id="fpBoard" class="plan-grid" role="group" aria-label="Floor plan"
+                             data-cols="@RROMS.Pages.Admin.VenueModel.GridCols" data-rows="@RROMS.Pages.Admin.VenueModel.GridRows"
+                             data-page-url="@Url.Page("/Admin/Venue")" data-start-edit="@(Model.Mode == "edit" ? "true" : "false")"
+                             style="--cols:@RROMS.Pages.Admin.VenueModel.GridCols;--rows:@RROMS.Pages.Admin.VenueModel.GridRows"></div>
+                    </div>
+                    <p class="hint" id="fpHint" aria-live="polite">Select a table for its bookings. The plan refreshes by itself every 20 seconds.</p>
+                    <div class="tray" id="fpTrayWrap" hidden>
+                        <div>
+                            <b>Not on the plan yet</b><br />
+                            <span class="muted" style="font-size:13.5px">Drag onto a dot. Or focus it and use the arrow keys.</span>
+                        </div>
+                        <div id="fpTray" class="tray-list" aria-label="Tables that are not on the plan"></div>
+                    </div>
+                </div>
+
+                <aside class="fp-side">
+                    <section class="panel" id="fpLivePanel">
+                        <h3>Bookings <span id="fpBookingsDay">today</span></h3>
+                        <p class="panel-sub fp-live" id="fpLive" role="status">Loading</p>
+                        <p class="fp-pick" id="fpPick" hidden></p>
+                        <ul class="bk-list" id="fpBookings"></ul>
+                    </section>
+
+                    <section class="panel" id="fpEditPanel" hidden>
+                        <div id="fpNone">
+                            <h3>Select a table</h3>
+                            <p class="panel-sub">Choose one on the plan or in the tray to change its number, seats or area. Drag it to move it.</p>
+                        </div>
+                        <div id="fpForm" hidden>
+                            <h3 id="fpTitle">Table</h3>
+                            <p class="panel-sub" id="fpSub">Selected. Drag it, or press the arrow keys to move it one dot.</p>
+                            <form class="form" id="fpTableForm" novalidate style="margin-top:16px">
+                                <div class="f-row f-2">
+                                    <div class="field">
+                                        <label for="fpNumber">Table number</label>
+                                        <input class="in" id="fpNumber" maxlength="20" autocomplete="off" />
+                                    </div>
+                                    <div class="field">
+                                        <span class="lab" id="fpSeatsLab">Seats</span>
+                                        <span class="stepper" role="group" aria-labelledby="fpSeatsLab">
+                                            <button type="button" id="fpSeatsDown" aria-label="One seat fewer">&minus;</button>
+                                            <output id="fpSeats" aria-live="polite">2</output>
+                                            <button type="button" id="fpSeatsUp" aria-label="One seat more">+</button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label for="fpArea">Dining area</label>
+                                    <select class="in" id="fpArea">
+                                        @foreach (var a in Model.DiningAreas)
+                                        {
+                                            <option value="@a.Id">@a.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="opt-row">
+                                    <div><b>In service</b><small>Off hides it from booking.</small></div>
+                                    <label class="swx"><input type="checkbox" id="fpActive" aria-label="In service" /><span class="sw"></span></label>
+                                </div>
+                            </form>
+                            <div class="row-acts" style="margin-top:16px;justify-content:space-between;align-items:center">
+                                <button type="button" class="btn btn-danger btn-sm2" id="fpUnplace">Take off the plan</button>
+                                <span class="synced" id="fpSynced" role="status"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <h3 style="font-size:24px;font-weight:500">This layout is live</h3>
+                        <p class="muted" style="margin-top:6px;font-size:14.5px">Bookings, the staff floor and the guest booking page all read this plan. A moved table never takes its booking with it.</p>
+                    </section>
+                </aside>
+            </div>
+
+            @Html.AntiForgeryToken()
+            <script type="application/json" id="fpTablesData">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(floorPlanTables))</script>
+        }
+    }
+    else if (tab == "tables")
+    {
+        if (tableCount == 0)
+        {
+            <div class="empty-card">
+                <h2>No tables yet</h2>
+                <p>@(hasAreas ? "Add your first table, then place it on the floor plan." : "Add a dining area first, then add tables to it.")</p>
+            </div>
+        }
+        else
+        {
+            <section class="panel">
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col">Table</th>
+                                <th scope="col">Dining area</th>
+                                <th scope="col" class="n">Seats</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">On the plan</th>
+                                <th scope="col"><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.Tables)
+                            {
+                                <tr>
+                                    <td data-l="" class="c-guest"><div class="who"><b>@t.TableNumber</b></div></td>
+                                    <td data-l="Dining area">@t.DiningArea?.Name</td>
+                                    <td data-l="Seats" class="n">@t.Capacity</td>
+                                    <td data-l="Status">@if (t.IsActive) { <span class="st st-active">In service</span> } else { <span class="st st-draft">Off</span> }</td>
+                                    <td data-l="On the plan">@if (t.PositionX.HasValue && t.PositionY.HasValue) { <span class="muted">Yes</span> } else { <a asp-page="/Admin/Venue" asp-route-tab="plan" asp-route-area="@t.DiningAreaId" asp-route-mode="edit">Place it</a> }</td>
+                                    <td data-l="" class="c-acts">
+                                        <div class="row-acts">
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="tableDlg" data-fields="id,number,area,seats,active"
+                                                    data-id="@t.Id" data-number="@t.TableNumber" data-area="@t.DiningAreaId" data-seats="@t.Capacity" data-active="@(t.IsActive ? "true" : "false")" data-title="Edit table @t.TableNumber">Edit</button>
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="delTableDlg" data-fields="id,name" data-id="@t.Id" data-name="Table @t.TableNumber">Remove</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    }
+    else
+    {
+        if (!hasAreas)
+        {
+            <div class="empty-card">
+                <h2>No dining areas yet</h2>
+                <p>A dining area is a room or a terrace, such as the Main room. Tables belong to one.</p>
+            </div>
+        }
+        else
+        {
+            <section class="panel">
+                <div class="t-scroll">
+                    <table class="t t-cards">
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="sr-only">Picture</span></th>
+                                <th scope="col">Dining area</th>
+                                <th scope="col" class="n">Tables</th>
+                                <th scope="col">Shown to guests</th>
+                                <th scope="col"><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.DiningAreas)
+                            {
+                                var n = tablesPerArea.TryGetValue(a.Id, out var cnt) ? cnt : 0;
+                                <tr>
+                                    <td data-l="" class="c-pic">
+                                        <div class="thumb@(string.IsNullOrWhiteSpace(a.ImageUrl) ? " noph" : "")">
+                                            @if (!string.IsNullOrWhiteSpace(a.ImageUrl)) { <img src="@a.ImageUrl" alt="" loading="lazy" /> } else { <span aria-hidden="true">@Ui.Icon("table", 22, 1.6)</span> }
+                                        </div>
+                                    </td>
+                                    <td data-l="" class="c-guest"><div class="who"><b>@a.Name</b>@if (!string.IsNullOrWhiteSpace(a.Description)) { <small>@a.Description</small> }</div></td>
+                                    <td data-l="Tables" class="n">@n</td>
+                                    <td data-l="Shown to guests">@if (a.IsActive) { <span class="st st-active">Shown</span> } else { <span class="st st-draft">Hidden</span> }</td>
+                                    <td data-l="" class="c-acts">
+                                        <div class="row-acts">
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="areaDlg" data-fields="id,name,description,imageurl,active"
+                                                    data-id="@a.Id" data-name="@a.Name" data-description="@a.Description" data-imageurl="@a.ImageUrl" data-active="@(a.IsActive ? "true" : "false")" data-title="Edit @a.Name">Edit</button>
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="delAreaDlg" data-fields="id,name" data-id="@a.Id" data-name="@a.Name">Remove</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    }
 </div>
 
-<!-- Add Area Modal -->
-<div class="modal fade" id="addAreaModal"><div class="modal-dialog"><div class="modal-content">
-    <form method="post" asp-page-handler="AddArea">
-        <div class="modal-header"><h5 class="modal-title">Add dining area</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <div class="mb-2"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
-            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
+@* ---- add or change a table (Tables tab and the Add a table button) ---- *@
+<dialog class="modal" id="tableDlg" style="--w:520px" aria-labelledby="tableT">
+    <form method="post" asp-page-handler="SaveTable" class="form" novalidate>
+        <input type="hidden" id="tableDlg_id" name="id" value="0" />
+        <div class="modal-head">
+            <h2 id="tableT" data-dialog-title>Add a table</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
         </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
-    </form>
-</div></div></div>
-
-<!-- Edit Area Modal -->
-<div class="modal fade" id="editAreaModal"><div class="modal-dialog"><div class="modal-content">
-    <form method="post" asp-page-handler="EditArea">
-        <div class="modal-header"><h5 class="modal-title">Edit dining area</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-            <input type="hidden" name="id" id="editAreaModal_id" />
-            <div class="mb-2"><label class="form-label">Name</label><input name="name" id="editAreaModal_name" class="form-control" required /></div>
-            <div class="mb-2"><label class="form-label">Description</label><textarea name="description" id="editAreaModal_description" class="form-control"></textarea></div>
-            <div class="form-check"><input type="checkbox" name="isActive" value="true" id="editAreaModal_isActive" class="form-check-input" /><label class="form-check-label" for="editAreaModal_isActive">Active</label></div>
-        </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
-    </form>
-</div></div></div>
-
-<!-- Add Table Modal -->
-<div class="modal fade" id="addTableModal"><div class="modal-dialog"><div class="modal-content">
-    <form method="post" asp-page-handler="AddTable">
-        <div class="modal-header"><h5 class="modal-title">Add table</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <div class="mb-2"><label class="form-label">Table number</label><input name="tableNumber" class="form-control" required /></div>
-            <div class="mb-2">
-                <label class="form-label">Dining area</label>
-                <select name="diningAreaId" class="form-select" required>
-                    @foreach (var a in Model.DiningAreas) { <option value="@a.Id">@a.Name</option> }
-                </select>
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="tableDlg_number">Table number</label>
+                    <input class="in" id="tableDlg_number" name="tableNumber" maxlength="20" required autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label for="tableDlg_seats">Seats</label>
+                    <input class="in" id="tableDlg_seats" name="capacity" type="number" min="1" max="30" inputmode="numeric" required />
+                </div>
             </div>
-            <div class="mb-2"><label class="form-label">Capacity</label><input type="number" name="capacity" min="1" max="30" value="2" class="form-control" required /></div>
-        </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
-    </form>
-</div></div></div>
-
-<!-- Edit Table Modal -->
-<div class="modal fade" id="editTableModal"><div class="modal-dialog"><div class="modal-content">
-    <form method="post" asp-page-handler="EditTable">
-        <div class="modal-header"><h5 class="modal-title">Edit table</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <input type="hidden" name="id" id="editTableModal_id" />
-            <div class="mb-2"><label class="form-label">Table number</label><input name="tableNumber" id="editTableModal_tablenumber" class="form-control" required /></div>
-            <div class="mb-2">
-                <label class="form-label">Dining area</label>
-                <select name="diningAreaId" id="editTableModal_diningareaid" class="form-select" required>
-                    @foreach (var a in Model.DiningAreas) { <option value="@a.Id">@a.Name</option> }
+            <div class="field">
+                <label for="tableDlg_area">Dining area</label>
+                <select class="in" id="tableDlg_area" name="diningAreaId" required>
+                    @foreach (var a in Model.DiningAreas)
+                    {
+                        <option value="@a.Id">@a.Name</option>
+                    }
                 </select>
+                <p class="hint">Changing the area takes the table off the plan of the old one.</p>
             </div>
-            <div class="mb-2"><label class="form-label">Capacity</label><input type="number" name="capacity" id="editTableModal_capacity" min="1" max="30" class="form-control" required /></div>
-            <div class="form-check"><input type="checkbox" name="isActive" value="true" id="editTableModal_isactive" class="form-check-input" /><label class="form-check-label">Active</label></div>
+            <div class="opt-row">
+                <div><b>In service</b><small>Off hides it from booking.</small></div>
+                <label class="swx"><input type="checkbox" id="tableDlg_active" name="isActive" value="true" aria-label="In service" /><span class="sw"></span></label>
+            </div>
         </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save</button>
+        </div>
     </form>
-</div></div></div>
+</dialog>
+
+<dialog class="modal" id="delTableDlg" style="--w:480px" aria-labelledby="delTableT">
+    <form method="post" asp-page-handler="DeleteTable" class="form">
+        <input type="hidden" id="delTableDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="delTableT">Remove <span id="delTableDlg_name">this table</span>?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>It leaves the plan and can no longer be booked. A table with upcoming bookings cannot be removed. Switch it off instead.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Remove</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- add or change a dining area ---- *@
+<dialog class="modal" id="areaDlg" style="--w:560px" aria-labelledby="areaT">
+    <form method="post" asp-page-handler="SaveArea" enctype="multipart/form-data" class="form" novalidate>
+        <input type="hidden" id="areaDlg_id" name="id" value="0" />
+        <div class="modal-head">
+            <h2 id="areaT" data-dialog-title>Add a dining area</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label for="areaDlg_name">Name</label>
+                <input class="in" id="areaDlg_name" name="name" maxlength="80" required />
+            </div>
+            <div class="field">
+                <label for="areaDlg_description">Description (optional)</label>
+                <textarea class="in" id="areaDlg_description" name="description" rows="2" maxlength="300"></textarea>
+            </div>
+            <div class="field">
+                <label for="areaDlg_file">Photo (optional)</label>
+                <input class="in" id="areaDlg_file" name="imageFile" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                <p class="hint">JPG, PNG or WebP up to 4 MB. A new photo replaces the current one.</p>
+            </div>
+            <div class="field">
+                <label for="areaDlg_imageurl">Image address</label>
+                <input class="in" id="areaDlg_imageurl" name="imageUrl" maxlength="300" placeholder="https://" />
+                <p class="hint">Empty it to remove the current photo.</p>
+            </div>
+            <div class="opt-row">
+                <div><b>Shown to guests</b><small>Off hides the area and its tables from booking.</small></div>
+                <label class="swx"><input type="checkbox" id="areaDlg_active" name="isActive" value="true" aria-label="Shown to guests" /><span class="sw"></span></label>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="delAreaDlg" style="--w:480px" aria-labelledby="delAreaT">
+    <form method="post" asp-page-handler="DeleteArea" class="form">
+        <input type="hidden" id="delAreaDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="delAreaT">Remove <span id="delAreaDlg_name">this area</span>?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>Only an area with no tables can be removed. Move its tables first, or switch the area off to hide it from guests.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Remove</button>
+        </div>
+    </form>
+</dialog>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminFloor.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/floor-plan.js" asp-append-version="true"></script>
+}

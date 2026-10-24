@@ -60,6 +60,38 @@ namespace RROMS.Data
                 .HasForeignKey(a => a.CreatedByAdminId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // ---- Promotion ----
+            builder.Entity<Promotion>()
+                .HasOne(p => p.MenuItem)
+                .WithMany(m => m.Promotions)
+                .HasForeignKey(p => p.MenuItemId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Promotion>()
+                .HasOne(p => p.MenuCategory)
+                .WithMany()
+                .HasForeignKey(p => p.MenuCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---- PromotionRedemption ----
+            builder.Entity<PromotionRedemption>()
+                .HasOne(pr => pr.Promotion)
+                .WithMany(p => p.Redemptions)
+                .HasForeignKey(pr => pr.PromotionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PromotionRedemption>()
+                .HasOne(pr => pr.Order)
+                .WithMany(o => o.PromotionRedemptions)
+                .HasForeignKey(pr => pr.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PromotionRedemption>()
+                .HasOne(pr => pr.Customer)
+                .WithMany()
+                .HasForeignKey(pr => pr.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ---- Reservation ----
             builder.Entity<Reservation>()
                 .HasOne(r => r.Customer)
@@ -204,6 +236,22 @@ namespace RROMS.Data
             builder.Entity<Feedback>().HasIndex(f => f.OrderId).IsUnique().HasFilter("[OrderId] IS NOT NULL");
             builder.Entity<Feedback>().HasIndex(f => f.ReservationId).IsUnique().HasFilter("[ReservationId] IS NOT NULL");
             builder.Entity<Feedback>().HasIndex(f => f.CreatedAt);
+
+            // ---- Waiting list ----
+            builder.Entity<WaitlistEntry>()
+                .HasOne(w => w.Customer)
+                .WithMany()
+                .HasForeignKey(w => w.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<WaitlistEntry>().HasIndex(w => new { w.WantedDateTime, w.NotifiedAt });
+
+            // ---- Rank bands ----
+            builder.Entity<RankBand>().HasIndex(b => b.UpToPercent).IsUnique();
+
+            // ---- Indexes that matter for the availability engine & reporting ----
+            builder.Entity<Reservation>().HasIndex(r => r.ReservationDateTime);
+            builder.Entity<Order>().HasIndex(o => o.OrderDate);
+            builder.Entity<MenuItem>().HasIndex(m => m.IsAvailable);
         }
     }   
 }
