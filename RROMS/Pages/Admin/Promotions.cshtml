@@ -1,0 +1,333 @@
+@page
+@model RROMS.Pages.Admin.PromotionsModel
+@using System.Text.Json
+@using RROMS.Models
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Promotions";
+    var today = DateTime.UtcNow.Date;
+    var inp = Model.Input;
+    // Monday first, because that is how a week reads on a restaurant's rota.
+    var weekOrder = new[] { 1, 2, 3, 4, 5, 6, 0 };
+    string[] dayShort = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    string DaysLabel(int mask)
+    {
+        var on = weekOrder.Where(d => (mask & (1 << d)) != 0).ToList();
+        var parts = new List<string>();
+        for (var i = 0; i < on.Count;)
+        {
+            var j = i;
+            while (j + 1 < on.Count && Array.IndexOf(weekOrder, on[j + 1]) == Array.IndexOf(weekOrder, on[j]) + 1) j++;
+            parts.Add(j - i >= 2 ? $"{dayShort[on[i]]}–{dayShort[on[j]]}" : string.Join(", ", on.Skip(i).Take(j - i + 1).Select(d => dayShort[d])));
+            i = j + 1;
+        }
+        return string.Join(", ", parts);
+    }
+    string Dates(Promotion p)
+    {
+        var sameYear = p.StartDate.Year == p.EndDate.Year;
+        var start = sameYear ? p.StartDate.ToString("d MMM") : p.StartDate.ToString("d MMM yyyy");
+        return $"{start} – {p.EndDate:d MMM yyyy}";
+    }
+    (string Css, string Word) StatusOf(Promotion p)
+    {
+        if (p.EndDate.Date < today) return ("st-cancelled", "Ended");
+        if (!p.IsActive) return ("st-draft", "Switched off");
+        if (p.StartDate.Date > today) return ("st-pending", "Scheduled");
+        return ("st-active", "Active");
+    }
+    string Discount(Promotion p) => p.FixedAmountOff is > 0 ? Ui.Rm(p.FixedAmountOff.Value) + " off" : $"{p.DiscountPercent:0.##}%";
+    string Applies(Promotion p) => p.MenuItem != null ? p.MenuItem.Name : p.MenuCategory != null ? p.MenuCategory.Name : "Whole menu";
+    List<string> Rules(Promotion p)
+    {
+        var r = new List<string>();
+        if (p.AllowedDaysMask.HasValue) r.Add(DaysLabel(p.AllowedDaysMask.Value));
+        if (p.MinimumOrderAmount is > 0) r.Add("min " + Ui.Rm(p.MinimumOrderAmount.Value));
+        if (p.IsEligibilityRestricted) { var n = p.GetEligibleEmails().Count; r.Add(n == 1 ? "1 named guest" : n + " named guests"); }
+        if (p.MaxRedemptionsTotal.HasValue) r.Add(p.MaxRedemptionsTotal + " uses in all");
+        if (p.MaxRedemptionsPerCustomer.HasValue) r.Add(p.MaxRedemptionsPerCustomer == 1 ? "once per guest" : p.MaxRedemptionsPerCustomer + " per guest");
+        return r;
+    }
+    string Json(Promotion p) => JsonSerializer.Serialize(new
+    {
+        id = p.Id, title = p.Title, description = p.Description,
+        kind = p.FixedAmountOff is > 0 ? "amount" : "percent",
+        percent = p.DiscountPercent > 0 ? p.DiscountPercent : (decimal?)null, amount = p.FixedAmountOff, code = p.Code,
+        start = p.StartDate.ToString("yyyy-MM-dd"), end = p.EndDate.ToString("yyyy-MM-dd"),
+        scope = p.MenuItemId != null ? "item" : p.MenuCategoryId != null ? "category" : "storewide", item = p.MenuItemId, category = p.MenuCategoryId,
+        eligibility = p.IsEligibilityRestricted ? "specific" : "all", emails = p.EligibleEmailsRaw,
+        days = p.AllowedDaysMask.HasValue ? Enumerable.Range(0, 7).Where(d => (p.AllowedDaysMask.Value & (1 << d)) != 0).ToArray() : Array.Empty<int>(),
+        min = p.MinimumOrderAmount, total = p.MaxRedemptionsTotal, perGuest = p.MaxRedemptionsPerCustomer, active = p.IsActive
+    });
+    string InputJson() => JsonSerializer.Serialize(new
+    {
+        id = inp.Id, title = inp.Title, description = inp.Description, kind = inp.Kind, percent = inp.DiscountPercent, amount = inp.FixedAmountOff, code = inp.Code,
+        start = inp.StartDate?.ToString("yyyy-MM-dd"), end = inp.EndDate?.ToString("yyyy-MM-dd"),
+        scope = inp.Scope, item = inp.MenuItemId, category = inp.MenuCategoryId, eligibility = inp.Eligibility, emails = inp.EligibleEmails,
+        days = inp.AllowedDays ?? new List<int>(), min = inp.MinimumOrderAmount, total = inp.MaxRedemptionsTotal, perGuest = inp.MaxRedemptionsPerCustomer,
+        active = inp.IsActive, notify = inp.NotifyCustomers
+    });
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Promotions</h1>
+            <p>Discounts guests can use at checkout. Staff cannot change them.</p>
+        </div>
+        <div class="row-acts">
+            <button type="button" class="btn btn-wine" data-promo-new>New promotion</button>
+        </div>
+    </div>
+
+    @if (!Model.Promotions.Any())
+    {
+        <div class="empty-card">
+            <h2>No promotions yet</h2>
+            <p>A promotion can take a percentage off the whole menu, one category or one dish. Add a promo code to keep it for the guests you give it to.</p>
+            <button type="button" class="btn btn-wine" data-promo-new>New promotion</button>
+        </div>
+    }
+    else
+    {
+        <section class="panel">
+            <div class="t-scroll">
+                <table class="t t-cards">
+                    <thead>
+                        <tr>
+                            <th scope="col">Promotion</th>
+                            <th scope="col">Applies to</th>
+                            <th scope="col">Discount</th>
+                            <th scope="col">Dates</th>
+                            <th scope="col">Rules</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.Promotions)
+                        {
+                            var st = StatusOf(p);
+                            var rules = Rules(p);
+                            var used = Model.Uses.TryGetValue(p.Id, out var u) ? u : 0;
+                            <tr>
+                                <td data-l="" class="c-guest">
+                                    <div class="who">
+                                        <b>@p.Title</b>
+                                        @if (!string.IsNullOrWhiteSpace(p.Code)) { <small><span class="flag soft promo-code">@p.Code</span> for guests who type it in the cart</small> }
+                                        else if (!string.IsNullOrWhiteSpace(p.Description)) { <small>@p.Description</small> }
+                                    </div>
+                                </td>
+                                <td data-l="Applies to">@Applies(p)</td>
+                                <td data-l="Discount"><b>@Discount(p)</b></td>
+                                <td data-l="Dates">@Dates(p)</td>
+                                <td data-l="Rules">
+                                    <div class="promo-rules">
+                                        @(rules.Count == 0 ? "All days, no limits" : string.Join(" · ", rules))
+                                        @if (used > 0) { <small class="muted promo-used">Used on @used @(used == 1 ? "order" : "orders")</small> }
+                                    </div>
+                                </td>
+                                <td data-l="Status"><span class="st @st.Css">@st.Word</span></td>
+                                <td data-l="" class="c-acts">
+                                    <div class="row-acts">
+                                        <button type="button" class="btn btn-line btn-sm2" data-promo-edit="@Json(p)">Edit</button>
+                                        @if (st.Word == "Ended")
+                                        {
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="delPromoDlg" data-fields="id,name" data-id="@p.Id" data-name="@p.Title">Remove</button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="endPromoDlg" data-fields="id,name" data-id="@p.Id" data-name="@p.Title">End now</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>
+
+<dialog class="modal" id="promoDlg" style="--w:860px" aria-labelledby="promoT" data-open-on-load="@(Model.OpenDialog ? "true" : null)">
+    <form method="post" asp-page-handler="Save" class="form" novalidate>
+        <input type="hidden" id="promoDlg_id" name="Input.Id" value="@inp.Id" />
+        <div class="modal-head">
+            <h2 id="promoT" data-dialog-title>New promotion</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            @if (Model.DialogError != null) { <p class="form-alert" role="alert">@Ui.Icon("warn", 18, 1.8)<span>@Model.DialogError</span></p> }
+
+            <div class="f-row" style="grid-template-columns:3fr 2fr">
+                <div class="field">
+                    <label for="promoDlg_title">Title</label>
+                    <input class="in" id="promoDlg_title" name="Input.Title" maxlength="120" required />
+                </div>
+                <div class="field">
+                    <label for="promoDlg_code">Promo code (optional)</label>
+                    <input class="in promo-code-in" id="promoDlg_code" name="Input.Code" maxlength="30" autocapitalize="characters" autocomplete="off" spellcheck="false" />
+                    <p class="hint">With a code, guests type it in the cart. Without one, it applies by itself.</p>
+                </div>
+            </div>
+
+            <div class="f-row f-2">
+                <fieldset class="field">
+                    <legend class="lab">What it takes off</legend>
+                    <div class="kind-row">
+                        <label class="ckb"><input type="radio" name="Input.Kind" value="percent" id="promoDlg_kind_percent" /><i>@Ui.Icon("check", 13, 3)</i> A percentage</label>
+                        <label class="ckb"><input type="radio" name="Input.Kind" value="amount" id="promoDlg_kind_amount" /><i>@Ui.Icon("check", 13, 3)</i> An amount, with a code</label>
+                    </div>
+                </fieldset>
+                <div class="field">
+                    <div id="kindPercent">
+                        <label for="promoDlg_percent">Discount (%)</label>
+                        <input class="in" id="promoDlg_percent" name="Input.DiscountPercent" type="number" inputmode="decimal" step="0.5" min="1" max="100" />
+                    </div>
+                    <div id="kindAmount" hidden>
+                        <label for="promoDlg_amount">Amount off (@Brand.Currency)</label>
+                        <input class="in" id="promoDlg_amount" name="Input.FixedAmountOff" type="number" inputmode="decimal" step="0.01" min="0.01" max="100000" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="promoDlg_start">Starts</label>
+                    <input class="in" id="promoDlg_start" name="Input.StartDate" type="date" required />
+                </div>
+                <div class="field">
+                    <label for="promoDlg_end">Ends</label>
+                    <input class="in" id="promoDlg_end" name="Input.EndDate" type="date" required />
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="promoDlg_description">Description (optional)</label>
+                <textarea class="in" id="promoDlg_description" name="Input.Description" rows="2" maxlength="400"></textarea>
+            </div>
+
+            <div class="f-row f-2">
+                <fieldset class="field">
+                    <legend class="lab">Applies to</legend>
+                    <div class="stack-ck">
+                        <label class="ckb"><input type="radio" name="Input.Scope" value="storewide" id="promoDlg_scope_storewide" /><i>@Ui.Icon("check", 13, 3)</i> The whole menu</label>
+                        <label class="ckb"><input type="radio" name="Input.Scope" value="category" id="promoDlg_scope_category" /><i>@Ui.Icon("check", 13, 3)</i> One category</label>
+                        <label class="ckb"><input type="radio" name="Input.Scope" value="item" id="promoDlg_scope_item" /><i>@Ui.Icon("check", 13, 3)</i> One dish or wine</label>
+                    </div>
+                    <div id="scopeCategory" hidden>
+                        <label class="sr-only" for="promoDlg_category">Category</label>
+                        <select class="in" id="promoDlg_category" name="Input.MenuCategoryId">
+                            <option value="">Choose a category</option>
+                            @foreach (var c in Model.MenuCategories) { <option value="@c.Id">@c.Name</option> }
+                        </select>
+                    </div>
+                    <div id="scopeItem" hidden>
+                        <label class="sr-only" for="promoDlg_item">Dish or wine</label>
+                        <select class="in" id="promoDlg_item" name="Input.MenuItemId">
+                            <option value="">Choose a dish or wine</option>
+                            @foreach (var m in Model.MenuItems) { <option value="@m.Id">@m.Name</option> }
+                        </select>
+                    </div>
+                    <p class="hint">Set menus and wine by the glass are never discounted by a promotion that applies by itself.</p>
+                </fieldset>
+                <fieldset class="field">
+                    <legend class="lab">Who is eligible</legend>
+                    <div class="stack-ck">
+                        <label class="ckb"><input type="radio" name="Input.Eligibility" value="all" id="promoDlg_elig_all" /><i>@Ui.Icon("check", 13, 3)</i> Everyone</label>
+                        <label class="ckb"><input type="radio" name="Input.Eligibility" value="specific" id="promoDlg_elig_specific" /><i>@Ui.Icon("check", 13, 3)</i> Specific guests, by email</label>
+                    </div>
+                    <div id="eligEmails" hidden>
+                        <label class="sr-only" for="promoDlg_emails">Guest emails</label>
+                        <textarea class="in" id="promoDlg_emails" name="Input.EligibleEmails" rows="3" maxlength="2000" placeholder="One email per line, or separated by commas"></textarea>
+                    </div>
+                </fieldset>
+            </div>
+
+            <fieldset class="field">
+                <legend class="lab">Only on these days (leave all empty for every day)</legend>
+                <div class="ck-row">
+                    @foreach (var d in weekOrder)
+                    {
+                        <label class="ckb"><input type="checkbox" name="Input.AllowedDays" value="@d" id="promoDlg_day@(d)" /><i>@Ui.Icon("check", 13, 3)</i> @dayShort[d]</label>
+                    }
+                </div>
+            </fieldset>
+
+            <div class="f-row f-3">
+                <div class="field">
+                    <label for="promoDlg_min">Minimum order (@Brand.Currency)</label>
+                    <input class="in" id="promoDlg_min" name="Input.MinimumOrderAmount" type="number" inputmode="decimal" step="0.01" min="0" />
+                </div>
+                <div class="field">
+                    <label for="promoDlg_total">Total uses</label>
+                    <input class="in" id="promoDlg_total" name="Input.MaxRedemptionsTotal" type="number" inputmode="numeric" min="1" />
+                </div>
+                <div class="field">
+                    <label for="promoDlg_perguest">Per guest</label>
+                    <input class="in" id="promoDlg_perguest" name="Input.MaxRedemptionsPerCustomer" type="number" inputmode="numeric" min="1" />
+                </div>
+            </div>
+
+            <div class="promo-flags">
+                <label class="swx"><input type="checkbox" id="promoDlg_active" name="Input.IsActive" value="true" /><span class="sw"></span> Switched on</label>
+                <input type="hidden" name="Input.IsActive" value="false" />
+                <label class="ckb" id="notifyRow"><input type="checkbox" id="promoDlg_notify" name="Input.NotifyCustomers" value="true" /><i>@Ui.Icon("check", 13, 3)</i> Tell guests about it now</label>
+            </div>
+            <p class="hint" id="notifyNote" hidden>Only an open promotion without a code can be announced to every guest.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save promotion</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="endPromoDlg" style="--w:480px" aria-labelledby="endPromoT">
+    <form method="post" asp-page-handler="End" class="form">
+        <input type="hidden" id="endPromoDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="endPromoT">End <span id="endPromoDlg_name">this promotion</span> now?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>Guests can no longer use it from this moment. Orders already placed keep their discount, and the promotion stays in the list as Ended.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it running</button>
+            <button type="submit" class="btn btn-wine">End now</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="modal" id="delPromoDlg" style="--w:480px" aria-labelledby="delPromoT">
+    <form method="post" asp-page-handler="Delete" class="form">
+        <input type="hidden" id="delPromoDlg_id" name="id" />
+        <div class="modal-head">
+            <h2 id="delPromoT">Remove <span id="delPromoDlg_name">this promotion</span>?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>It leaves the list. If guests have already used it, it is kept out of sight for the records instead, so past orders keep their discount.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-wine">Remove</button>
+        </div>
+    </form>
+</dialog>
+
+@if (Model.OpenDialog)
+{
+    <script type="application/json" id="promoReopen">@Html.Raw(InputJson())</script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminPromotions.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/admin-promotions.js" asp-append-version="true"></script>
+}

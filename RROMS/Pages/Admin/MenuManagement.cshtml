@@ -63,7 +63,10 @@
                 <label for="c">Category</label>
                 <select class="in" id="c" name="cat" style="width:190px" data-autosubmit>
                     <option value="" selected="@(!Model.Cat.HasValue)">All categories</option>
-                    @foreach (var c in tabCats) { <option value="@c.Id" selected="@(Model.Cat == c.Id)">@c.Name</option> }
+                    @foreach (var c in tabCats)
+                    {
+                        <option value="@c.Id" selected="@(Model.Cat == c.Id)">@c.Name</option>
+                    }
                 </select>
             </div>
             <div class="field">
@@ -120,86 +123,130 @@
                                     <td data-l="" class="c-guest">
                                         <div class="who">
                                             <b>@m.Name</b>
-                                            @if (isWineTab && !string.IsNullOrWhiteSpace(m.WineNote)) { <small>@m.WineNote</small> }
-                                            else if (noPhoto) { <small>No photo, guests see an illustrated plate</small> }
-                                            @if (m.IsChefsPick) { <small>Chef's pick</small> }
+                                            @if (isWineTab && !string.IsNullOrWhiteSpace(m.WineNote))
+                                            {
+                                                <small>@m.WineNote</small>
+                                            }
+                                            else if (noPhoto)
+                                            {
+
+                                                <small>No photo, guests see an illustrated plate</small>
+                                            }
+                                            @if (m.IsChefsPick)
+                                            {
+                                                <small>Chef's pick</small>
+                                            }
                                         </div>
                                     </td>
-                                    <td data-l="Category">@m.MenuCategory?.Name@if (m.MenuCategory?.SetMenuOnly == true) { <br /><small class="muted">Set menus only</small> }</td>
-                                    <td data-l="Price">@Price(m)</td>
-                                    <td data-l="Contains">@if (m.Allergens == null) { <span class="flag warn-soft">Not recorded</span> } else { <span class="muted">@allergenText</span> }</td>
-                                    <td data-l="Diet labels">@if (tags.Count == 0) { <span class="muted">None</span> } else { <span class="flags">@foreach (var t in tags) { <span class="flag soft">@t</span> }</span> }</td>
-                                    <td data-l="On the menu">
-                                        <form method="post" asp-page-handler="Availability" asp-route-tab="@tab" asp-route-cat="@Model.Cat" asp-route-q="@Model.Q" data-autosubmit class="inl">
-                                            <input type="hidden" name="id" value="@m.Id" />
-                                            <label class="swx"><input type="checkbox" name="available" value="true" checked="@m.IsAvailable" aria-label="@m.Name is on the menu" /><span class="sw"></span></label>
-                                        </form>
-                                    </td>
-                                    <td data-l="" class="c-acts">
-                                        <button type="button" class="btn btn-line btn-sm2" data-dialog-open="dishDlg"
-                                                data-fields="id,name,price,glass,cat,calories,description,winenote,available,veg,spicy,pick,reviewed"
-                                                data-id="@m.Id" data-name="@m.Name" data-price="@m.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
-                                                data-glass="@(m.GlassPrice?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" data-cat="@m.MenuCategoryId"
-                                                data-calories="@m.Calories" data-description="@m.Description" data-winenote="@m.WineNote"
-                                                data-available="@(m.IsAvailable ? "true" : "false")" data-veg="@(m.IsVegetarian ? "true" : "false")" data-spicy="@(m.IsSpicy ? "true" : "false")"
-                                                data-pick="@(m.IsChefsPick ? "true" : "false")" data-reviewed="@(m.Allergens != null ? "true" : "false")"
-                                                data-allergens="@m.Allergens" data-tags="@m.DietaryTags" data-photo="@m.ImageUrl"
-                                                data-title="@(isWineTab ? "Edit wine" : "Edit dish")">Edit</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                                    <td data-l="Category">@m.MenuCategory?.Name@if (m.MenuCategory?.SetMenuOnly == true) {
+                                        <br /><small class="muted">Set menus only</small>
+                                    }
+                                </td>
+                                <td data-l="Price">@Price(m)</td>
+                                <td data-l="Contains">@if (m.Allergens == null) {
+                                    <span class="flag warn-soft">Not recorded</span>
+                                } else
+                                {
+
+                                    <span class="muted">@allergenText</span>
+                                }
+                            </td>
+                            <td data-l="Diet labels">@if (tags.Count == 0) {
+                                <span class="muted">None</span>
+                            } else
+                            {
+
+                                <span class="flags">@foreach (var t in tags) {
+                                    <span class="flag soft">@t</span>
+                                }
+                            </span>
+                        }
+                    </td>
+                    <td data-l="On the menu">
+                        <form method="post" asp-page-handler="Availability" asp-route-tab="@tab" asp-route-cat="@Model.Cat" asp-route-q="@Model.Q" data-autosubmit class="inl">
+                            <input type="hidden" name="id" value="@m.Id" />
+                            <label class="swx"><input type="checkbox" name="available" value="true" checked="@m.IsAvailable" aria-label="@m.Name is on the menu" /><span class="sw"></span></label>
+                        </form>
+                    </td>
+                    <td data-l="" class="c-acts">
+                        <button type="button" class="btn btn-line btn-sm2" data-dialog-open="dishDlg"
+                                data-fields="id,name,price,glass,cat,calories,description,winenote,available,veg,spicy,pick,reviewed"
+                                data-id="@m.Id" data-name="@m.Name" data-price="@m.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                data-glass="@(m.GlassPrice?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))" data-cat="@m.MenuCategoryId"
+                                data-calories="@m.Calories" data-description="@m.Description" data-winenote="@m.WineNote"
+                                data-available="@(m.IsAvailable ? "true" : "false")" data-veg="@(m.IsVegetarian ? "true" : "false")" data-spicy="@(m.IsSpicy ? "true" : "false")"
+                                data-pick="@(m.IsChefsPick ? "true" : "false")" data-reviewed="@(m.Allergens != null ? "true" : "false")"
+                                data-allergens="@m.Allergens" data-tags="@m.DietaryTags" data-photo="@m.ImageUrl"
+                                data-title="@(isWineTab ? "Edit wine" : "Edit dish")">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+</section>
         }
     }
     else
-    {
-        <section class="panel">
-            @if (cats.Count == 0)
-            {
-                <div class="empty-card"><h2>No categories yet</h2><p>Dishes are grouped in categories such as Starter, Main and Dessert. Add one to begin.</p></div>
-            }
-            else
-            {
-                <div class="t-scroll">
-                    <table class="t t-cards">
-                        <thead>
+{
+    <section class="panel">
+        @if (cats.Count == 0)
+        {
+            <div class="empty-card"><h2>No categories yet</h2><p>Dishes are grouped in categories such as Starter, Main and Dessert. Add one to begin.</p></div>
+        }
+        else
+        {
+            <div class="t-scroll">
+                <table class="t t-cards">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="n">Order</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Kind</th>
+                            <th scope="col" class="n">Items</th>
+                            <th scope="col">Shown</th>
+                            <th scope="col"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in cats)
+                        {
+                            var n = Model.ItemCounts.TryGetValue(c.Id, out var cnt) ? cnt : 0;
                             <tr>
-                                <th scope="col" class="n">Order</th>
-                                <th scope="col">Category</th>
-                                <th scope="col">Kind</th>
-                                <th scope="col" class="n">Items</th>
-                                <th scope="col">Shown</th>
-                                <th scope="col"><span class="sr-only">Actions</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var c in cats)
+                                <td class="n" data-l="Order">@c.DisplayOrder</td>
+                                <td data-l="" class="c-guest"><div class="who"><b>@c.Name</b>@if (!string.IsNullOrWhiteSpace(c.Description)) {
+                                    <small>@c.Description</small>
+                                }
+                            </div></td>
+                            <td data-l="Kind">@(c.IsWine ? "Wine list" : c.SetMenuOnly ? "Set menus only" : "Dishes")</td>
+                            <td class="n" data-l="Items">@n</td>
+                            <td data-l="Shown">@if (c.IsActive) {
+                                <span class="st st-active">Shown</span>
+                            } else
                             {
-                                var n = Model.ItemCounts.TryGetValue(c.Id, out var cnt) ? cnt : 0;
-                                <tr>
-                                    <td class="n" data-l="Order">@c.DisplayOrder</td>
-                                    <td data-l="" class="c-guest"><div class="who"><b>@c.Name</b>@if (!string.IsNullOrWhiteSpace(c.Description)) { <small>@c.Description</small> }</div></td>
-                                    <td data-l="Kind">@(c.IsWine ? "Wine list" : c.SetMenuOnly ? "Set menus only" : "Dishes")</td>
-                                    <td class="n" data-l="Items">@n</td>
-                                    <td data-l="Shown">@if (c.IsActive) { <span class="st st-active">Shown</span> } else { <span class="st st-draft">Hidden</span> }</td>
-                                    <td data-l="" class="c-acts">
-                                        <div class="row-acts">
-                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="catDlg" data-fields="id,name,description,order,active,wine,setonly,kind"
-                                                    data-id="@c.Id" data-name="@c.Name" data-description="@c.Description" data-order="@c.DisplayOrder" data-active="@(c.IsActive ? "true" : "false")"
-                                                    data-wine="@(c.IsWine ? "true" : "false")" data-setonly="@(c.SetMenuOnly ? "true" : "false")" data-kind="@(n > 0 ? "locked" : "")" data-title="Edit category">Edit</button>
-                                            <button type="button" class="btn btn-line btn-sm2" data-dialog-open="delCatDlg" data-fields="id,name" data-id="@c.Id" data-name="@c.Name">Remove</button>
-                                        </div>
-                                    </td>
-                                </tr>
+
+                                <span class="st st-draft">Hidden</span>
                             }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
+                        </td>
+                        <td data-l="" class="c-acts">
+                            <div class="row-acts">
+                                <button type="button" class="btn btn-line btn-sm2" data-dialog-open="catDlg" data-fields="id,name,description,order,active,wine,setonly,kind"
+                                        data-id="@c.Id" data-name="@c.Name" data-description="@c.Description" data-order="@c.DisplayOrder" data-active="@(c.IsActive ? "true" : "false")"
+                                        data-wine="@(c.IsWine ? "true" : "false")" data-setonly="@(c.SetMenuOnly ? "true" : "false")" data-kind="@(n > 0 ? "locked" : "")" data-title="Edit category">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-line btn-sm2" data-dialog-open="delCatDlg" data-fields="id,name" data-id="@c.Id" data-name="@c.Name">Remove</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+</section>
     }
 </div>
 
@@ -212,7 +259,10 @@
             <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
         </div>
         <div class="dr-body">
-            @if (Model.ItemError != null) { <p class="form-alert" role="alert">@Model.ItemError</p> }
+            @if (Model.ItemError != null)
+            {
+                <p class="form-alert" role="alert">@Model.ItemError</p>
+            }
             <div class="f-row" style="grid-template-columns:2fr 1fr">
                 <div class="field">
                     <label for="dishDlg_name">Name</label>
@@ -338,7 +388,10 @@
             <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
         </div>
         <div class="modal-body">
-            @if (Model.CategoryError != null) { <p class="form-alert" role="alert">@Model.CategoryError</p> }
+            @if (Model.CategoryError != null)
+            {
+                <p class="form-alert" role="alert">@Model.CategoryError</p>
+            }
             <div class="field">
                 <label for="catDlg_name">Name</label>
                 <input class="in" id="catDlg_name" name="Category.Name" value="@cin.Name" maxlength="60" required />

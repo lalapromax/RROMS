@@ -1,0 +1,26 @@
+@* "Ask the house": the help chat. Guest pages only (staff and administrators have their own tools). A single button until it is opened.
+   The answers come from POST /api/chatbot/ask. Answers carry no label about how they were produced; the footer line says the replies are automatic. *@
+<div id="cw" class="cw" hidden>
+    <button id="cwFab" class="cw-fab" type="button" aria-expanded="false" aria-controls="cwPanel">@Ui.Icon("chat", 24, 1.6)<span>Ask the house</span></button>
+    <section id="cwPanel" class="cw-panel" role="dialog" aria-label="Ask the house" hidden>
+        <header class="cw-head">
+            <partial name="_LogoSlot" />
+            <div>
+                <b>Ask the house</b>
+                <span>Questions about the menu, hours and booking</span>
+            </div>
+            <button type="button" class="cw-x" id="cwClose" aria-label="Close the chat">@Ui.Icon("x", 16, 2)</button>
+        </header>
+        <div class="cw-body" id="cwLog" role="log" aria-live="polite" aria-label="Conversation"></div>
+        <div class="cw-sugg" id="cwSugg">
+            <button type="button" data-cw-ask="How do I book a table?">Book a table</button>
+            <button type="button" data-cw-ask="What are your opening hours today?">Opening hours</button>
+            <button type="button" data-cw-ask="Tell me about your set menus">Set menus</button>
+        </div>
+        <form class="cw-foot" id="cwForm" autocomplete="off">
+            <input class="in" id="cwInput" type="text" placeholder="Ask a question" aria-label="Your message" maxlength="300" />
+            <button type="submit" class="cw-send" aria-label="Send">@Ui.Icon("arrow", 20, 2)</button>
+        </form>
+        <p class="cw-disc">Replies are automatic. For allergies, the team always has the last word.</p>
+    </section>
+</div>

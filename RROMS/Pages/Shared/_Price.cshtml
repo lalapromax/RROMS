@@ -1,0 +1,9 @@
+@model PriceVM
+@if (Model.HasDiscount)
+{
+    <span class="price"><s class="price-was"><span class="sr-only">Was </span>@Ui.Rm(Model.Price)</s> <span class="price-now"><span class="sr-only">now </span>@Ui.Rm(Model.Now)</span>@Model.Suffix</span>
+}
+else
+{
+    <span class="price">@Ui.Rm(Model.Price)@Model.Suffix</span>
+}

@@ -1,52 +1,107 @@
 @page
 @model RROMS.Pages.Account.RegisterModel
 @{
-    ViewData["Title"] = "Create your account";
+    ViewData["Title"] = "Create an account";
+    var googleVm = new GoogleSignInVM(Model.GoogleClientId, Url.Page("/Account/Login", "Google")!, Model.ReturnUrl, "signup_with");
+    var formErrors = ViewData.ModelState.TryGetValue(string.Empty, out var e) ? e.Errors.Select(x => x.ErrorMessage).ToList() : new List<string>();
 }
-<div class="rroms-card auth-card p-4 p-md-5">
-    <h1 class="h3 mb-1">Create your account</h1>
-    <p class="text-muted-warm mb-4">Book tables, order ahead, and track your visits.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Register.css" asp-append-version="true" />
+}
 
-    <form method="post">
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<div class="auth">
+    <aside class="auth-art">
+        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+        <div class="in-art">
+            <h2>Make yourself at home.</h2>
+            <p class="lead-it">An account keeps your bookings, orders and points in one place.</p>
+            <ul class="gets">
+                <li>
+                    <span class="ico">@Ui.Icon("table", 22, 1.6)</span>
+                    <div><b>Book in a minute</b><span>Your details and dietary needs are filled in for you.</span></div>
+                </li>
+                <li>
+                    <span class="ico">@Ui.Icon("crown", 22, 1.6)</span>
+                    <div><b>Collect points</b><span>Every paid order counts towards Bronze, Silver and Gold.</span></div>
+                </li>
+                <li>
+                    <span class="ico">@Ui.Icon("bell", 22, 1.6)</span>
+                    <div><b>Hear it from us first</b><span>Seasonal menus and cellar evenings, only if you want them.</span></div>
+                </li>
+            </ul>
+        </div>
+    </aside>
+    <section class="auth-form">
+        <div class="auth-card">
+            <h1>Create an account</h1>
+            <p class="lead-it">It takes about a minute.</p>
+            <div style="margin-top:28px"><partial name="_GoogleSignIn" model="googleVm" /></div>
+            <div class="or">or use your email</div>
+            @if (formErrors.Count > 0)
+            {
+                <div class="banner" role="alert" style="margin-bottom:22px">
+                    @Ui.Icon("warn", 20, 1.6)
+                    <div><b>We could not create your account.</b><br />@string.Join(" ", formErrors)</div>
+                </div>
+            }
+            <form method="post" class="form" novalidate>
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div class="f-row f-2">
+                    <div class="field">
+                        <label asp-for="Input.FullName">Full name</label>
+                        <input asp-for="Input.FullName" class="in@(Ui.Err(ViewData.ModelState, "Input.FullName"))" autocomplete="name" />
+                        <span asp-validation-for="Input.FullName" class="err-msg"></span>
+                    </div>
+                    <div class="field">
+                        <label asp-for="Input.Phone">Phone</label>
+                        <input asp-for="Input.Phone" class="in@(Ui.Err(ViewData.ModelState, "Input.Phone"))" type="tel" autocomplete="tel" placeholder="+60 12 345 6789" />
+                        <p class="hint">Only used to confirm a booking.</p>
+                        <span asp-validation-for="Input.Phone" class="err-msg"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label asp-for="Input.Email">Email</label>
+                    <input asp-for="Input.Email" class="in@(Ui.Err(ViewData.ModelState, "Input.Email"))" type="email" autocomplete="email" />
+                    <span asp-validation-for="Input.Email" class="err-msg"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Input.Password">Password</label>
+                    <div class="pw">
+                        <input asp-for="Input.Password" class="in@(Ui.Err(ViewData.ModelState, "Input.Password"))" autocomplete="new-password" data-password-check />
+                        <button type="button" class="show" data-toggle-password="Input_Password" aria-pressed="false">Show</button>
+                    </div>
+                    <div class="meter-pw" aria-hidden="true" data-pw-meter><i></i><i></i><i></i><i></i></div>
+                    <div class="rules" data-pw-rules>
+                        <span data-rule="len"><i>@Ui.Icon("check", 11, 3.2)</i> At least 8 characters</span>
+                        <span data-rule="upper"><i>@Ui.Icon("check", 11, 3.2)</i> An upper-case letter</span>
+                        <span data-rule="digit"><i>@Ui.Icon("check", 11, 3.2)</i> A number</span>
+                        <span data-rule="symbol"><i>@Ui.Icon("check", 11, 3.2)</i> A symbol, such as ! or #</span>
+                    </div>
+                    <span asp-validation-for="Input.Password" class="err-msg"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Input.ConfirmPassword">Confirm password</label>
+                    <input asp-for="Input.ConfirmPassword" class="in@(Ui.Err(ViewData.ModelState, "Input.ConfirmPassword"))" autocomplete="new-password" />
+                    <span asp-validation-for="Input.ConfirmPassword" class="err-msg"></span>
+                </div>
 
-        <div class="mb-3">
-            <label asp-for="Input.FullName" class="form-label"></label>
-            <input asp-for="Input.FullName" class="form-control" autofocus />
-            <span asp-validation-for="Input.FullName" class="text-danger small"></span>
-        </div>
-        <div class="mb-3">
-            <label asp-for="Input.Email" class="form-label"></label>
-            <input asp-for="Input.Email" class="form-control" />
-            <span asp-validation-for="Input.Email" class="text-danger small"></span>
-        </div>
-        <div class="mb-3">
-            <label asp-for="Input.Phone" class="form-label"></label>
-            <input asp-for="Input.Phone" class="form-control" />
-        </div>
-        <div class="row">
-            <div class="mb-3 col-md-6">
-                <label asp-for="Input.Password" class="form-label"></label>
-                <input asp-for="Input.Password" class="form-control" />
-                <span asp-validation-for="Input.Password" class="text-danger small"></span>
-            </div>
-            <div class="mb-3 col-md-6">
-                <label asp-for="Input.ConfirmPassword" class="form-label"></label>
-                <input asp-for="Input.ConfirmPassword" class="form-control" />
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
-            </div>
-        </div>
-        <div class="mb-4">
-            <label asp-for="Input.DietaryPreference" class="form-label"></label>
-            <input asp-for="Input.DietaryPreference" class="form-control" placeholder="e.g. Vegetarian, nut allergy" />
-        </div>
+                <partial name="_DietaryChips" model="@(new DietaryChipsVM("Input.DietaryNeeds", "Input.AllergyChips", "Input.AllergyOther", Model.Input.DietaryNeeds, Model.Input.AllergyChips, Model.Input.AllergyOther, "reg"))" />
 
-        <button type="submit" class="btn btn-primary w-100">Create account</button>
-    </form>
-
-    <p class="text-center mt-4 mb-0 small">Already have an account? <a asp-page="/Account/Login">Log in</a></p>
+                <div style="margin-top:28px">
+                    <label class="ckb"><input asp-for="Input.AgreeToTerms" type="checkbox" /><i>@Ui.Icon("check", 13, 3)</i> I agree to the terms of use and the privacy notice</label>
+                    <span asp-validation-for="Input.AgreeToTerms" class="err-msg"></span>
+                </div>
+                <div style="margin-top:12px">
+                    <label class="ckb"><input asp-for="Input.NewsOptIn" type="checkbox" /><i>@Ui.Icon("check", 13, 3)</i> Send me news of seasonal menus and events</label>
+                </div>
+                <button type="submit" class="btn btn-wine btn-lg" style="width:100%;margin-top:28px">Create my account</button>
+            </form>
+            <p class="alt">Already have an account? <a class="link" asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl">Sign in</a></p>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/password-ui.js" asp-append-version="true"></script>
 }

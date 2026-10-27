@@ -2,6 +2,17 @@ using Stripe;
 
 namespace RROMS.Services;
 
+/// 
+/// Thin wrapper around Stripe.net for the one thing this app needs: creating a
+/// PaymentIntent for "Online payment" checkouts and verifying the Payment Element
+/// result, plus verifying webhook signatures. Cash/Card stay staff-settled-later
+/// (brief 6.C) and never touch this service.
+///
+/// Credentials come from configuration (StripeSettings:* in appsettings.json, which
+/// should be overridden with real TEST keys via environment variables or user-secrets
+/// - never hardcoded). Until those keys are supplied, <see cref="IsConfigured"/> is
+/// false and the Cart page disables "Online payment" instead of pretending it works.
+/// 
 public interface IStripePaymentService
 {
     /// True only when a publishable key, secret key, and the feature flag are all set.
@@ -11,8 +22,14 @@ public interface IStripePaymentService
     string Currency { get; }
 
     /// 
-    /// Creates a PaymentIntent for the given amountand returns the
+    /// Creates a PaymentIntent for the given amount (already computed server-side from
+    /// real database prices - never from anything the browser sent) and returns the
     /// client secret the frontend needs to mount Stripe's embedded Payment Element.
+    /// Created before the Order row exists (the customer hasn't confirmed payment yet),
+    /// so the reference is the customer's id, not an order id.
+    /// 
+    /// <param name="onlineBanking">True for the "Online banking" choice: the guest pays through their own bank (Stripe FPX, which needs
+    /// the account currency to be MYR). That method always passes through the bank's page and back, so it cannot stay embedded.</param>
     Task<(string ClientSecret, string PaymentIntentId)> CreatePaymentIntentAsync(decimal amount, string customerId, bool onlineBanking = false);
 
     /// Re-fetches a PaymentIntent from Stripe's API (never trusts a client-reported status).

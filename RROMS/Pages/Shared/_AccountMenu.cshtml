@@ -1,0 +1,38 @@
+@inject IChromeService Chrome
+@{
+    // The account button on every bar. What it opens depends on who is signed in: guests get their own things (bookings,
+    // orders, reviews, rewards); staff and administrators get just their profile and notifications.
+    var c = await Chrome.GetAsync();
+    var isCustomer = User.IsInRole(Roles.Customer);
+    string Cur(string path) => Context.Request.Path.StartsWithSegments(path) ? "page" : null!;
+}
+<div class="acct" data-menu>
+    <button type="button" class="icon-btn" aria-label="Your account" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu" data-menu-toggle>@Ui.Icon("user")</button>
+    <div class="pop" id="acctMenu" role="menu" aria-label="Account" hidden>
+        <div class="who">
+            <b>@(string.IsNullOrWhiteSpace(c.DisplayName) ? "Your account" : c.DisplayName)</b>
+            <span>@c.Email</span>
+            @if (isCustomer && c.TierName != null)
+            {
+                <br />
+                <span class="tier">@Ui.Icon("crown", 14) @c.TierName · @c.Points.ToString("N0") points</span>
+            }
+            else if (User.IsInRole(Roles.Staff) || User.IsInRole(Roles.Administrator))
+            {
+                <br />
+                <span class="tier">@(User.IsInRole(Roles.Administrator) ? "Administrator" : "Staff")</span>
+            }
+        </div>
+        <a asp-page="/Account/Profile" role="menuitem" aria-current="@Cur("/Account/Profile")">@Ui.Icon("user")@(isCustomer ? "Profile and dietary details" : "Your profile")</a>
+        @if (isCustomer)
+        {
+            <a asp-page="/Reservations/Index" role="menuitem" aria-current="@Cur("/Reservations")">@Ui.Icon("cal")My reservations</a>
+            <a asp-page="/Orders/Index" role="menuitem" aria-current="@Cur("/Orders")">@Ui.Icon("receipt")My orders</a>
+            <a asp-page="/Feedback/Index" role="menuitem" aria-current="@Cur("/Feedback")">@Ui.Icon("star")My reviews</a>
+            <a asp-page="/Rewards/Index" role="menuitem" aria-current="@Cur("/Rewards")">@Ui.Icon("crown")Rewards</a>
+        }
+        <a asp-page="/Notifications/Index" role="menuitem" aria-current="@Cur("/Notifications")">@Ui.Icon("bell")Notifications@if (!isCustomer && c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+        <hr />
+        <form method="post" asp-page="/Account/Logout"><button type="submit" role="menuitem">Sign out</button></form>
+    </div>
+</div>

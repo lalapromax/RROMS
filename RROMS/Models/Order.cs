@@ -28,6 +28,14 @@ public class Order
     [Column(TypeName = "decimal(10,2)")]
     public decimal TaxAmount { get; set; }
 
+    /// The restaurant's service charge on this order (percentage set in Admin > Settings), worked out when the order is placed.
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal ServiceChargeAmount { get; set; }
+
+    /// Total of all OrderItem.DiscountAmount on this order
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal DiscountAmount { get; set; }
+
     [Column(TypeName = "decimal(10,2)")]
     public decimal TotalAmount { get; set; }
 
@@ -40,4 +48,5 @@ public class Order
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public Payment? Payment { get; set; }
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    public ICollection<PromotionRedemption> PromotionRedemptions { get; set; } = new List<PromotionRedemption>();
 }

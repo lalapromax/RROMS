@@ -18,6 +18,9 @@ public class RestaurantTable
 
     public bool IsActive { get; set; } = true;
 
+    public int? PositionX { get; set; }
+    public int? PositionY { get; set; }
+
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
 

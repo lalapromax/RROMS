@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,112 +13,179 @@ namespace RROMS.Pages.Menu;
 [AllowAnonymous]
 public class IndexModel : PageModel
 {
-    private const string CartSessionKey = "Cart";
-
     private readonly ApplicationDbContext _context;
-    private readonly IRecommendationService _recommendationService;
+    private readonly IRecommendationService _recommendations;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPromotionService _promotions;
+    private readonly ISetMenuService _setMenus;
 
-    public IndexModel(ApplicationDbContext context, IRecommendationService recommendationService, UserManager<ApplicationUser> userManager)
+    public IndexModel(ApplicationDbContext context, IRecommendationService recommendations, UserManager<ApplicationUser> userManager, IPromotionService promotions, ISetMenuService setMenus)
     {
         _context = context;
-        _recommendationService = recommendationService;
+        _recommendations = recommendations;
         _userManager = userManager;
+        _promotions = promotions;
+        _setMenus = setMenus;
     }
 
-    public List<MenuCategory> Categories { get; set; } = new();
-    public List<MenuItem> Items { get; set; } = new();
-    public List<MenuItem> Recommended { get; set; } = new();
-    public Dictionary<int, decimal> ActivePromotionDiscounts { get; set; } = new();
+    /// <summary>Which set menu is open in the large card (the others are compact cards). Defaults to the first on offer.</summary>
+    [BindProperty(SupportsGet = true, Name = "set")]
+    public int? SetId { get; set; }
 
-    [BindProperty(SupportsGet = true)]
-    public int? CategoryId { get; set; }
+    public List<SetMenu> Sets { get; private set; } = new();
+    public SetMenu? Featured { get; private set; }
 
-    [BindProperty(SupportsGet = true)]
-    public string? Search { get; set; }
+    /// <summary>Carte categories (no wine, no set-menu-only drinks) in the order the restaurant arranged them.</summary>
+    public List<MenuCategory> Categories { get; private set; } = new();
+    public List<MenuItem> Dishes { get; private set; } = new();
+    public List<MenuItem> Picks { get; private set; } = new();
+    public List<MenuItem> Tiles { get; private set; } = new();
+    public List<MenuItem> Wines { get; private set; } = new();
+    public Dictionary<int, decimal> Discounts { get; private set; } = new();
 
-    [BindProperty(SupportsGet = true)]
-    public bool VegetarianOnly { get; set; }
+    public DietaryProfile? Viewer { get; private set; }
+    public bool ViewerHasRestriction => Viewer?.HasAnyRestriction == true;
 
-    public int CartItemCount { get; set; }
+    /// <summary>Dishes this guest's allergies and diet rule out. Used by the "Suits my profile" chip and its count.</summary>
+    public HashSet<int> NotForMe { get; private set; } = new();
 
-    public async Task OnGetAsync()
+    /// <summary>Visitors and customers can order; staff and administrators only look at the menu.</summary>
+    public bool CanOrder => User.Identity?.IsAuthenticated != true || User.IsInRole(Roles.Customer);
+
+    public async Task<IActionResult> OnGetAsync()
     {
+        if (User.IsInRole(Roles.Administrator)) return RedirectToPage("/Admin/MenuManagement");
+        if (User.IsInRole(Roles.Staff)) return RedirectToPage("/Staff/SetMenus");
         await LoadAsync();
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAddToCartAsync(int menuItemId, int quantity, string? specialInstructions)
+    // ---------------------------------------------------------------- adding to the cart
+    // The Menu page is public, but ordering is not: staff and administrators must not place orders, so anyone signed in who is
+    // not a customer is refused here, whatever the buttons on the page show.
+
+    public async Task<IActionResult> OnPostAddDishAsync(int menuItemId, string? returnTo)
     {
-        if (quantity < 1) quantity = 1;
+        if (!CanOrder) return Forbid();
+        var item = await _context.MenuItems.Include(m => m.MenuCategory).FirstOrDefaultAsync(m => m.Id == menuItemId);
+        if (item == null || !item.IsAvailable || item.MenuCategory is { SetMenuOnly: true })
+            return Back("That dish is not available right now.", ok: false, returnTo);
 
-        var menuItem = await _context.MenuItems.FindAsync(menuItemId);
-        if (menuItem == null || !menuItem.IsAvailable)
+        var cart = CartSession.Load(HttpContext.Session);
+        CartSession.Add(cart, new CartItemVM
         {
-            TempData["ErrorMessage"] = "That item is no longer available.";
-            return RedirectToPage(new { CategoryId, Search, VegetarianOnly });
-        }
+            Kind = CartKind.Dish,
+            MenuItemId = item.Id,
+            Name = item.Name,
+            UnitPrice = item.Price,
+            Quantity = 1,
+            ImageUrl = item.ImageUrl,
+            CategoryName = item.MenuCategory?.Name
+        });
+        CartSession.Save(HttpContext.Session, cart);
+        return Back($"Added {item.Name} to your order.", ok: true, returnTo);
+    }
 
-        var cart = GetCart();
-        var existing = cart.FirstOrDefault(c => c.MenuItemId == menuItemId && c.SpecialInstructions == specialInstructions);
-        if (existing != null)
+    public async Task<IActionResult> OnPostAddWineAsync(int menuItemId, string serving, string? returnTo)
+    {
+        if (!CanOrder) return Forbid();
+        var wine = await _context.MenuItems.Include(m => m.MenuCategory).FirstOrDefaultAsync(m => m.Id == menuItemId);
+        if (wine == null || !wine.IsAvailable || wine.MenuCategory?.IsWine != true)
+            return Back("That wine is not available right now.", ok: false, returnTo);
+
+        var glass = string.Equals(serving, "glass", StringComparison.OrdinalIgnoreCase);
+        if (glass && !wine.GlassPrice.HasValue)
+            return Back($"{wine.Name} is sold by the bottle only.", ok: false, returnTo);
+
+        var cart = CartSession.Load(HttpContext.Session);
+        CartSession.Add(cart, new CartItemVM
         {
-            existing.Quantity += quantity;
-        }
-        else
+            Kind = glass ? CartKind.WineGlass : CartKind.WineBottle,
+            MenuItemId = wine.Id,
+            Name = wine.Name,
+            UnitPrice = glass ? wine.GlassPrice!.Value : wine.Price,
+            Quantity = 1,
+            ImageUrl = wine.ImageUrl,
+            CategoryName = "Cellar"
+        });
+        CartSession.Save(HttpContext.Session, cart);
+        return Back($"Added {(glass ? "a glass of" : "a bottle of")} {wine.Name} to your order.", ok: true, returnTo);
+    }
+
+    public async Task<IActionResult> OnPostAddSetAsync(int setMenuId)
+    {
+        if (!CanOrder) return Forbid();
+        var menu = await _setMenus.GetAsync(setMenuId);
+        if (menu == null || menu.Status != SetMenuStatus.Active)
+            return Back("That set menu is not on offer right now.", ok: false, "sets");
+
+        // The choices come from radio buttons and checkboxes named pick_<courseId>; anything not on the menu is rejected by the quote.
+        var picks = new List<SetMenuPick>();
+        foreach (var course in menu.Courses)
+            foreach (var raw in Request.Form[$"pick_{course.Id}"])
+                if (int.TryParse(raw, out var itemId)) picks.Add(new SetMenuPick(course.Id, itemId));
+
+        var quote = _setMenus.Quote(menu, picks);
+        if (!quote.Valid) return Back(quote.Message, ok: false, "sets", setMenuId);
+
+        var cart = CartSession.Load(HttpContext.Session);
+        CartSession.Add(cart, new CartItemVM
         {
-            cart.Add(new CartItemVM
+            Kind = CartKind.SetMenu,
+            SetMenuId = menu.Id,
+            Name = menu.Name,
+            Quantity = 1,
+            UnitPrice = quote.PerGuest,
+            ImageUrl = menu.ImageUrl,
+            CategoryName = "Set menu",
+            Picks = quote.Chosen.Select(c => new CartPickVM
             {
-                MenuItemId = menuItem.Id,
-                Name = menuItem.Name,
-                UnitPrice = menuItem.Price,
-                Quantity = quantity,
-                SpecialInstructions = specialInstructions,
-                ImageUrl = menuItem.ImageUrl
-            });
-        }
-        SaveCart(cart);
+                CourseId = c.Course.Id,
+                CourseName = c.Course.Name,
+                MenuItemId = c.Dish.MenuItemId,
+                Name = c.Dish.MenuItem!.Name,
+                Supplement = c.Dish.Supplement
+            }).ToList()
+        });
+        CartSession.Save(HttpContext.Session, cart);
+        return Back($"Added {menu.Name} to your order.", ok: true, "sets", setMenuId);
+    }
 
-        TempData["StatusMessage"] = $"Added {menuItem.Name} to your cart.";
-        return RedirectToPage(new { CategoryId, Search, VegetarianOnly });
+    private IActionResult Back(string message, bool ok, string? fragment, int? set = null)
+    {
+        TempData[ok ? "StatusMessage" : "ErrorMessage"] = message;
+        return RedirectToPage(null, null, new { set = set ?? SetId }, string.IsNullOrWhiteSpace(fragment) ? "carte" : fragment);
     }
 
     private async Task LoadAsync()
     {
-        Categories = await _context.MenuCategories.Where(c => c.IsActive).OrderBy(c => c.DisplayOrder).ToListAsync();
+        Sets = await _setMenus.ListForGuestsAsync();
+        Featured = Sets.FirstOrDefault(s => s.Id == SetId) ?? Sets.FirstOrDefault();
 
-        var query = _context.MenuItems.Include(m => m.MenuCategory).Where(m => m.IsAvailable).AsQueryable();
-        if (CategoryId.HasValue)
-            query = query.Where(m => m.MenuCategoryId == CategoryId.Value);
-        if (!string.IsNullOrWhiteSpace(Search))
-            query = query.Where(m => m.Name.Contains(Search) || (m.Description != null && m.Description.Contains(Search)));
-        if (VegetarianOnly)
-            query = query.Where(m => m.IsVegetarian);
+        Categories = await _context.MenuCategories.AsNoTracking()
+            .Where(c => c.IsActive && !c.IsWine && !c.SetMenuOnly).OrderBy(c => c.DisplayOrder).ToListAsync();
 
-        Items = await query.OrderBy(m => m.MenuCategory!.DisplayOrder).ThenBy(m => m.Name).ToListAsync();
+        var all = await _context.MenuItems.AsNoTracking().Include(m => m.MenuCategory)
+            .Where(m => m.IsAvailable && m.MenuCategory!.IsActive).ToListAsync();
+        Dishes = all.Where(m => m.MenuCategory is { IsWine: false, SetMenuOnly: false })
+            .OrderBy(m => m.MenuCategory!.DisplayOrder).ThenBy(m => m.Name).ToList();
+        Wines = all.Where(m => m.MenuCategory?.IsWine == true)
+            .OrderBy(m => m.MenuCategory!.DisplayOrder).ThenByDescending(m => m.Price).ToList();
 
-        var activePromotions = await _context.Promotions
-            .Where(p => p.IsActive && p.MenuItemId != null && p.StartDate <= DateTime.UtcNow.Date && p.EndDate >= DateTime.UtcNow.Date)
-            .ToListAsync();
-        ActivePromotionDiscounts = activePromotions
-            .Where(p => p.MenuItemId.HasValue)
-            .GroupBy(p => p.MenuItemId!.Value)
-            .ToDictionary(g => g.Key, g => g.Max(p => p.DiscountPercent));
+        // Dietary profile: customers only. Staff keep a dietary record for staff-meal planning; it never shapes this page.
+        if (User.IsInRole(Roles.Customer))
+        {
+            var me = await _userManager.GetUserAsync(User);
+            if (me != null) Viewer = DietaryRules.ProfileFor(me);
+        }
+        if (ViewerHasRestriction)
+            NotForMe = Dishes.Where(d => !DietaryRules.IsSuitable(d, Viewer!)).Select(d => d.Id).ToHashSet();
 
-        string? userId = User.Identity?.IsAuthenticated == true ? _userManager.GetUserId(User) : null;
-        Recommended = await _recommendationService.GetRecommendationsAsync(userId, 4);
+        Picks = Dishes.Where(d => d.IsChefsPick).Take(2).ToList();
+        Tiles = Dishes.Where(d => !Picks.Contains(d)).ToList();
 
-        CartItemCount = GetCart().Sum(c => c.Quantity);
-    }
-
-    private List<CartItemVM> GetCart()
-    {
-        var json = HttpContext.Session.GetString(CartSessionKey);
-        if (string.IsNullOrEmpty(json)) return new List<CartItemVM>();
-        return JsonSerializer.Deserialize<List<CartItemVM>>(json) ?? new List<CartItemVM>();
-    }
-
-    private void SaveCart(List<CartItemVM> cart)
-    {
-        HttpContext.Session.SetString(CartSessionKey, JsonSerializer.Serialize(cart));
+        var viewerId = User.Identity?.IsAuthenticated == true ? _userManager.GetUserId(User) : null;
+        var viewerEmail = viewerId != null ? await _context.Users.Where(u => u.Id == viewerId).Select(u => u.Email).FirstOrDefaultAsync() : null;
+        Discounts = await _promotions.GetDisplayDiscountsAsync(Dishes, viewerEmail);
     }
 }

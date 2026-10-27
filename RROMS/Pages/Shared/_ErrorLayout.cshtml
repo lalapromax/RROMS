@@ -1,0 +1,24 @@
+@inject IWebHostEnvironment Env
+@* A plain shell for "something went wrong". It asks nothing of the database, the session or the user store, because those may be what failed. *@
+@{
+    var hasLogo = Env.WebRootFileProvider.GetFileInfo(Brand.LogoPath.TrimStart('/')).Exists;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <partial name="_Head" />
+    <link rel="stylesheet" href="~/css/blm-guest.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/blm-guest-real.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="guest">
+    <a class="skip" href="#main">Skip to the page</a>
+    <partial name="_Sprite" />
+    <header class="nav nav-plain">
+        <partial name="_Seal" model="@(new SealVM("/", "home", hasLogo))" />
+    </header>
+    <main id="main" tabindex="-1">
+        @RenderBody()
+    </main>
+</body>
+</html>

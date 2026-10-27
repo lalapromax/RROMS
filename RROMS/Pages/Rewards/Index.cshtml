@@ -1,0 +1,311 @@
+@page
+@model RROMS.Pages.Rewards.IndexModel
+@using System.Text.RegularExpressions
+@using RROMS.Models
+@{
+    ViewData["Title"] = "Rewards";
+    ViewData["Bundle"] = "guest";   // the dark "where you stand" band and the tier cards live in the guest sheet, not the booking one
+
+    var st = Model.Standing;
+    var rk = Model.Rank;
+    var next = st.NextTier;
+    var perPoint = Model.PointsPerCurrencyUnit;
+
+    // Each tier has its own colour; its card head is a soft wash of it. Colours are validated when an administrator saves them,
+    // and checked again here before they go into a style attribute.
+    string SafeHex(string? hex) => hex != null && Regex.IsMatch(hex, "^#[0-9A-Fa-f]{6}$") ? hex : "#84592B";
+    string Tint(string? hex)
+    {
+        var h = SafeHex(hex);
+        int c(int i) => Convert.ToInt32(h.Substring(1 + i * 2, 2), 16);
+        int[] bg = { 0xFB, 0xEF, 0xD6 };
+        string m(int i) => ((int)Math.Round(bg[i] * 0.84 + c(i) * 0.16)).ToString("X2").PadLeft(2, '0');
+        return "#" + m(0) + m(1) + m(2);
+    }
+    (string Sym, string Surf) Art(int i) => (i % 3) switch { 0 => ("d-tatin", "oak"), 1 => ("g-red", "olive"), _ => ("b-champ", "cocoa") };
+    string GroupIcon(string g) => g.Contains("every", StringComparison.OrdinalIgnoreCase) ? "star" : g.Contains("table", StringComparison.OrdinalIgnoreCase) ? "table" : "gift";
+    string FreqText(PerkFrequency f) => f switch { PerkFrequency.Once => "One time", PerkFrequency.Monthly => "Once a month", PerkFrequency.Yearly => "Once a year", _ => "Always on" };
+    string Pct(int pts, int top) => top <= 0 ? "2" : Math.Max(2, Math.Min(100, Math.Round(pts * 100.0 / top, 1))).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+    var topBoard = Model.Leaderboard.Count > 0 ? Model.Leaderboard.Max(r => r.Points) : 1;
+    var youInList = Model.Leaderboard.Any(r => r.IsYou);
+    var bandCount = rk.BandLabels.Count;
+    string PinLeft() => (((rk.BandIndex + 0.5) / Math.Max(1, bandCount)) * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Rewards.css" asp-append-version="true" />
+}
+
+<section class="hero">
+    <div class="wrap hero-in">
+        <div>
+            <h1>Rewards</h1>
+            <p class="lead-it">Every paid order earns points. The more you dine with us, the more each tier gives back.</p>
+            <p class="copy">Points count once an order is completed and paid. You earn @perPoint @(perPoint == 1 ? "point" : "points") for every @Brand.Currency 1.</p>
+            <div class="ctas">
+                <a class="btn btn-wine" asp-page="/Menu/Index">Order from the menu</a>
+                <a class="btn btn-line" href="#where">See where you stand</a>
+            </div>
+        </div>
+        <div class="card-stack" role="group" aria-label="Your membership card">
+            <div class="mcard back" aria-hidden="true"></div>
+            <div class="mcard">
+                <span class="wm" aria-hidden="true"></span>
+                <div class="mc-top">
+                    <partial name="_LogoSlot" />
+                    <span class="mc-tier">@st.Tier.Name</span>
+                </div>
+                <div class="mc-pts"><b>@st.Points.ToString("N0")</b><span>@(st.Points == 1 ? "point" : "points")</span></div>
+                <div class="mc-prog">
+                    @if (next != null)
+                    {
+                        <div class="mc-bar" role="progressbar" aria-valuenow="@st.PercentToNext" aria-valuemin="0" aria-valuemax="100" aria-label="Progress to @next.Name"><i style="width:@(st.PercentToNext)%"></i></div>
+                        <p><span>@st.PointsToNext.ToString("N0") @(st.PointsToNext == 1 ? "point" : "points") to @next.Name</span><span>@next.MinPoints.ToString("N0")</span></p>
+                    }
+                    else
+                    {
+                        <p><span>You are at our highest tier. Thank you.</span></p>
+                    }
+                </div>
+                <span class="mc-name">@Model.ShortName · Member since @Model.Joined.ToString("MMMM yyyy")</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="tiers" aria-labelledby="tiers-h">
+    <div class="wrap">
+        <h2 id="tiers-h">What each tier gives you</h2>
+        <p class="lead-it">Climb at your own pace. Each tier keeps everything from the one before it.</p>
+        <div class="tier-grid" data-tier-grid>
+            @foreach (var card in Model.Cards)
+            {
+                var (sym, surf) = Art(card.Index);
+                <article class="tier @(card.State == "here" ? "here" : card.State == "locked" ? "locked" : "")" style="--acc:@SafeHex(card.Tier.ColorHex);--tint:@Tint(card.Tier.ColorHex)" data-here="@(card.State == "here" ? "true" : null)" aria-labelledby="tier-@card.Tier.Id">
+                    <span class="t-flag @(card.State == "here" ? "" : "line")">
+                        @Ui.Icon(card.State == "here" ? "star" : card.State == "locked" ? "lock" : "check", 14, 2)
+                        @card.Flag
+                    </span>
+                    <header class="t-head">
+                        <h3 id="tier-@card.Tier.Id">@card.Tier.Name</h3>
+                        <p>@card.Message</p>
+                        @Ui.Plate(sym, surf, "round")
+                    </header>
+                    @if (card.Previous != null)
+                    {
+                        <p class="cum">Everything in @card.Previous, plus</p>
+                    }
+                    @foreach (var g in card.Groups)
+                    {
+                        <div class="grp"><span class="gi" aria-hidden="true">@Ui.Icon(GroupIcon(g.Name), 17, 1.6)</span>@g.Name</div>
+                        <ul>
+                            @foreach (var pv in g.Perks)
+                            {
+                                var p = pv.Perk;
+                                <li class="perk">
+                                    <span class="pk-ic" aria-hidden="true">@Ui.Icon(PerkIcons.Normalize(p.Icon), 22, 1.6)</span>
+                                    <div>
+                                        <span class="pk-t">@p.Title</span>
+                                        <span class="pk-d">@(string.IsNullOrWhiteSpace(p.Description) ? FreqText(p.Frequency) : p.Description)</span>
+                                        @switch (pv.State)
+                                        {
+                                            case "always":
+                                                <p class="pk-s on">@Ui.Icon("check", 16, 2.2) Always on</p>
+                                                break;
+                                            case "claim":
+                                                <form method="post" asp-page-handler="Claim" class="claim-form">
+                                                    <input type="hidden" name="perkId" value="@p.Id" />
+                                                    <button type="submit" class="btn btn-wine pk-claim" aria-label="Claim @p.Title">Claim</button>
+                                                    @if (!string.IsNullOrWhiteSpace(p.Description)) { <span class="pk-f">@FreqText(p.Frequency)</span> }
+                                                </form>
+                                                break;
+                                            case "waiting":
+                                                <p class="pk-s wait">@Ui.Icon("hist", 16, 1.6) Claimed @pv.When?.ToLocalTime().ToString("d MMM"). We are preparing it.</p>
+                                                break;
+                                            case "done":
+                                                <p class="pk-s done">@Ui.Icon("check", 16, 2.2) Enjoyed @pv.When?.ToLocalTime().ToString("d MMM")</p>
+                                                break;
+                                            case "resting":
+                                                <p class="pk-s done">@Ui.Icon("check", 16, 2.2) Claimed @pv.When?.ToLocalTime().ToString("d MMM"). Back on @pv.AvailableAgain?.ToLocalTime().ToString("d MMM").</p>
+                                                break;
+                                            default:
+                                                <p class="pk-s lock">@Ui.Icon("lock", 15, 1.6) Unlocks at @pv.TierName</p>
+                                                break;
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    @if (card.Groups.Count == 0)
+                    {
+                        <p class="cum" style="padding-bottom:18px">Perks for this tier are on their way.</p>
+                    }
+                    <div class="t-meta"><span>@card.Meta</span></div>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="stand" id="where" aria-labelledby="stand-h">
+    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+    <div class="wrap stand-in">
+        <h2 id="stand-h">Where you stand</h2>
+        <p class="lead-it">Ranked by lifetime points, the same total that sets your tier. Other guests see a shortened name only.</p>
+        <div class="stand-grid">
+            <article class="you-card" aria-labelledby="you-h">
+                <h3 class="sr-only" id="you-h">Your place</h3>
+                @if (!rk.Ranked)
+                {
+                    <p class="k">Where you stand</p>
+                    <p class="big text">@rk.Headline</p>
+                }
+                else if (rk.HeadlineIsBand)
+                {
+                    <p class="k">You are in the</p>
+                    <p class="big">@rk.Headline<small>Rank #@rk.Rank of @rk.Guests.ToString("N0") guests</small></p>
+                }
+                else if (rk.ShowNumbers)
+                {
+                    <p class="k">You are ahead of</p>
+                    <p class="big">@(rk.PercentAhead)%<small>of our @rk.Guests.ToString("N0") guests</small></p>
+                }
+                else
+                {
+                    <p class="k">Where you stand</p>
+                    <p class="big text">@rk.Headline</p>
+                }
+                <p class="you-msg">@rk.Message</p>
+
+                @if (rk.Ranked)
+                {
+                    <div class="scale" role="img" aria-label="You are in the @rk.BandLabel band" style="--n:@bandCount">
+                        <div class="scale-bar">
+                            @for (var i = 0; i < bandCount; i++) { <i class="@(i == rk.BandIndex ? "on" : "")"></i> }
+                        </div>
+                        <div class="scale-pin"><span style="left:@(PinLeft())%">You</span></div>
+                        <div class="scale-lab">
+                            @for (var i = 0; i < bandCount; i++) { <span class="@(i == rk.BandIndex ? "on" : "")">@rk.BandLabels[i]</span> }
+                        </div>
+                    </div>
+                }
+
+                @if (rk.ShowCompare)
+                {
+                    <div class="cmp">
+                        <h4>How your points compare</h4>
+                        <div class="cmp-row"><span>Top guest</span><i><u style="width:@(Pct(rk.TopPoints, rk.TopPoints))%"></u></i><b>@rk.TopPoints.ToString("N0")</b></div>
+                        @if (rk.TenPercentPoints < rk.TopPoints)
+                        {
+                            <div class="cmp-row"><span>Top 10% start at</span><i><u style="width:@(Pct(rk.TenPercentPoints, rk.TopPoints))%"></u></i><b>@rk.TenPercentPoints.ToString("N0")</b></div>
+                        }
+                        <div class="cmp-row me"><span>You</span><i><u style="width:@(Pct(rk.Points, rk.TopPoints))%"></u></i><b>@rk.Points.ToString("N0")</b></div>
+                        <div class="cmp-row"><span>Typical guest</span><i><u style="width:@(Pct(rk.TypicalPoints, rk.TopPoints))%"></u></i><b>@rk.TypicalPoints.ToString("N0")</b></div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(rk.Goal))
+                {
+                    <p class="goal"><b>Next goal:</b> @rk.Goal</p>
+                }
+            </article>
+
+            <section class="board" aria-labelledby="lb-h">
+                <h3 id="lb-h">Our top guests</h3>
+                <p class="sub">The first ten, by lifetime points.</p>
+                @if (Model.Leaderboard.Count == 0)
+                {
+                    <p class="board-empty">No one is on the board yet. The first paid orders start it.</p>
+                }
+                else
+                {
+                    <div class="lb" role="list">
+                        @foreach (var (row, idx) in Model.Leaderboard.Select((r, i) => (r, i)))
+                        {
+                            <div class="lb-row @(idx == 0 ? "first" : "") @(row.IsYou ? "me" : "")" role="listitem" aria-current="@(row.IsYou ? "true" : null)">
+                                <span class="no"><span class="sr-only">Place </span>@row.Rank</span>
+                                <span class="nm">@row.DisplayName<small>@(row.IsYou ? "You · " : "")@row.TierName</small></span>
+                                <span class="pt">@row.Points.ToString("N0") pts</span>
+                                <span class="bar" aria-hidden="true"><u style="width:@(Pct(row.Points, topBoard))%"></u></span>
+                            </div>
+                        }
+                    </div>
+                }
+                @if (rk.Ranked && rk.ShowNumbers && !youInList)
+                {
+                    @if (rk.Rank > Model.Leaderboard.Count + 1)
+                    {
+                        <div class="lb-gap" aria-hidden="true"><i></i><i></i><i></i></div>
+                    }
+                    <div class="lb-you" aria-current="true">
+                        <span class="no">#@rk.Rank</span>
+                        <span class="nm">@Model.FirstName<small>You · @st.Tier.Name</small></span>
+                        <span class="pt">@rk.Points.ToString("N0") pts</span>
+                    </div>
+                }
+                <p class="foot-note">We only list the top ten, so the board stays short however many guests there are.@(rk.Ranked && rk.ShowNumbers ? " Your own place is always shown below it." : "")</p>
+                <form method="post" asp-page-handler="Board" class="showme" data-autosubmit>
+                    <label class="row"><span>Show my first name and initial on this board</span><input type="checkbox" role="switch" name="show" value="true" checked="@Model.ShowOnBoard" /><i class="sw" aria-hidden="true"></i></label>
+                    <button type="submit" class="btn btn-line btn-sm" data-no-js-only>Save</button>
+                </form>
+            </section>
+        </div>
+    </div>
+</section>
+
+<section class="wrap two">
+    <section class="card" aria-labelledby="cl-h">
+        <h2 id="cl-h">Your claims</h2>
+        @if (Model.Claims.Count == 0)
+        {
+            <p class="muted" style="margin-top:12px">You have not claimed anything yet. Your perks are in the tier cards above.</p>
+        }
+        else
+        {
+            <ul class="claims">
+                @foreach (var c in Model.Claims)
+                {
+                    var (cls, text) = c.Status switch
+                    {
+                        RewardClaimStatus.Fulfilled => ("st-completed", "Fulfilled"),
+                        RewardClaimStatus.Declined => ("st-cancelled", "Declined"),
+                        _ => ("st-waiting", "Waiting")
+                    };
+                    <li>
+                        <div>
+                            <b>@c.PerkTitle</b>
+                            <small>@c.CreatedAt.ToLocalTime().ToString("d MMM yyyy")@(string.IsNullOrWhiteSpace(c.AdminNote) ? "" : " · " + c.AdminNote)</small>
+                        </div>
+                        <span class="st @cls">@text</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+    <section class="card" aria-labelledby="pt-h">
+        <h2 id="pt-h">Recent points</h2>
+        @if (Model.History.Count == 0)
+        {
+            <p class="muted" style="margin-top:12px">Points from your paid orders will appear here.</p>
+        }
+        else
+        {
+            <ul class="claims">
+                @foreach (var h in Model.History)
+                {
+                    <li>
+                        <div>
+                            <a class="link" asp-page="/Orders/Details" asp-route-id="@h.OrderId">Order #@h.OrderId</a>
+                            <br />
+                            <small>@h.AwardedAt.ToLocalTime().ToString("d MMM yyyy")</small>
+                        </div>
+                        <span class="plus">+@h.Points.ToString("N0")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</section>
+
+@section Scripts {
+    <script src="~/js/rewards.js" asp-append-version="true"></script>
+}

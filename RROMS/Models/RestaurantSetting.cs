@@ -32,4 +32,17 @@ public class RestaurantSetting
 
     [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "decimal(5,2)")]
     public decimal TaxRatePercent { get; set; } = 6.0m;
+
+    /// Added to dine-in bills before tax. 0 means no service charge.
+    [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "decimal(5,2)")]
+    public decimal ServiceChargePercent { get; set; } = 10.0m;
+
+    /// How long a table is held after the booking time before it is released.
+    public int HoldMinutes { get; set; } = 15;
+
+    /// Rank guardrail: show a "you are ahead of N%" figure only to guests in the top half.
+    public bool RankPercentTopHalfOnly { get; set; } = true;
+
+    /// Rank guardrail: show a rank number (for example 7th) only to guests in the top 10%.
+    public bool RankNumberTopTenOnly { get; set; } = true;
 }

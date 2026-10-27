@@ -1,0 +1,250 @@
+@model RROMS.Pages.Account.ProfileModel
+@using System.Globalization
+@using Microsoft.AspNetCore.Mvc.ModelBinding
+@* The profile sections. The same markup serves guests, staff and administrators; guests get the extra sections. *@
+@{
+    var customer = Model.IsCustomer;
+    var pi = Model.ProfileInput;
+    var months = CultureInfo.InvariantCulture.DateTimeFormat.MonthNames.Take(12).ToArray();
+    var initials = string.Concat((Model.DisplayName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    if (string.IsNullOrEmpty(initials)) initials = "?";
+    var since = customer ? "Member since " : "On the team since ";
+    var role = customer ? (Model.Rewards != null ? " · " + Model.Rewards.Tier.Name : "") : Model.IsAdmin ? " · Administrator" : " · Staff";
+}
+<div class="pf">
+    <nav class="pf-nav" aria-label="Profile sections" data-pf-nav>
+        <a href="#details" aria-current="true">@Ui.Icon("user", 20, 1.6) Personal details</a>
+        @if (customer)
+        {
+            <a href="#dietary">@Ui.Icon("fork", 20, 1.6) Dietary and allergies</a>
+            <a href="#notices">@Ui.Icon("bell", 20, 1.6) Notifications</a>
+        }
+        <a href="#signin">@Ui.Icon("lock", 20, 1.6) Password and sign-in</a>
+    </nav>
+
+    <div>
+        <div class="id">
+            @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+            {
+                <img class="av" src="@Model.ProfileImagePath" alt="" width="76" height="76" />
+            }
+            else
+            {
+                <span class="av" aria-hidden="true">@initials</span>
+            }
+            <div>
+                <b>@Model.DisplayName</b>
+                <span>@since@Model.Joined.ToString("MMMM yyyy")@role</span>
+                <div class="photo-acts no-print">
+                    <form method="post" asp-page-handler="UploadPicture" enctype="multipart/form-data" class="pic-form" id="picForm">
+                        <label class="link" for="profilePicture">@(string.IsNullOrEmpty(Model.ProfileImagePath) ? "Add a photo" : "Change photo")</label>
+                        <input type="file" id="profilePicture" name="picture" class="sr-only" accept="image/jpeg,image/png,image/webp" aria-describedby="picNote" />
+                        <button type="submit" class="btn btn-line btn-sm" data-no-js-only>Upload</button>
+                    </form>
+                    @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+                    {
+                        <form method="post" asp-page-handler="RemovePicture"><button type="submit" class="link">Remove</button></form>
+                    }
+                    <span class="muted" id="picNote">JPG, PNG or WebP, up to 2 MB.</span>
+                    <span class="err-msg" id="picError" role="alert"></span>
+                </div>
+            </div>
+        </div>
+
+        <section class="psec" id="details" aria-labelledby="h-details">
+            <h2 id="h-details">Personal details</h2>
+            <p class="sub">We only use these to confirm bookings and issue receipts.</p>
+            <form method="post" asp-page-handler="UpdateProfile" class="form" novalidate>
+                <div class="f-row f-2">
+                    <div class="field">
+                        <label for="pfName">Full name</label>
+                        <input class="in@(Ui.Err(ViewData.ModelState, "ProfileInput.FullName"))" id="pfName" name="ProfileInput.FullName" type="text" value="@pi.FullName" maxlength="100" autocomplete="name" />
+                        <span asp-validation-for="ProfileInput.FullName" class="err-msg"></span>
+                    </div>
+                    <div class="field">
+                        <label for="pfPhone">Phone</label>
+                        <input class="in@(Ui.Err(ViewData.ModelState, "ProfileInput.Phone"))" id="pfPhone" name="ProfileInput.Phone" type="tel" value="@pi.Phone" maxlength="30" autocomplete="tel" placeholder="+60 12 345 6789" />
+                        <span asp-validation-for="ProfileInput.Phone" class="err-msg"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="pfEmail">Email</label>
+                    <input class="in@(Ui.Err(ViewData.ModelState, "ProfileInput.Email"))" id="pfEmail" name="ProfileInput.Email" type="email" value="@pi.Email" maxlength="256" autocomplete="email" aria-describedby="pfEmailHint" />
+                    <p class="hint" id="pfEmailHint">Your sign-in email. Changing it asks you to confirm the new address.</p>
+                    <span asp-validation-for="ProfileInput.Email" class="err-msg"></span>
+                </div>
+                @if (customer)
+                {
+                    <div class="field">
+                        <label for="pfMonth" id="pfBirthLabel">Birthday (optional)</label>
+                        <div class="bday" role="group" aria-labelledby="pfBirthLabel">
+                            <select class="in@(Ui.Err(ViewData.ModelState, "ProfileInput.BirthDay"))" id="pfMonth" name="ProfileInput.BirthMonth" aria-label="Month">
+                                <option value="">Month</option>
+                                @for (var m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(pi.BirthMonth == m)">@months[m - 1]</option>
+                                }
+                            </select>
+                            <select class="in@(Ui.Err(ViewData.ModelState, "ProfileInput.BirthDay"))" id="pfDay" name="ProfileInput.BirthDay" aria-label="Day" aria-describedby="pfBirthHint">
+                                <option value="">Day</option>
+                                @for (var d = 1; d <= 31; d++)
+                                {
+                                    <option value="@d" selected="@(pi.BirthDay == d)">@d</option>
+                                }
+                            </select>
+                        </div>
+                        <p class="hint" id="pfBirthHint">So we can set aside a glass for your birthday week. We never show it to other guests.</p>
+                        <span asp-validation-for="ProfileInput.BirthDay" class="err-msg"></span>
+                    </div>
+                }
+                <button type="submit" class="btn btn-wine">Save changes</button>
+            </form>
+        </section>
+
+        @if (customer)
+        {
+            <section class="psec" id="dietary" aria-labelledby="h-dietary">
+                <h2 id="h-dietary">Dietary needs and allergies</h2>
+                <p class="sub">Passed to the kitchen with every booking. Allergies are shown to staff in red.</p>
+                <form method="post" asp-page-handler="SaveDietary" class="form">
+                    <partial name="_DietaryChips" model="@(new DietaryChipsVM("Diet.Needs", "Diet.Allergies", "Diet.Other", Model.Diet.Needs, Model.Diet.Allergies, Model.Diet.Other, "pf", true))" />
+                    @if (Model.UnrecognisedAllergies.Count > 0)
+                    {
+                        <p class="hint warn-line" role="note">@Ui.Icon("warn", 16, 2) We can't filter the menu for @string.Join(", ", Model.UnrecognisedAllergies). Please tell your server when you order.</p>
+                    }
+                    <button type="submit" class="btn btn-line" style="margin-top:22px">Save dietary details</button>
+                </form>
+            </section>
+
+            <section class="psec" id="notices" aria-labelledby="h-notices">
+                <h2 id="h-notices">Notifications</h2>
+                <p class="sub">Booking, order and payment updates always arrive, so you never miss a table. Choose the rest.</p>
+                <div class="pref"><partial name="_NoticePrefs" model="Model.Prefs" /></div>
+            </section>
+        }
+
+        <section class="psec" id="signin" aria-labelledby="h-signin">
+            <h2 id="h-signin">Sign-in</h2>
+            <p class="sub">Use a password, Google, or both.</p>
+
+            @if (Model.GoogleEnabled || Model.GoogleLinked)
+            {
+                <div class="linked">
+                    <div class="g">
+                        <span class="avatar g-av" aria-hidden="true">G</span>
+                        <div>
+                            <b>Google</b><br />
+                            <span class="muted">@(Model.GoogleLinked ? Model.GoogleEmail : "Not connected")</span>
+                        </div>
+                    </div>
+                    @if (Model.GoogleLinked)
+                    {
+                        if (Model.HasPassword)
+                        {
+                            <form method="post" asp-page-handler="UnlinkGoogle" data-confirm="Disconnect Google? You will sign in with your email and password instead."><button type="submit" class="link">Disconnect</button></form>
+                        }
+                        else
+                        {
+                            <span class="muted">Set a password to disconnect</span>
+                        }
+                    }
+                    else
+                    {
+                        <div><partial name="_GoogleSignIn" model="@(new GoogleSignInVM(Model.GoogleClientId, Url.Page("/Account/Profile", "LinkGoogle")!, null, "continue_with"))" /></div>
+                    }
+                </div>
+            }
+
+            @if (Model.HasPassword)
+            {
+                <form method="post" asp-page-handler="ChangePassword" class="form" style="margin-top:22px" novalidate>
+                    <div class="f-row f-3">
+                        <div class="field">
+                            <label for="PasswordInput_CurrentPassword">Current password</label>
+                            <input class="in@(Ui.Err(ViewData.ModelState, "PasswordInput.CurrentPassword"))" id="PasswordInput_CurrentPassword" name="PasswordInput.CurrentPassword" type="password" autocomplete="current-password" />
+                            <span asp-validation-for="PasswordInput.CurrentPassword" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="PasswordInput_NewPassword">New password</label>
+                            <input class="in@(Ui.Err(ViewData.ModelState, "PasswordInput.NewPassword"))" id="PasswordInput_NewPassword" name="PasswordInput.NewPassword" type="password" autocomplete="new-password" data-password-check />
+                            <span asp-validation-for="PasswordInput.NewPassword" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="PasswordInput_ConfirmPassword">Confirm new password</label>
+                            <input class="in@(Ui.Err(ViewData.ModelState, "PasswordInput.ConfirmPassword"))" id="PasswordInput_ConfirmPassword" name="PasswordInput.ConfirmPassword" type="password" autocomplete="new-password" />
+                            <span asp-validation-for="PasswordInput.ConfirmPassword" class="err-msg"></span>
+                        </div>
+                    </div>
+                    <partial name="_PasswordRules" />
+                    <button type="submit" class="btn btn-line">Change password</button>
+                </form>
+            }
+            else
+            {
+                <p class="muted" style="margin-top:22px">Your account was made with Google, so it has no password yet. Adding one lets you sign in with your email too.</p>
+                <form method="post" asp-page-handler="SetPassword" class="form" style="margin-top:14px" novalidate>
+                    <div class="f-row f-2">
+                        <div class="field">
+                            <label for="SetPasswordInput_NewPassword">New password</label>
+                            <input class="in@(Ui.Err(ViewData.ModelState, "SetPasswordInput.NewPassword"))" id="SetPasswordInput_NewPassword" name="SetPasswordInput.NewPassword" type="password" autocomplete="new-password" data-password-check />
+                            <span asp-validation-for="SetPasswordInput.NewPassword" class="err-msg"></span>
+                        </div>
+                        <div class="field">
+                            <label for="SetPasswordInput_ConfirmPassword">Confirm new password</label>
+                            <input class="in@(Ui.Err(ViewData.ModelState, "SetPasswordInput.ConfirmPassword"))" id="SetPasswordInput_ConfirmPassword" name="SetPasswordInput.ConfirmPassword" type="password" autocomplete="new-password" />
+                            <span asp-validation-for="SetPasswordInput.ConfirmPassword" class="err-msg"></span>
+                        </div>
+                    </div>
+                    <partial name="_PasswordRules" />
+                    <button type="submit" class="btn btn-line">Set password</button>
+                </form>
+            }
+        </section>
+
+        @if (customer)
+        {
+            <section class="psec" id="danger" aria-labelledby="h-danger">
+                <div class="danger">
+                    <div>
+                        <h3 id="h-danger" style="font-size:22px;font-weight:500">Delete my account</h3>
+                        <p class="muted" style="margin-top:4px">Removes your details and points. Past orders are kept for our records without your name.</p>
+                    </div>
+                    <button type="button" class="btn btn-danger" data-dialog-open="deleteDlg">Delete account</button>
+                </div>
+            </section>
+        }
+    </div>
+</div>
+
+@if (customer)
+{
+    <dialog class="modal" id="deleteDlg" style="--w:520px" aria-labelledby="deleteTitle" data-open-on-load="@(Model.DeleteError != null ? "true" : null)">
+        <div class="modal-head">
+            <h2 id="deleteTitle">Delete your account?</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <form method="post" asp-page-handler="DeleteAccount" id="deleteForm">
+            <p>This cannot be undone. We remove your name, contact details, dietary details, photo, points and notices, and cancel any bookings still to come. Past orders and receipts stay in our records without your name.</p>
+            @if (Model.DeleteError != null)
+            {
+                <p class="form-alert" role="alert" style="margin:16px 0 0">@Ui.Icon("warn", 18, 2) <span>@Model.DeleteError</span></p>
+            }
+            <div class="field" style="margin-top:18px">
+                @if (Model.HasPassword)
+                {
+                    <label for="DeleteInput_Password">Your password, to confirm it is you</label>
+                    <input class="in" id="DeleteInput_Password" name="DeleteInput.Password" type="password" autocomplete="current-password" />
+                }
+                else
+                {
+                    <label for="DeleteInput_Confirm">Type DELETE to confirm</label>
+                    <input class="in" id="DeleteInput_Confirm" name="DeleteInput.Confirm" type="text" autocomplete="off" />
+                }
+            </div>
+        </form>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep my account</button>
+            <button type="submit" form="deleteForm" class="btn btn-danger">Delete account</button>
+        </div>
+    </dialog>
+}

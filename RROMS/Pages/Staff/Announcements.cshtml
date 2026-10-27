@@ -1,0 +1,204 @@
+@page
+@model RROMS.Pages.Staff.AnnouncementsModel
+@using RROMS.Pages.Staff
+@using RROMS.Services
+@{
+    ViewData["Title"] = "Announcements";
+    var err = ViewData.ModelState["F"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var f = Model.F;
+    var tierFields = string.Concat(Model.Tiers.Select(t => ",t" + t.Id));
+    var openAttrs = "id,subject,content,all,when,publishat,pinned,btntext,btnurl,notify,live" + tierFields;
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Announcements</h1>
+            <p>News for your guests. It appears in their Notices and, if they choose, by email.</p>
+        </div>
+        <div class="row-acts">
+            <button type="button" class="btn btn-wine" data-dialog-open="annDlg" data-fields="@openAttrs" data-title="New announcement"
+                    data-all="true" data-when="now" data-notify="true" data-live="false">New announcement</button>
+        </div>
+    </div>
+
+    <section class="panel" aria-labelledby="annList">
+        <h2 class="sr-only" id="annList">Your announcements</h2>
+        <nav class="tabs" aria-label="Show announcements">
+            @foreach (var (key, label) in AnnouncementsModel.Tabs)
+            {
+                <a asp-page="/Staff/Announcements" asp-route-tab="@key" aria-current="@(Model.Tab == key ? "page" : null)">@label<small>@Model.Counts.GetValueOrDefault(key)</small></a>
+            }
+        </nav>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="empty-card">
+                <h3>@(Model.Tab == "all" ? "Nothing posted yet" : "Nothing here")</h3>
+                <p>@(Model.Tab == "all" ? "Tell guests about a tasting evening, a new menu or a quiet change to the hours." : "Announcements in this state will be listed here.")</p>
+                @if (Model.Tab == "all")
+                {
+                    <button type="button" class="btn btn-wine" data-dialog-open="annDlg" data-fields="@openAttrs" data-title="New announcement"
+                            data-all="true" data-when="now" data-notify="true" data-live="false">New announcement</button>
+                }
+            </div>
+        }
+        else
+        {
+            <table class="t t-cards">
+                <thead>
+                    <tr>
+                        <th scope="col">Announcement</th>
+                        <th scope="col">Sent to</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rows)
+                    {
+                        var a = r.A;
+                        var live = r.State is "Published" or "Ended";
+                        var tierSet = a.GetTierIds();
+                        <tr>
+                            <td data-l="" class="c-guest">
+                                <div class="who">
+                                    <b>@a.Title</b>
+                                    @if (r.Pinned) { <small>Pinned</small> }
+                                </div>
+                            </td>
+                            <td data-l="Sent to">@r.Audience</td>
+                            <td data-l="Date">@r.When</td>
+                            <td data-l="Status"><span class="st @r.Css">@r.State</span></td>
+                            <td data-l="" class="c-acts">
+                                <div class="row-acts">
+                                    <button type="button" class="btn btn-line btn-sm2" data-dialog-open="annDlg" data-fields="@openAttrs" data-title="Edit announcement"
+                                            data-id="@a.Id" data-subject="@a.Title" data-content="@a.Content"
+                                            data-all="@(a.ToAllCustomers ? "true" : "false")"
+                                            data-when="@(r.State == "Scheduled" ? "later" : "now")"
+                                            data-publishat="@(r.State == "Scheduled" ? TimeInput.ToInputValue(a.PublishAt) : "")"
+                                            data-pinned="@(a.IsPinned ? "true" : "false")"
+                                            data-btntext="@a.ButtonText" data-btnurl="@a.ButtonUrl"
+                                            data-notify="@(r.State == "Draft" || a.NotifyPending ? "true" : "false")"
+                                            data-live="@(live ? "true" : "false")"
+                                            @Html.Raw(string.Concat(Model.Tiers.Select(t => $"data-t{t.Id}=\"{(tierSet.Contains(t.Id) ? "true" : "false")}\" ")))>Edit</button>
+                                    <button type="button" class="btn btn-line btn-sm2" data-dialog-open="removeDlg" data-fields="id,name" data-id="@a.Id" data-name="@a.Title">Remove</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@* ---- write or change an announcement ---- *@
+<dialog class="modal" id="annDlg" style="--w:700px" aria-labelledby="annT" data-open-on-load="@(Model.OpenForm ? "true" : null)">
+    <form method="post" asp-page-handler="Save" asp-route-tab="@Model.Tab" autocomplete="off" id="annForm" class="form">
+        <input type="hidden" id="annDlg_id" name="F.Id" value="@f.Id" />
+        <input type="hidden" id="annDlg_live" value="false" />
+        <div class="modal-head">
+            <h2 id="annT" data-dialog-title>@(f.Id > 0 ? "Edit announcement" : "New announcement")</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            @if (err != null) { <div class="form-alert" role="alert">@Ui.Icon("warn", 18, 2)<div><p>@err</p></div></div> }
+
+            <div class="field">
+                <label for="annDlg_subject">Title</label>
+                <input class="in" id="annDlg_subject" name="F.Title" type="text" value="@f.Title" maxlength="@AnnouncementsModel.TitleMax" required />
+            </div>
+            <div class="field">
+                <label for="annDlg_content">Message</label>
+                <textarea class="in" id="annDlg_content" name="F.Content" rows="4" maxlength="@AnnouncementsModel.MessageMax" required aria-describedby="annCount">@f.Content</textarea>
+                <p class="hint" id="annCount" data-count-for="annDlg_content" data-max="@AnnouncementsModel.MessageMax"></p>
+            </div>
+
+            <fieldset class="field" aria-describedby="annAudHint">
+                <legend class="lab">Who should see it?</legend>
+                <div class="ck-row" data-audience>
+                    <label class="ckb"><input type="checkbox" id="annDlg_all" name="F.AllCustomers" value="true" checked="@(f.AllCustomers || (f.Id == 0 && !ViewData.ModelState.ContainsKey("F") && f.TierIds.Count == 0))" data-aud-all /><i>@Ui.Icon("check", 13, 3)</i> All customers</label>
+                    @foreach (var t in Model.Tiers)
+                    {
+                        <label class="ckb"><input type="checkbox" id="annDlg_t@(t.Id)" name="F.TierIds" value="@t.Id" checked="@f.TierIds.Contains(t.Id)" data-aud-tier /><i>@Ui.Icon("check", 13, 3)</i> @t.Name members</label>
+                    }
+                </div>
+                <p class="hint" id="annAudHint">Staff can reach all customers or a whole tier. Choosing one guest at a time is for administrators.</p>
+            </fieldset>
+
+            <div class="f-row f-2">
+                <fieldset class="field">
+                    <legend class="lab">When</legend>
+                    <div class="ck-row" data-when-group>
+                        <label class="ckb"><input type="radio" id="annDlg_when" name="F.When" value="now" checked="@(f.When != "later")" /><i></i> Send now</label>
+                        <label class="ckb"><input type="radio" name="F.When" value="later" checked="@(f.When == "later")" /><i></i> Schedule</label>
+                    </div>
+                    <div id="annWhen" style="margin-top:10px" hidden>
+                        <label class="sr-only" for="annDlg_publishat">Publish on</label>
+                        <input class="in" id="annDlg_publishat" name="F.PublishAt" type="datetime-local" value="@f.PublishAt?.ToString("yyyy-MM-ddTHH:mm")" />
+                    </div>
+                </fieldset>
+                <div class="field">
+                    <span class="lab" id="annPinL">Pin to the top</span>
+                    <label class="swx"><input type="checkbox" id="annDlg_pinned" name="F.Pinned" value="true" checked="@f.Pinned" aria-labelledby="annPinL" /><span class="sw"></span></label>
+                    <p class="hint">Pinned news stays above the rest in guests' Notices.</p>
+                </div>
+            </div>
+
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="annDlg_btntext">Button words <span class="muted">(optional)</span></label>
+                    <input class="in" id="annDlg_btntext" name="F.ButtonText" type="text" value="@f.ButtonText" maxlength="@AnnouncementsModel.ButtonTextMax" placeholder="Book a table" />
+                </div>
+                <div class="field">
+                    <label for="annDlg_btnurl">Opens this page <span class="muted">(optional)</span></label>
+                    <input class="in" id="annDlg_btnurl" name="F.ButtonUrl" type="text" value="@f.ButtonUrl" maxlength="@AnnouncementsModel.ButtonUrlMax" placeholder="/Reservations/Create" list="annLinks" inputmode="url" autocapitalize="off" spellcheck="false" />
+                    <datalist id="annLinks">
+                        <option value="/Reservations/Create">Book a table</option>
+                        <option value="/Menu">The menu</option>
+                        <option value="/Rewards">Rewards</option>
+                        <option value="/Feedback/Create">Write a review</option>
+                    </datalist>
+                </div>
+            </div>
+
+            <div id="annNotify">
+                <label class="ckb"><input type="checkbox" id="annDlg_notify" name="F.Notify" value="true" checked="@f.Notify" /><i>@Ui.Icon("check", 13, 3)</i> Also send each guest a notice when it goes live</label>
+                <p class="hint" style="margin-left:30px">Guests who turned announcements off in their Notices settings are left out.</p>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Close</button>
+            <span class="sp"></span>
+            <button type="submit" class="btn btn-line" name="F.Intent" value="draft">Save as draft</button>
+            <button type="submit" class="btn btn-wine" name="F.Intent" value="publish" id="annPublish">Publish</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- take one down ---- *@
+<dialog class="modal" id="removeDlg" style="--w:460px" aria-labelledby="remT">
+    <form method="post" asp-page-handler="Remove" asp-route-tab="@Model.Tab" class="form">
+        <input type="hidden" id="removeDlg_id" name="id" />
+        <div class="modal-head">
+            <div>
+                <h2 id="remT">Remove this announcement?</h2>
+                <p class="muted" id="removeDlg_name" style="margin-top:2px"></p>
+            </div>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>Guests will no longer see it in their Notices. Notices already sent stay in their inbox. To keep the text for later, save it as a draft instead.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-danger">Remove</button>
+        </div>
+    </form>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/announcements.js" asp-append-version="true"></script>
+}

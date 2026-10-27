@@ -1,79 +1,300 @@
 @page
 @model RROMS.Pages.Menu.IndexModel
+@using RROMS.Models
 @{
-    ViewData["Title"] = "Menu";
+    ViewData["Title"] = "The menu";
+    ViewData["Bundle"] = "lite";
+    var canOrder = Model.CanOrder;
+    var others = Model.Sets.Where(s => s.Id != Model.Featured?.Id).ToList();
+    var catById = Model.Categories.ToDictionary(c => c.Id);
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Menu.css" asp-append-version="true" />
 }
 
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-    <div>
-        <p class="rroms-section-eyebrow mb-1">Our menu</p>
-        <h1 class="h3 mb-0">Browse &amp; order</h1>
-    </div>
-    <a asp-page="/Orders/Cart" class="btn btn-primary">
-        <i class="bi bi-basket3"></i> Cart @(Model.CartItemCount > 0 ? $"({Model.CartItemCount})" : "")
-    </a>
-</div>
-
-<form method="get" class="rroms-card p-3 mb-4">
-    <div class="bento-filter-bar">
+<section class="wrap">
+    <div class="head">
         <div>
-            <label class="form-label small">Search</label>
-            <input type="text" name="Search" value="@Model.Search" class="form-control" placeholder="Search dishes..." />
+            <h1>The menu</h1>
+            <p class="lede">Choose a set menu and let the kitchen take care of the order, or build your own meal from the carte. Everything is cooked when you order it.</p>
         </div>
-        <div>
-            <label class="form-label small">Category</label>
-            <select name="CategoryId" class="form-select" onchange="this.form.submit()">
-                <option value="">All categories</option>
-                @foreach (var c in Model.Categories)
+        <p class="slip-in">Everything is cooked to order, so a few dishes take a little while.</p>
+    </div>
+    <nav class="tabs" aria-label="Menu sections">
+        @if (Model.Sets.Count > 0)
+        {
+            <a href="#sets">Set menus</a>
+        }
+        <a href="#carte">À la carte</a>
+        @if (Model.Wines.Count > 0)
+        {
+            <a href="#cellar">The cellar</a>
+        }
+    </nav>
+</section>
+
+@if (Model.Featured != null)
+{
+    var f = Model.Featured;
+    var courses = f.Courses.OrderBy(c => c.SortOrder).ToList();
+    var basePrice = f.PricePerGuest;
+    // The first dish of each course is ticked to begin with; the total below follows the guest's own choices (see menu.js).
+    var startSupp = courses.Sum(c => c.Dishes.OrderBy(d => d.SortOrder).Take(c.Picks == 0 ? c.Dishes.Count : c.Picks).Sum(d => d.Supplement));
+    var startNames = courses.SelectMany(c => c.Dishes.OrderBy(d => d.SortOrder).Take(c.Picks == 0 ? c.Dishes.Count : c.Picks)).Where(d => d.Supplement > 0).Select(d => d.MenuItem!.Name).ToList();
+    <section class="wrap sets" id="sets" aria-label="Set menus">
+        <article class="card">
+            <div class="strip">
+                @foreach (var m in courses.Select(c => c.Dishes.OrderBy(d => d.SortOrder).FirstOrDefault()?.MenuItem).Where(m => m != null).Take(4))
                 {
-                    <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                    @Ui.Pic(m!.ImageUrl, m.Name, m.MenuCategory?.Name, "none", decorative: true)
                 }
-            </select>
+            </div>
+            <form method="post" asp-page-handler="AddSet" class="card-body" data-setform data-base="@basePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                <input type="hidden" name="setMenuId" value="@f.Id" />
+                <div class="card-head">
+                    <h3>@f.Name</h3>
+                    <p class="card-sub">@(f.Tagline ?? (courses.Count == 1 ? "One course." : $"{courses.Count} courses. Choose one from each."))</p>
+                </div>
+                @foreach (var c in courses)
+                {
+                    var multi = c.Picks == 0 || c.Picks > 1;
+                    var dishes = c.Dishes.OrderBy(d => d.SortOrder).ToList();
+                    var take = c.Picks == 0 ? dishes.Count : c.Picks;
+                    <fieldset class="course">
+                        <legend>@c.Name@if (c.Picks > 1) {
+                            <span class="course-note"> (choose @c.Picks)</span>
+                        }
+                    </legend>
+                    <div class="opts">
+                        @for (var i = 0; i < dishes.Count; i++)
+                        {
+                            var d = dishes[i];
+                            var m = d.MenuItem!;
+                            <label class="opt">
+                                <input type="@(multi ? "checkbox" : "radio")" name="pick_@c.Id" value="@m.Id" data-supp="@d.Supplement.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-name="@m.Name" checked="@(i < take)" disabled="@(c.Picks == 0)" />
+                                @if (c.Picks == 0)
+                                {
+                                    <input type="hidden" name="pick_@c.Id" value="@m.Id" />
+                                }
+                                @Ui.Pic(m.ImageUrl, m.Name, m.MenuCategory?.Name, "round", decorative: true)
+                                <span>
+                                    <span class="t">@m.Name</span>
+                                    <small>@(d.Supplement > 0 ? "+ " + Ui.Rm(d.Supplement) : "Included")</small>
+                                </span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+            }
+            <div class="card-foot">
+                <div>
+                    <span class="total" data-total aria-live="polite">@Ui.Rm(basePrice + startSupp)</span>
+                    <span class="total-note" data-total-note>@(startSupp > 0 ? $"per guest: set price {Ui.Rm(basePrice)}, plus {Ui.Rm(startSupp)} for {string.Join(" and ", startNames)}" : "per guest")</span>
+                </div>
+                @if (canOrder)
+                {
+                    <button class="btn btn-wine btn-lg" type="submit">Add to order</button>
+                }
+                else
+                {
+                    <span class="muted">Ordering is for guests</span>
+                }
+            </div>
+        </form>
+    </article>
+    @if (others.Count > 0)
+    {
+        <div class="side">
+            @foreach (var s in others)
+            {
+                <article class="card compact">
+                    <div class="strip">
+                        @foreach (var m in s.Courses.OrderBy(c => c.SortOrder).Select(c => c.Dishes.OrderBy(d => d.SortOrder).FirstOrDefault()?.MenuItem).Where(m => m != null).Take(4))
+                        {
+                            @Ui.Pic(m!.ImageUrl, m.Name, m.MenuCategory?.Name, "none", decorative: true)
+                        }
+                    </div>
+                    <div class="card-body">
+                        <h3>@s.Name</h3>
+                        <p class="card-sub">@(s.Tagline ?? $"{s.Courses.Count} courses")</p>
+                        <dl class="rows">
+                            @foreach (var c in s.Courses.OrderBy(c => c.SortOrder))
+                            {
+                                <div class="rowc">
+                                    <dt>@c.Name</dt>
+                                    <dd>@(c.Dishes.Count == 1 ? c.Dishes.First().MenuItem!.Name : string.Join(" or ", c.Dishes.OrderBy(d => d.SortOrder).Take(2).Select(d => d.MenuItem!.Name)))</dd>
+                                </div>
+                            }
+                        </dl>
+                        <div class="card-foot">
+                            <span class="total">@Ui.Rm(s.PricePerGuest)</span>
+                            <a class="btn btn-line btn-sm" asp-page="/Menu/Index" asp-route-set="@s.Id" asp-fragment="sets">Choose</a>
+                        </div>
+                    </div>
+                </article>
+            }
         </div>
-        <div class="form-check pb-2">
-            <input type="checkbox" class="form-check-input" name="VegetarianOnly" value="true" id="vegOnly" checked="@Model.VegetarianOnly" onchange="this.form.submit()" />
-            <label class="form-check-label" for="vegOnly">@RROMS.Models.DishPresentation.VegetarianEmoji Vegetarian only</label>
-        </div>
-        <div>
-            <button type="submit" class="btn btn-outline-primary w-100">Go</button>
-        </div>
+    }
+</section>
+}
+
+<section class="wrap carte" id="carte" aria-label="À la carte">
+    <div class="sec-head">
+        <h2 class="h-lg">À la carte</h2>
     </div>
-</form>
+    <div class="chips" role="group" aria-label="Filter dishes" data-chips>
+        <button class="chip" type="button" aria-pressed="true" data-filter="all">All</button>
+        @foreach (var c in Model.Categories)
+        {
+            <button class="chip" type="button" aria-pressed="false" data-filter="cat" data-cat="@c.Id">@c.Name</button>
+        }
+        <button class="chip" type="button" aria-pressed="false" data-filter="veg">Vegetarian</button>
+        @if (Model.ViewerHasRestriction)
+        {
+            <button class="chip" type="button" aria-pressed="true" data-filter="suits">Suits my profile</button>
+        }
+    </div>
+    @if (Model.ViewerHasRestriction && Model.NotForMe.Count > 0)
+    {
+        <p class="dish-allergen" data-suits-note style="margin:-36px 0 40px">@Model.NotForMe.Count @(Model.NotForMe.Count == 1 ? "dish is" : "dishes are") hidden because of your allergies and diet. Press “Suits my profile” to show @(Model.NotForMe.Count == 1 ? "it" : "them") anyway.</p>
+    }
+    <p class="sr-only" role="status" aria-live="polite" data-carte-count></p>
 
-@if (Model.Recommended.Any())
-{
-    <section class="mb-4">
-        <p class="rroms-section-eyebrow mb-1">Just for you</p>
-        <h2 class="h5 mb-3">You might like</h2>
-        <div class="foryou-rail">
-            @foreach (var item in Model.Recommended)
+    @if (Model.Picks.Count > 0)
+    {
+        <div class="picks">
+            @foreach (var m in Model.Picks)
             {
-                @await Html.PartialAsync("_DishCard", new DishCardVM(item, Model.ActivePromotionDiscounts))
+                <article class="pick" data-dish data-cat="@m.MenuCategoryId" data-veg="@(m.IsVegetarian ? 1 : 0)" data-suits="@(Model.NotForMe.Contains(m.Id) ? 0 : 1)">
+                    @Ui.Pic(m.ImageUrl, m.Name, m.MenuCategory?.Name, "arch")
+                    <span class="note-tag">chef's pick</span>
+                    <div>
+                        <h3>@m.Name</h3>
+                        @if (!string.IsNullOrWhiteSpace(m.Description))
+                        {
+                            <p class="dish-desc">@m.Description</p>
+                        }
+                        @{
+                            var al = Ui.AllergenLine(m.Allergens);
+                        }
+                        @if (al != null)
+                        {
+                            <p class="dish-allergen">@al</p>
+                        }
+                        <partial name="_Price" model="@(new PriceVM(m.Price, Model.Discounts.GetValueOrDefault(m.Id)))" />
+                        @if (canOrder)
+                        {
+                            <form method="post" asp-page-handler="AddDish" class="dish-add">
+                                <input type="hidden" name="menuItemId" value="@m.Id" />
+                                <input type="hidden" name="returnTo" value="carte" />
+                                <button class="btn btn-line btn-sm" type="submit" aria-label="Add @m.Name to your order">Add to order</button>
+                            </form>
+                        }
+                    </div>
+                </article>
             }
         </div>
-    </section>
-    <hr class="rroms-divider" />
-}
+    }
+    <div class="tiles3">
+        @foreach (var m in Model.Tiles)
+        {
+            <article class="dish" data-dish data-cat="@m.MenuCategoryId" data-veg="@(m.IsVegetarian ? 1 : 0)" data-suits="@(Model.NotForMe.Contains(m.Id) ? 0 : 1)">
+                @Ui.Pic(m.ImageUrl, m.Name, m.MenuCategory?.Name, "soft")
+                <div class="lead">
+                    <h3>@m.Name</h3>
+                    <span class="dots"></span>
+                    <partial name="_Price" model="@(new PriceVM(m.Price, Model.Discounts.GetValueOrDefault(m.Id)))" />
+                </div>
+                <p class="dish-desc">
+                    @m.Description
+                    @if (m.IsVegetarian)
+                    {
+                        <span class="veg">Vegetarian</span>
+                    }
+                </p>
+                @{
+                    var al2 = Ui.AllergenLine(m.Allergens);
+                }
+                @if (al2 != null)
+                {
+                    <p class="dish-allergen">@al2</p>
+                }
+                @if (canOrder)
+                {
+                    <form method="post" asp-page-handler="AddDish" class="dish-add">
+                        <input type="hidden" name="menuItemId" value="@m.Id" />
+                        <input type="hidden" name="returnTo" value="carte" />
+                        <button class="btn btn-line btn-sm" type="submit" aria-label="Add @m.Name to your order">Add to order</button>
+                    </form>
+                }
+            </article>
+        }
+    </div>
+    <p class="carte-empty" data-carte-empty hidden>Nothing on the carte matches those filters. Press “All” to see every dish.</p>
+</section>
 
-@if (!Model.Items.Any())
+@if (Model.Wines.Count > 0)
 {
-    <div class="rroms-card p-5 text-center text-muted-warm">No dishes match your filters right now.</div>
-}
-
-@foreach (var categoryGroup in Model.Items.GroupBy(i => i.MenuCategory!.Name))
-{
-    <section class="mb-4">
-        <h2 class="h5 mb-3">@categoryGroup.Key</h2>
-        <div class="dish-grid">
-            @foreach (var item in categoryGroup)
+    var half = (Model.Wines.Count + 1) / 2;
+    var cols = new[] { Model.Wines.Take(half).ToList(), Model.Wines.Skip(half).ToList() }.Where(c => c.Count > 0).ToList();
+    <section class="band-wine" id="cellar">
+        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+        <div class="wrap cellar">
+            <h2>The cellar</h2>
+            <p class="cellar-copy">Poured by the glass, or opened by the bottle. If you are not sure, ask. We would rather you ordered the one you will enjoy.</p>
+            @if (canOrder)
             {
-                @await Html.PartialAsync("_DishCard", new DishCardVM(item, Model.ActivePromotionDiscounts))
+                <p class="cellar-hint">Press a price to add that glass or bottle to your order.</p>
             }
+            <div class="wine-cols">
+                @foreach (var col in cols)
+                {
+                    <div>
+                        <div class="wine-head"><span></span><span>Wine</span><span>Glass</span><span>Bottle</span></div>
+                        @foreach (var w in col)
+                        {
+                            <form method="post" asp-page-handler="AddWine" class="wine-row">
+                                <input type="hidden" name="menuItemId" value="@w.Id" />
+                                <input type="hidden" name="returnTo" value="cellar" />
+                                @Ui.Pic(w.ImageUrl, w.Name, w.MenuCategory?.Name, "sq")
+                                <div>
+                                    <span class="wine-name">@w.Name</span>
+                                    <span class="wine-sub">@w.WineNote</span>
+                                </div>
+                                @if (w.GlassPrice.HasValue)
+                                {
+                                    if (canOrder)
+                                    {
+                                        <button class="num num-btn" type="submit" name="serving" value="glass" aria-label="Add a glass of @w.Name, @Ui.Rm(w.GlassPrice.Value)">@Ui.Rm(w.GlassPrice.Value)</button>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="num">@Ui.Rm(w.GlassPrice.Value)</span>
+                                    }
+                                }
+                                else
+                                {
+
+                                    <span class="num" aria-label="Not poured by the glass">–</span>
+                                }
+                                @if (canOrder)
+                                {
+                                    <button class="num num-btn" type="submit" name="serving" value="bottle" aria-label="Add a bottle of @w.Name, @Ui.Rm(w.Price)">@Ui.Rm(w.Price)</button>
+                                }
+                                else
+                                {
+
+                                    <span class="num">@Ui.Rm(w.Price)</span>
+                                }
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
         </div>
     </section>
 }
-
-@await Html.PartialAsync("_DishDetailOffcanvas")
 
 @section Scripts {
     <script src="~/js/menu.js" asp-append-version="true"></script>

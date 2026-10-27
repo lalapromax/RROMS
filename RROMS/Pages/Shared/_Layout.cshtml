@@ -1,181 +1,171 @@
-@inject ApplicationDbContext Db
-@inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserManager
-@inject INotificationService NotificationService
+@inject IChromeService Chrome
 @{
-    var setting = await Db.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
-    var brandName = setting?.RestaurantName ?? "RROMS";
-    var unreadCount = 0;
-    if (SignInManager.IsSignedIn(User))
-    {
-        var uid = UserManager.GetUserId(User);
-        if (uid != null) unreadCount = await NotificationService.GetUnreadCountAsync(uid);
-    }
+    // Guest shell: the paper bar (Menu / Set menus / The cellar, the seal, Rewards, cart, bell, Reserve a table, account) on desktop,
+    // the burger bar on phones. Staff and administrators get their own shells (see _ViewStart.cshtml).
+    var c = await Chrome.GetAsync();
+    var signedIn = c.SignedIn;
+    var path = Context.Request.Path;
+    var onMenu = path.StartsWithSegments("/Menu");
+    string Cur(params string[] prefixes) => prefixes.Any(x => path.StartsWithSegments(x)) ? "page" : null!;
+    var bundle = ViewData["Bundle"] as string ?? "full";   // full = guest pages, guest = Rewards, lite = Home and Menu
+    var homeHref = Url.Page("/Index")!;
+    var rewardsHref = signedIn ? Url.Page("/Rewards/Index")! : Url.Page("/Index")! + "#rewards";
+    var cartLabel = c.CartCount > 0 ? $"Your cart, {c.CartCount} {(c.CartCount == 1 ? "item" : "items")}" : "Your cart";
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] - @brandName</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    <partial name="_Head" />
+    @if (bundle != "lite")
+    {
+        <link rel="stylesheet" href="~/css/blm-guest.css" asp-append-version="true" />
+        @if (bundle == "full")
+        {
+            <link rel="stylesheet" href="~/css/blm-guest-x.css" asp-append-version="true" />
+        }
+        <link rel="stylesheet" href="~/css/blm-guest-real.css" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark rroms-navbar sticky-top">
-            <div class="container">
-                <a class="navbar-brand" asp-page="/Index"><span>&#9670;</span> @brandName</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item"><a class="nav-link" asp-page="/Index">Home</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-page="/Menu/Index">Menu</a></li>
+<body class="guest">
+    <a class="skip" href="#main">Skip to the page</a>
+    <partial name="_Sprite" />
 
-                        @if (SignInManager.IsSignedIn(User))
-                        {
-                            @if (User.IsInRole(Roles.Customer))
-                            {
-                                <li class="nav-item"><a class="nav-link" asp-page="/Reservations/Index">My Reservations</a></li>
-                                <li class="nav-item"><a class="nav-link" asp-page="/Orders/Index">My Orders</a></li>
-                                <li class="nav-item"><a class="nav-link" asp-page="/Feedback/Index">Feedback</a></li>
-                            }
-                            @if (User.IsInRole(Roles.Staff) || User.IsInRole(Roles.Administrator))
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Staff</a>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" asp-page="/Staff/Dashboard">Dashboard</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Staff/Reservations">Reservations</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Staff/Orders">Orders</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Staff/Billing">Billing</a></li>
-                                        <li><hr class="dropdown-divider" /></li>
-                                        <li><a class="dropdown-item" asp-page="/Account/Profile">My Profile</a></li>
-                                    </ul>
-                                </li>
-                            }
-                            @if (User.IsInRole(Roles.Administrator))
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Admin</a>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" asp-page="/Admin/Dashboard">Dashboard</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Venue">Dining Areas &amp; Tables</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/MenuManagement">Menu Management</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Promotions">Promotions</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Announcements">Announcements</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Users">Users &amp; Roles</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Monitoring">Monitoring</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Reports">Reports</a></li>
-                                        <li><a class="dropdown-item" asp-page="/Admin/Settings">Settings</a></li>
-                                    </ul>
-                                </li>
-                            }
-                        }
-                    </ul>
-
-                    <ul class="navbar-nav align-items-lg-center">
-                        @if (SignInManager.IsSignedIn(User))
-                        {
-                            @if (User.IsInRole(Roles.Customer))
-                            {
-                                <li class="nav-item"><a class="nav-link" asp-page="/Orders/Cart" title="Cart"><i class="bi bi-basket3"></i> Cart</a></li>
-                            }
-                            <li class="nav-item dropdown">
-                                <a class="nav-link position-relative" href="#" data-bs-toggle="dropdown">
-                                    <i class="bi bi-bell"></i>
-                                    @if (unreadCount > 0)
-                                    {
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">@unreadCount</span>
-                                    }
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 260px;">
-                                    <li><h6 class="dropdown-header">Notifications</h6></li>
-                                    <li><a class="dropdown-item small" asp-page="/Notifications/Index">View all notifications @(unreadCount > 0 ? $"({unreadCount} unread)" : "")</a></li>
-                                </ul>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                    <i class="bi bi-person-circle"></i> @User.Identity?.Name
-                                    <span class="rroms-badge-role">@(User.IsInRole(Roles.Administrator) ? "Admin" : User.IsInRole(Roles.Staff) ? "Staff" : "Customer")</span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" asp-page="/Account/Profile">My Profile</a></li>
-                                    <li><hr class="dropdown-divider" /></li>
-                                    <li>
-                                        <form id="logoutForm" method="post" asp-page="/Account/Logout">
-                                            <button type="submit" class="dropdown-item">Log out</button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item"><a class="nav-link" asp-page="/Account/Login">Log in</a></li>
-                            <li class="nav-item">
-                                <a class="btn btn-primary btn-sm ms-lg-2" asp-page="/Account/Register">Register</a>
-                            </li>
-                        }
-                    </ul>
-                </div>
-            </div>
+    <header class="nav">
+        <nav class="nav-links" aria-label="Primary">
+            <a asp-page="/Menu/Index" asp-fragment="carte" aria-current="@(onMenu ? "page" : null)">Menu</a>
+            <a asp-page="/Menu/Index" asp-fragment="sets">Set menus</a>
+            <a asp-page="/Menu/Index" asp-fragment="cellar">The cellar</a>
         </nav>
-    </header>
+        <partial name="_Seal" model="@(new SealVM(homeHref, "home", c.HasLogo))" />
+        <div class="nav-links nav-right">
+            <a href="@rewardsHref" aria-current="@Cur("/Rewards")">Rewards</a>
+            @if (signedIn)
+            {
+                <a class="icon-btn ib-cart" asp-page="/Orders/Cart" aria-label="@cartLabel">@Ui.Icon("cart")@if (c.CartCount > 0) {
+                    <i class="ib-count">@(c.CartCount > 9 ? "9+" : c.CartCount.ToString())</i>
+                }
+            </a>
+            <a class="icon-btn ib-bell" asp-page="/Notifications/Index" aria-label="@(c.Unread > 0 ? $"Notifications, {c.Unread} new" : "Notifications")">@Ui.Icon("bell")@if (c.Unread > 0) {
+                <i class="ib-dot"></i>
+            }
+        </a>
+    }
+    <a class="btn btn-wine btn-sm" asp-page="/Reservations/Create">Reserve a table</a>
+    @if (signedIn)
+    {
+        <partial name="_AccountMenu" />
+    }
+    else
+    {
+        <a class="btn btn-line btn-sm" asp-page="/Account/Login" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Sign in</a>
+    }
+</div>
+</header>
 
-    <main class="container">
-        @if (TempData["StatusMessage"] is string statusMessage && !string.IsNullOrEmpty(statusMessage))
-        {
-            <div class="alert alert-success alert-dismissible alert-auto-dismiss mt-3" role="alert">
-                @statusMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+<header class="bar">
+    <button type="button" class="burger" aria-label="Open menu" aria-controls="navSheet" data-dialog-open="navSheet">@Ui.Icon("burger", 20, 1.7)</button>
+    <partial name="_Seal" model="@(new SealVM(homeHref, "home", c.HasLogo))" />
+    @if (signedIn)
+    {
+        <a class="burger ib-cart" asp-page="/Orders/Cart" aria-label="@cartLabel">@Ui.Icon("bag")@if (c.CartCount > 0) {
+            <i class="ib-count">@(c.CartCount > 9 ? "9+" : c.CartCount.ToString())</i>
         }
-        @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="alert alert-danger alert-dismissible mt-3" role="alert">
-                @errorMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-        @RenderBody()
-    </main>
+    </a>
+}
+        else
+{
+    <a class="btn btn-wine" asp-page="/Reservations/Create">Reserve</a>
+}
+</header>
 
-    <footer class="rroms-footer">
-        <div class="container d-flex flex-wrap justify-content-between gap-3">
-            <div>
-                <div class="display-font fs-5 text-white mb-1">@brandName</div>
-                <div>@setting?.Address</div>
-                <div>@setting?.Phone &middot; @setting?.Email</div>
-            </div>
-            <div>
-                <div class="text-white mb-1">Quick links</div>
-                <div><a asp-page="/Menu/Index">Menu</a></div>
-                <div><a asp-page="/Reservations/Create">Book a table</a></div>
-            </div>
-            <div class="small">&copy; @DateTime.Now.Year @brandName. Coursework project - Web-Based Restaurant Reservation and Order Management System.</div>
-        </div>
-    </footer>
-
-    <button id="rroms-chat-toggle" title="Chat with us"><i class="bi bi-chat-dots-fill"></i></button>
-    <div id="rroms-chat-panel">
-        <div id="rroms-chat-header"><i class="bi bi-stars"></i> Ask us anything</div>
-        <div id="rroms-chat-messages">
-            <div class="chat-bubble bot">Hi! I can help with hours, reservations, menu questions and order status. What would you like to know?</div>
-        </div>
-        <form id="rroms-chat-form">
-            <input id="rroms-chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
-            <button type="submit"><i class="bi bi-send-fill"></i></button>
-        </form>
+<dialog class="sheet" id="navSheet" aria-label="Menu">
+    <div class="sheet-head">
+        <partial name="_Seal" model="@(new SealVM(homeHref, "home", c.HasLogo))" />
+        <button type="button" class="x-btn" aria-label="Close menu" data-dialog-close>@Ui.Icon("x", 16, 2)</button>
     </div>
+    <nav aria-label="Menu">
+        <a asp-page="/Menu/Index" asp-fragment="carte" data-dialog-close>Menu</a>
+        <a asp-page="/Menu/Index" asp-fragment="sets" data-dialog-close>Set menus</a>
+        <a asp-page="/Menu/Index" asp-fragment="cellar" data-dialog-close>The cellar</a>
+        <a href="@rewardsHref">Rewards</a>
+        <a asp-page="/Announcements/Index" aria-current="@Cur("/Announcements")">News and notices</a>
+        <hr />
+        @if (signedIn)
+        {
+            <span class="sheet-label">@(string.IsNullOrWhiteSpace(c.DisplayName) ? "Your account" : c.DisplayName)</span>
+            <a asp-page="/Reservations/Create">Reserve a table</a>
+            <a asp-page="/Reservations/Index">My reservations</a>
+            <a asp-page="/Orders/Index">My orders</a>
+            <a asp-page="/Feedback/Index">My reviews</a>
+            <a asp-page="/Notifications/Index">Notifications@if (c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+            <a asp-page="/Account/Profile">Profile and dietary details</a>
+            <form method="post" asp-page="/Account/Logout"><button type="submit">Sign out</button></form>
+        }
+        else
+        {
+            <a asp-page="/Reservations/Create">Reserve a table</a>
+            <a asp-page="/Account/Login">Sign in</a>
+            <a asp-page="/Account/Register">Create an account</a>
+        }
+    </nav>
+</dialog>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/chatbot.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+<main id="main" tabindex="-1">
+    <partial name="_Flash" />
+    @RenderBody()
+</main>
+
+<footer class="foot">
+    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+    <div class="wrap foot-in">
+        <div>
+            <partial name="_Seal" model="@(new SealVM(homeHref, "home", c.HasLogo))" />
+            <p class="foot-copy">Allergies, a birthday, a table by the window? Tell us when you book and we will take it from there.</p>
+        </div>
+        <div>
+            <h4>Visit</h4>
+            <ul>
+                @if (!string.IsNullOrWhiteSpace(c.Setting?.Address))
+                {
+                    <li>@c.Setting!.Address</li>
+                }
+                @foreach (var line in c.HoursLines)
+                {
+                    <li>@line</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(c.Setting?.Phone))
+                {
+                    <li>@c.Setting!.Phone</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(c.Setting?.Email))
+                {
+                    <li><a href="mailto:@c.Setting!.Email">@c.Setting!.Email</a></li>
+                }
+            </ul>
+        </div>
+        <div>
+            <h4>Explore</h4>
+            <ul>
+                <li><a asp-page="/Menu/Index" asp-fragment="carte">Menu</a></li>
+                <li><a asp-page="/Menu/Index" asp-fragment="sets">Set menus</a></li>
+                <li><a asp-page="/Menu/Index" asp-fragment="cellar">The cellar</a></li>
+                <li><a href="@rewardsHref">Rewards</a></li>
+                <li><a asp-page="/Announcements/Index">News and notices</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="wrap foot-note">© @DateTime.Now.Year @Brand.Name. All rights reserved.</div>
+</footer>
+
+@* the checkout stays free of anything that could cover its buttons *@
+@if (!path.StartsWithSegments("/Orders/Cart"))
+{
+    <partial name="_ChatWidget" />
+}
+
+<script src="~/js/blm.js" asp-append-version="true"></script>
+<script src="~/js/chatbot.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

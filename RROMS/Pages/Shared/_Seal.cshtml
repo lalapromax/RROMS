@@ -1,0 +1,13 @@
+@model SealVM
+@* The restaurant seal: logo slot plus the name. The slot stays an empty outline until wwwroot/static/assets/logo.png exists. *@
+<a class="seal" href="@Model.Href" aria-label="@Brand.Name, @Model.Aria">
+    @if (Model.HasLogo)
+    {
+        <img class="logo-img" src="@Brand.LogoPath" alt="" width="44" height="44" />
+    }
+    else
+    {
+        <span class="logo-slot" aria-hidden="true"></span>
+    }
+    <span class="seal-name">@Brand.Name</span>
+</a>

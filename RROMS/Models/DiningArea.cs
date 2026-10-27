@@ -12,6 +12,9 @@ public class DiningArea
     [StringLength(300)]
     public string? Description { get; set; }
 
+    [StringLength(300)]
+    public string? ImageUrl { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<RestaurantTable> Tables { get; set; } = new List<RestaurantTable>();

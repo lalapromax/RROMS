@@ -2,130 +2,271 @@
 @model RROMS.Pages.IndexModel
 @{
     ViewData["Title"] = "Home";
-    Layout = "_Layout";
+    ViewData["Bundle"] = "lite";
+    var feature = Model.Sets.FirstOrDefault();
+    string TierClass(int i, string name) => name.ToLowerInvariant() switch { "bronze" => "tier-bronze", "silver" => "tier-silver", "gold" => "tier-gold", _ => i == 0 ? "tier-bronze" : i == 1 ? "tier-silver" : "tier-gold" };
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/Main.css" asp-append-version="true" />
 }
 
-<div class="rroms-hero mb-5" style="margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-top: -1.75rem;">
-    <div class="container position-relative">
-        <p class="rroms-section-eyebrow mb-2" style="color:#e3c481;">@(Model.Setting?.RestaurantName ?? "RROMS")</p>
-        <h1>Book a table, order ahead, and skip the wait.</h1>
-        <p class="lead mb-4">@(Model.Setting?.Description ?? "Modern seasonal cooking, served in a warm dining room built for long, unhurried meals.")</p>
-        <div class="d-flex gap-2 flex-wrap">
-            <a asp-page="/Reservations/Create" class="btn btn-primary btn-lg">Reserve a table</a>
-            <a asp-page="/Menu/Index" class="btn btn-outline-light btn-lg">View the menu</a>
+<section class="wrap hero">
+    <div>
+        <h1 class="hero-title">Brasserie<br />La Mélancolie</h1>
+        <p class="hero-sub">Long dinners, good wine, and a table that stays yours all evening.</p>
+        <p class="hero-copy">A small, serious kitchen with a Michelin rating, and a cellar we keep adding to. Come for a set menu. Stay for the second bottle.</p>
+        <div class="hero-cta">
+            <a class="btn btn-wine btn-lg" asp-page="/Reservations/Create">Reserve a table</a>
+            <a class="btn btn-line btn-lg" asp-page="/Menu/Index" asp-fragment="sets">See the set menus</a>
         </div>
-
-        <svg class="rroms-plate d-none d-lg-block" width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="110" cy="110" r="95" stroke="#8f691f" stroke-width="1.5" opacity="0.55" />
-            <circle cx="110" cy="110" r="70" stroke="#bd8b2e" stroke-width="1.5" opacity="0.75" />
-            <line x1="45" y1="60" x2="45" y2="160" stroke="#e3c481" stroke-width="2" opacity="0.7" />
-            <line x1="38" y1="60" x2="38" y2="95" stroke="#e3c481" stroke-width="2" opacity="0.7" />
-            <line x1="52" y1="60" x2="52" y2="95" stroke="#e3c481" stroke-width="2" opacity="0.7" />
-            <path d="M172 60 C 160 80, 160 110, 172 130 L 172 160" stroke="#e3c481" stroke-width="2" fill="none" opacity="0.7" />
-        </svg>
     </div>
-</div>
-
-<section class="mb-5">
-    <p class="rroms-section-eyebrow mb-1">Get started</p>
-    <h2 class="h4 mb-3">How would you like to visit us?</h2>
-    <div class="visit-path-grid">
-        <a asp-page="/Reservations/Create" class="visit-path-card">
-            <span class="vp-icon">&#x1F4C5;</span>
-            <span class="vp-title">Book a table</span>
-            <span class="vp-desc">Reserve a table for later - no food order required. Pick a date, time and party size and we'll confirm it instantly.</span>
-        </a>
-        <a asp-page="/Menu/Index" class="visit-path-card featured">
-            <span class="vp-icon">&#x1F37D;&#xFE0F;</span>
-            <span class="vp-title">Book &amp; order together</span>
-            <span class="vp-desc">Browse the menu, add what you'd like, then reserve your table right there at checkout - one flow, nothing to repeat.</span>
-        </a>
-        <a asp-page="/Menu/Index" class="visit-path-card">
-            <span class="vp-icon">&#x1F961;</span>
-            <span class="vp-title">Order for takeaway</span>
-            <span class="vp-desc">Just here for the food? Order ahead and choose Takeaway at checkout - no table needed.</span>
-        </a>
+    <div class="hero-art">
+        @Ui.Plate("b-saint", "olive", "arch", "arch-back")
+        @Ui.Plate("d-duck", "slate", "arch", "arch-front")
+        @if (feature != null)
+        {
+            var faces = feature.Courses.OrderBy(c => c.SortOrder).Select(c => c.Dishes.FirstOrDefault()?.MenuItem).Where(m => m != null).Take(4).ToList();
+            <div class="hero-card">
+                <h3>@feature.Name</h3>
+                <p>@(feature.Tagline ?? "Choose one dish in each course.")</p>
+                <div class="faces">
+                    @foreach (var m in faces)
+                    {
+                        @Ui.Pic(m!.ImageUrl, m.Name, m.MenuCategory?.Name, "round", decorative: true)
+                    }
+                </div>
+                <div class="lead">
+                    <span>@(feature.Courses.Count == 1 ? "One course" : feature.Courses.Count switch { 2 => "Two courses", 3 => "Three courses", 4 => "Four courses", 5 => "Five courses", 6 => "Six courses", 7 => "Seven courses", _ => feature.Courses.Count + " courses" })</span>
+                    <span class="dots"></span>
+                    <span>@Ui.Rm(feature.PricePerGuest)</span>
+                </div>
+            </div>
+        }
+        <p class="slip">Celebrating something? Tell us when you book.</p>
     </div>
 </section>
 
-@if (Model.Announcements.Any())
+@if (Model.Sets.Count > 0)
 {
-    <div class="mb-4">
-        @foreach (var a in Model.Announcements)
-        {
-            <div class="alert" style="background:var(--sand); border:1px solid var(--sand-dark);">
-                <strong>@a.Title</strong> &mdash; @a.Content
+    <section class="band-cocoa">
+        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+        <div class="wrap set-grid">
+            <div>
+                <h2 class="h-xl">Let us plan your evening</h2>
+                <p class="band-copy">A set menu is dinner in the order we would serve it: soup, a starter, the main, and a glass. Choose what you like in each course and we will time the rest.</p>
+                <ul class="set-list">
+                    @foreach (var s in Model.Sets)
+                    {
+                        <li class="set-row">
+                            @Ui.SetCover(s, "width:76px;height:76px;border-radius:10px")
+                            <span>
+                                <a class="set-name" asp-page="/Menu/Index" asp-route-set="@s.Id" asp-fragment="sets" style="color:inherit;text-decoration:none">@s.Name</a>
+                                <span class="set-meta">@(s.Tagline ?? string.Join(", ", s.Courses.OrderBy(c => c.SortOrder).Select(c => c.Name.ToLowerInvariant())))</span>
+                            </span>
+                            <span class="set-price">@Ui.Rm(s.PricePerGuest)</span>
+                        </li>
+                    }
+                </ul>
+                <a class="btn btn-paper" asp-page="/Menu/Index" asp-fragment="sets">Browse set menus</a>
             </div>
-        }
-    </div>
-}
-
-@if (Model.ActivePromotions.Any())
-{
-    <section class="mb-5">
-        <p class="rroms-section-eyebrow mb-1">Right now</p>
-        <h2 class="h4 mb-3">Current promotions</h2>
-        <div class="row g-3">
-            @foreach (var promo in Model.ActivePromotions)
+            @if (feature != null)
             {
-                <div class="col-md-6">
-                    <div class="rroms-card p-3 d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="fw-semibold">@promo.Title</div>
-                            <div class="small text-muted-warm">@promo.Description</div>
-                        </div>
-                        <span class="status-badge status-confirmed">@promo.DiscountPercent% off</span>
+                <article class="menu-card">
+                    <div class="mc-head">
+                        <partial name="_LogoSlot" />
+                        <h3>@feature.Name</h3>
+                        <p class="mc-sub">@(feature.Courses.Count == 1 ? "One course, one price" : feature.Courses.Count switch { 2 => "Two courses, one price", 3 => "Three courses, one price", 4 => "Four courses, one price", _ => feature.Courses.Count + " courses, one price" })</p>
                     </div>
-                </div>
+                    <dl class="mc-courses">
+                        @foreach (var c in feature.Courses.OrderBy(c => c.SortOrder))
+                        {
+                            var dishes = c.Dishes.OrderBy(d => d.SortOrder).Take(2).ToList();
+                            <div class="mc-row">
+                                <dt>@c.Name</dt>
+                                <dd>
+                                    @for (var i = 0; i < dishes.Count; i++)
+                                    {
+                                        if (i > 0)
+                                        {
+                                            <em>or</em>
+                                        }
+                                        <span>@dishes[i].MenuItem!.Name</span>
+                                    }
+                                </dd>
+                                <div class="pair">
+                                    @foreach (var d in dishes)
+                                    {
+                                        @Ui.Pic(d.MenuItem!.ImageUrl, d.MenuItem.Name, d.MenuItem.MenuCategory?.Name, "round", decorative: true)
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </dl>
+                    <div class="mc-foot">
+                        <div>
+                            <span class="mc-price">@Ui.Rm(feature.PricePerGuest)</span>
+                            <span class="mc-per">per guest</span>
+                        </div>
+                        <a class="btn btn-wine" asp-page="/Menu/Index" asp-route-set="@feature.Id" asp-fragment="sets">Add to order</a>
+                    </div>
+                </article>
             }
         </div>
     </section>
 }
 
-<section class="mb-5">
-    <p class="rroms-section-eyebrow mb-1">Guest favourites</p>
-    <h2 class="h4 mb-3">Popular dishes</h2>
-    <div class="dish-grid">
-        @foreach (var item in Model.FeaturedItems)
-        {
-            @await Html.PartialAsync("_DishCard", new DishCardVM(item, Model.ActivePromotionDiscounts))
-        }
-    </div>
-    <div class="text-center mt-3">
-        <a asp-page="/Menu/Index" class="btn btn-outline-primary">See full menu</a>
-    </div>
-</section>
-
-@await Html.PartialAsync("_DishDetailOffcanvas")
-
-<section class="row g-4">
-    <div class="col-md-6">
-        <div class="rroms-card p-4 h-100">
-            <h2 class="h5 mb-3">Opening hours</h2>
-            <table class="table table-sm mb-0">
-                <tbody>
-                    @foreach (var h in Model.Hours)
-                    {
-                        <tr>
-                            <td>@h.DayOfWeek</td>
-                            <td class="text-end">@(h.IsClosed ? "Closed" : $"{DateTime.Today.Add(h.OpenTime):h:mm tt} – {DateTime.Today.Add(h.CloseTime):h:mm tt}")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+@if (Model.Pass.Count > 0)
+{
+    var big = Model.Pass[0];
+    var rest = Model.Pass.Skip(1).ToList();
+    <section class="wrap carte">
+        <div class="sec-head">
+            <div>
+                <h2 class="h-lg">On the pass this week</h2>
+                <p class="hand" style="margin-top:10px">Come hungry.</p>
+            </div>
+            <a class="link-quiet" asp-page="/Menu/Index" asp-fragment="carte">See the full menu</a>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="rroms-card p-4 h-100">
-            <h2 class="h5 mb-3">Find us</h2>
-            <p class="mb-1"><i class="bi bi-geo-alt"></i> @Model.Setting?.Address</p>
-            <p class="mb-1"><i class="bi bi-telephone"></i> @Model.Setting?.Phone</p>
-            <p class="mb-3"><i class="bi bi-envelope"></i> @Model.Setting?.Email</p>
-            <a asp-page="/Reservations/Create" class="btn btn-herb">Reserve a table</a>
+        <div class="feature-grid">
+            <article class="dish-big">
+                @Ui.Pic(big.ImageUrl, big.Name, big.MenuCategory?.Name, "soft")
+                <span class="note-tag">chef's pick</span>
+                <div class="lead">
+                    <h3>@big.Name</h3>
+                    <span class="dots"></span>
+                    <partial name="_Price" model="@(new PriceVM(big.Price, Model.Discounts.GetValueOrDefault(big.Id)))" />
+                </div>
+                @if (!string.IsNullOrWhiteSpace(big.Description))
+                {
+                    <p class="dish-desc">@big.Description</p>
+                }
+            </article>
+            <div class="stack">
+                @foreach (var m in rest)
+                {
+                    <article class="dish-row">
+                        @Ui.Pic(m.ImageUrl, m.Name, m.MenuCategory?.Name, "soft")
+                        <div>
+                            <h3>@m.Name</h3>
+                            <p class="dish-desc">
+                                @m.Description
+                                @if (m.IsVegetarian)
+                                {
+                                    <span class="veg">Vegetarian</span>
+                                }
+                            </p>
+                            <partial name="_Price" model="@(new PriceVM(m.Price, Model.Discounts.GetValueOrDefault(m.Id)))" />
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.Wines.Count > 0)
+{
+    <section class="band-wine">
+        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
+        <div class="wrap cellar">
+            <div>
+                <h2>La cave</h2>
+                <p class="cellar-copy">Most of what is in the cellar was chosen by someone who tasted it first. Ask, and we will pour you a taste.</p>
+                <p style="margin-top:28px"><a class="btn btn-paper" asp-page="/Menu/Index" asp-fragment="cellar">See the wine list</a></p>
+                <div class="bottles" aria-hidden="true">
+                    <svg viewBox="0 0 200 200" focusable="false"><use href="#b-chablis"></use></svg>
+                    <svg viewBox="0 0 200 200" focusable="false"><use href="#b-saint"></use></svg>
+                    <svg viewBox="0 0 200 200" focusable="false"><use href="#b-champ"></use></svg>
+                </div>
+            </div>
+            <div class="wine-list">
+                <div class="wine-head"><span></span><span>Wine</span><span>Glass</span><span>Bottle</span></div>
+                @foreach (var w in Model.Wines)
+                {
+                    <div class="wine-row">
+                        @Ui.Pic(w.ImageUrl, w.Name, w.MenuCategory?.Name, "sq")
+                        <div>
+                            <span class="wine-name">@w.Name</span>
+                            <span class="wine-sub">@w.WineNote</span>
+                        </div>
+                        <span class="num">@(w.GlassPrice.HasValue ? Ui.Rm(w.GlassPrice.Value) : "–")</span>
+                        <span class="num">@Ui.Rm(w.Price)</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.Tiers.Count > 0)
+{
+    <section class="wrap rewards" id="rewards">
+        <h2 class="h-lg">Regulars get looked after</h2>
+        <p class="rewards-intro">Every visit earns points. The more you come, the more we give back at the table.</p>
+        <div class="tiers">
+            @for (var i = 0; i < Model.Tiers.Count; i++)
+            {
+                var t = Model.Tiers[i];
+                var perks = t.Perks.Where(p => p.IsActive).OrderBy(p => p.SortOrder).Select(p => p.Title).ToList();
+                <article class="tier @TierClass(i, t.Name)">
+                    <div class="tier-arch"><h3>@t.Name</h3></div>
+                    <div class="tier-body">
+                        <p class="tier-from">From @t.MinPoints.ToString("N0") points</p>
+                        <ul>
+                            @foreach (var p in perks)
+                            {
+                                <li>@p</li>
+                            }
+                            @if (i > 0)
+                            {
+                                <li>Everything in @Model.Tiers[i - 1].Name</li>
+                            }
+                        </ul>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.Collaborations.Count > 0)
+{
+    <section class="wrap collab" aria-labelledby="collabHeading">
+        <partial name="_CollaborationsSection" model="Model.Collaborations" />
+    </section>
+}
+
+<section class="cta">
+    <div class="wrap cta-in">
+        <div>
+            <h2>Tell us when.<br />We will set the table.</h2>
+            <p>Pick your date and party size, then choose the table you like from the floor plan.</p>
+            <a class="btn btn-wine btn-lg" asp-page="/Reservations/Create">Reserve a table</a>
+        </div>
+        <div>
+            <div class="floor-card">
+                <svg viewBox="0 0 520 300" width="100%" role="img" aria-label="An illustration of the floor plan with free and booked tables" style="display:block">
+                    <rect width="520" height="300" fill="#FBF6EA"></rect>
+                    <g font-family="Hanken Grotesk,sans-serif" font-size="14" font-weight="600" text-anchor="middle">
+                        <circle cx="78" cy="74" r="36" fill="#743014"></circle><text x="78" y="79" fill="#FBF6EA">T1</text>
+                        <circle cx="176" cy="74" r="36" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></circle><text x="176" y="79" fill="#442D1C">T2</text>
+                        <rect x="258" y="42" width="104" height="64" rx="12" fill="#743014"></rect><text x="310" y="79" fill="#FBF6EA">T3</text>
+                        <circle cx="448" cy="74" r="36" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></circle><text x="448" y="79" fill="#442D1C">T4</text>
+                        <rect x="28" y="170" width="104" height="64" rx="12" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></rect><text x="80" y="207" fill="#442D1C">T5</text>
+                        <circle cx="214" cy="204" r="36" fill="#442D1C"></circle><circle cx="214" cy="204" r="44" fill="none" stroke="#442D1C" stroke-width="2"></circle><text x="214" y="200" fill="#FBF6EA">T6</text><text x="214" y="218" fill="#E8D1A7" font-size="12" font-weight="500">yours</text>
+                        <rect x="308" y="172" width="104" height="64" rx="12" fill="#743014"></rect><text x="360" y="209" fill="#FBF6EA">T7</text>
+                        <circle cx="466" cy="206" r="30" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></circle><text x="466" y="211" fill="#442D1C">T8</text>
+                    </g>
+                </svg>
+            </div>
+            <span class="floor-note">pick the one by the window</span>
         </div>
     </div>
 </section>
 
 @section Scripts {
-    <script src="~/js/menu.js" asp-append-version="true"></script>
+    @if (Model.Collaborations.Count > 0)
+    {
+        <script src="~/js/collaborations.js" asp-append-version="true"></script>
+    }
 }
