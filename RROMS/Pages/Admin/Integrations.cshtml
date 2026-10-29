@@ -1,0 +1,149 @@
+@page
+@model RROMS.Pages.Admin.IntegrationsModel
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Integrations";
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Integrations</h1>
+            <p>Google sign-in, Stripe, email and the chat each need a few values from you. Anything not set is simply switched off.</p>
+        </div>
+    </div>
+
+    <div class="note-box">
+        <b>Where do I paste the values?</b>
+        Copy <code>appsettings.Local.example.json</code> to <code>appsettings.Local.json</code>, paste your values there and restart the app. Nothing is stored in the database and nothing is shown here in full. Step by step: <code>INTEGRATIONS.md</code> in the project folder.
+    </div>
+
+    <div class="ig">
+        <section class="panel int" aria-labelledby="ig-google">
+            <div class="int-h">
+                <span class="i" aria-hidden="true" style="font:700 22px/1 'Hanken Grotesk',sans-serif">G</span>
+                <div>
+                    <h2 id="ig-google">Google sign-in</h2>
+                    <p>"Continue with Google" on sign in and sign up</p>
+                </div>
+                @if (Model.GoogleOn) { <span class="st st-active">Ready</span> } else { <span class="st st-cancelled">Not set up</span> }
+            </div>
+            <div class="kvl">
+                <div>
+                    <code>GoogleSettings:ClientId</code>
+                    @if (Model.GoogleClientIdState == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.GoogleClientIdState</span> }
+                </div>
+                <div>
+                    <code>Authorized origin to add in Google</code>
+                    <span>@Model.Origin</span>
+                </div>
+            </div>
+            <p class="f">Customers only. Staff and administrators sign in with a password.</p>
+        </section>
+
+        <section class="panel int" aria-labelledby="ig-stripe">
+            <div class="int-h">
+                <span class="i" aria-hidden="true">@Ui.Icon("card", 24, 1.6)</span>
+                <div>
+                    <h2 id="ig-stripe">Stripe payments</h2>
+                    <p>Card and online banking at checkout</p>
+                </div>
+                @if (!Model.StripeOn) { <span class="st st-cancelled">Not set up</span> }
+                else if (!Model.StripeWebhookOn) { <span class="st st-pending">Needs webhook</span> }
+                else { <span class="st st-active">Ready</span> }
+            </div>
+            <div class="kvl">
+                <div>
+                    <code>StripeSettings:PublishableKey</code>
+                    @if (Model.StripePublishableState == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.StripePublishableState</span> }
+                </div>
+                <div>
+                    <code>StripeSettings:SecretKey</code>
+                    @if (Model.StripeSecretState == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.StripeSecretState</span> }
+                </div>
+                <div>
+                    <code>StripeSettings:WebhookSecret</code>
+                    @if (Model.StripeWebhookState == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.StripeWebhookState</span> }
+                </div>
+                <div><code>Mode</code><span>@Model.StripeMode</span></div>
+                <div><code>Currency</code><span>@Model.StripeCurrency.ToUpperInvariant()</span></div>
+                <div><code>Webhook address for Stripe</code><span class="wrap-any">@Model.WebhookUrl</span></div>
+            </div>
+            <p class="f">Without the webhook secret, a card payment can start but the order is never marked paid by itself. For local testing run <code>stripe listen --forward-to @Model.WebhookUrl</code>.</p>
+        </section>
+
+        <section class="panel int" aria-labelledby="ig-mail">
+            <div class="int-h">
+                <span class="i" aria-hidden="true">@Ui.Icon("mail", 24, 1.6)</span>
+                <div>
+                    <h2 id="ig-mail">Email (SMTP)</h2>
+                    <p>Reservation, order and reward emails</p>
+                </div>
+                @if (Model.EmailOn) { <span class="st st-active">Ready</span> } else { <span class="st st-cancelled">Not set up</span> }
+            </div>
+            <div class="kvl">
+                <div>
+                    <code>SmtpSettings:Host</code>
+                    @if (Model.SmtpHost == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.SmtpHost : @Model.SmtpPort</span> }
+                </div>
+                <div>
+                    <code>SmtpSettings:Username</code>
+                    @if (Model.SmtpUser == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.SmtpUser</span> }
+                </div>
+                <div>
+                    <code>SmtpSettings:Password</code>
+                    @if (Model.SmtpPassword == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.SmtpPassword</span> }
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.EmailTestResult))
+            {
+                <p class="@(Model.EmailTestOk == "1" ? "note-box" : "form-alert") test-result" role="status">@Model.EmailTestResult</p>
+            }
+            <form method="post" asp-page-handler="TestEmail" class="test-row">
+                <button type="submit" class="btn btn-line btn-sm2" disabled="@(!Model.EmailOn)">Send a test email to @(Model.AdminEmail ?? "me")</button>
+            </form>
+            <p class="f">Until this is set, notices appear on the site but no emails go out.</p>
+        </section>
+
+        <section class="panel int" aria-labelledby="ig-chat">
+            <div class="int-h">
+                <span class="i" aria-hidden="true">@Ui.Icon("chat", 24, 1.6)</span>
+                <div>
+                    <h2 id="ig-chat">Ask the house</h2>
+                    <p>The chat bubble on guest pages</p>
+                </div>
+                @if (Model.ChatOn) { <span class="st st-active">Connected</span> } else { <span class="st st-draft">Built-in answers</span> }
+            </div>
+            <div class="kvl">
+                <div>
+                    <code>ChatbotSettings:Provider</code>
+                    <span>@(Model.ChatOn ? "Connected" : "Built-in answers")</span>
+                </div>
+                <div>
+                    <code>ChatbotSettings:Model</code>
+                    @if (Model.ChatModel == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) set</span> }
+                </div>
+                <div>
+                    <code>ChatbotSettings:ApiKey</code>
+                    @if (Model.ChatKey == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.ChatKey</span> }
+                </div>
+                <div>
+                    <code>Allergy questions</code>
+                    <span>Always sent to the team to confirm</span>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.ChatTestResult))
+            {
+                <p class="@(Model.ChatTestOk == "1" ? "note-box" : "form-alert") test-result" role="status">@Model.ChatTestResult</p>
+            }
+            <form method="post" asp-page-handler="TestChat" class="test-row">
+                <button type="submit" class="btn btn-line btn-sm2">Send a test question</button>
+            </form>
+            <p class="f">Without a connection the chat answers from the built-in list. Either way it never confirms an allergy on its own.</p>
+        </section>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminIntegrations.css" asp-append-version="true" />
+}

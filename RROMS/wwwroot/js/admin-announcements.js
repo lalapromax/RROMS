@@ -1,5 +1,5 @@
 // Admin > Announcements: fills the one editor from an announcement's data, and runs the "Who should see it?" picker
-// (quick choices, boxes, and a search for named people). The browser only builds the form; the server checks the audience
+// (checkboxes for audience selection). The browser only builds the form; the server checks the audience
 // again and decides what is allowed. See Services/AnnouncementService.cs.
 (function () {
     'use strict';
@@ -15,69 +15,57 @@
     var root = document.getElementById('annAud');
     var pub = el('public'), allC = el('all'), allS = el('staff');
     var tiers = Array.prototype.slice.call(root.querySelectorAll('[data-aud-tier]'));
-    var search = el('search'), searchTier = el('searchtier');
-    var results = document.getElementById('annResults');
-    var peopleBox = document.getElementById('annPeople');
     var summary = document.getElementById('annAudSummary');
-    var presets = Array.prototype.slice.call(root.querySelectorAll('[data-preset]'));
-    var people = {};      // id -> name
-    var timer = null;
 
     function tierLabel(cb) {
         var l = cb.closest('label');
         return l ? l.textContent.trim() : '';
     }
 
-    function renderPeople() {
-        peopleBox.textContent = '';
-        Object.keys(people).forEach(function (id) {
-            var chip = document.createElement('span');
-            chip.appendChild(document.createTextNode(people[id] + ' '));
-            var x = document.createElement('button');
-            x.type = 'button';
-            x.className = 'ppl-x';
-            x.setAttribute('aria-label', 'Remove ' + people[id]);
-            x.textContent = '×';
-            x.addEventListener('click', function () { delete people[id]; renderPeople(); refresh(); });
-            var h = document.createElement('input');
-            h.type = 'hidden'; h.name = 'F.UserIds'; h.value = id;
-            chip.appendChild(x); chip.appendChild(h);
-            peopleBox.appendChild(chip);
-        });
-    }
-
     function chosenTiers() { return tiers.filter(function (t) { return t.checked; }); }
-    function peopleCount() { return Object.keys(people).length; }
 
     function refresh() {
         var isPublic = pub.checked;
-        // Public means nobody is singled out, so the other boxes switch off. All customers already includes every tier.
-        [allC, allS].concat(tiers).forEach(function (c) { c.disabled = isPublic; if (isPublic) c.checked = false; });
-        if (!isPublic && allC.checked) tiers.forEach(function (t) { t.checked = false; t.disabled = true; });
-        search.disabled = isPublic; searchTier.disabled = isPublic;
-        if (isPublic && peopleCount()) { people = {}; renderPeople(); }
+        var allCustomersChecked = allC.checked;
+        var allStaffChecked = allS.checked;
+        var chosenTierCount = chosenTiers().length;
+
+        // When public is checked, uncheck all others
+        if (isPublic) {
+            allC.checked = false;
+            allS.checked = false;
+            tiers.forEach(function (t) { t.checked = false; });
+        }
+        // When all customers is checked, uncheck public, staff, and tiers
+        else if (allCustomersChecked) {
+            pub.checked = false;
+            allS.checked = false;
+            tiers.forEach(function (t) { t.checked = false; });
+        }
+        // When all staff is checked, uncheck public, customers, and tiers
+        else if (allStaffChecked) {
+            pub.checked = false;
+            allC.checked = false;
+            tiers.forEach(function (t) { t.checked = false; });
+        }
+        // When a tier is checked, uncheck public, all customers, all staff, and other tiers
+        else if (chosenTierCount > 0) {
+            pub.checked = false;
+            allC.checked = false;
+            allS.checked = false;
+            // Only keep the last checked tier, uncheck others
+            if (chosenTierCount > 1) {
+                var checked = chosenTiers();
+                tiers.forEach(function (t) { t.checked = t === checked[checked.length - 1]; });
+            }
+        }
 
         var chosen = chosenTiers();
-        var n = peopleCount();
-        presets.forEach(function (b) {
-            var p = b.getAttribute('data-preset');
-            var on = false;
-            if (p === 'public') on = isPublic;
-            else if (!isPublic && n === 0) {
-                if (p === 'customers') on = allC.checked && !allS.checked;
-                else if (p === 'staff') on = allS.checked && !allC.checked && chosen.length === 0;
-                else if (p === 'tier') on = !allC.checked && !allS.checked && chosen.length === 1 && chosen[0].value === b.getAttribute('data-tier');
-            }
-            b.classList.toggle('on', on);
-            b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
-
         var parts = [];
-        if (isPublic) parts.push('everyone, including visitors who are not signed in');
+        if (pub.checked) parts.push('everyone, including visitors who are not signed in');
         if (allC.checked) parts.push('all customers');
         if (chosen.length) parts.push(chosen.map(tierLabel).join(' and ') + ' customers');
         if (allS.checked) parts.push('all staff');
-        if (n) parts.push(n + ' named ' + (n === 1 ? 'person' : 'people'));
         summary.classList.remove('is-error');
         summary.textContent = parts.length ? 'This will reach ' + parts.join(', ') + '.' : 'Choose who this is for.';
     }
@@ -88,74 +76,13 @@
         allC.checked = !!a.allCustomers;
         allS.checked = !!a.allStaff;
         var ids = (a.tierIds || []).map(String);
-        tiers.forEach(function (t) { t.disabled = false; t.checked = ids.indexOf(t.value) !== -1; });
-        people = {};
-        (a.people || []).forEach(function (p) { people[p.id] = p.name; });
-        renderPeople();
-        results.hidden = true; results.textContent = '';
-        search.value = ''; searchTier.value = '';
+        tiers.forEach(function (t) { t.checked = ids.indexOf(t.value) !== -1; });
         refresh();
     }
 
-    presets.forEach(function (b) {
-        b.addEventListener('click', function () {
-            var p = b.getAttribute('data-preset');
-            var a = { isPublic: false, allCustomers: false, allStaff: false, tierIds: [], people: [] };
-            if (p === 'public') a.isPublic = true;
-            if (p === 'customers') a.allCustomers = true;
-            if (p === 'staff') a.allStaff = true;
-            if (p === 'tier') a.tierIds = [b.getAttribute('data-tier')];
-            setAudience(a);
-        });
-    });
-
     root.addEventListener('change', function (e) {
         if (e.target.matches('input[type="checkbox"]')) refresh();
-        if (e.target === searchTier && search.value.trim()) runSearch();
     });
-
-    function runSearch() {
-        var url = root.getAttribute('data-search-url');
-        var term = search.value.trim();
-        if (!url || (!term && !searchTier.value)) { results.hidden = true; return; }
-        var full = url + (url.indexOf('?') === -1 ? '?' : '&') + 'handler=People&q=' + encodeURIComponent(term) +
-            (searchTier.value ? '&tierId=' + encodeURIComponent(searchTier.value) : '');
-        fetch(full, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-            .then(function (r) { if (!r.ok) throw new Error('search'); return r.json(); })
-            .then(function (list) {
-                results.textContent = '';
-                if (!list.length) {
-                    var none = document.createElement('li');
-                    none.className = 'aud-none'; none.textContent = 'No one found.';
-                    results.appendChild(none);
-                }
-                list.forEach(function (p) {
-                    var li = document.createElement('li');
-                    var b = document.createElement('button');
-                    b.type = 'button';
-                    var name = document.createElement('b'); name.textContent = p.name;
-                    var meta = document.createElement('small');
-                    meta.textContent = p.email + ' (' + (p.tierName || p.role) + ')';
-                    b.appendChild(name); b.appendChild(meta);
-                    b.addEventListener('click', function () {
-                        people[p.id] = p.name;
-                        renderPeople(); refresh();
-                        results.hidden = true; search.value = '';
-                        search.focus();
-                    });
-                    li.appendChild(b); results.appendChild(li);
-                });
-                results.hidden = false;
-            })
-            .catch(function () {
-                results.textContent = '';
-                var bad = document.createElement('li');
-                bad.className = 'aud-none'; bad.textContent = 'The search did not work. Try again in a moment.';
-                results.appendChild(bad); results.hidden = false;
-            });
-    }
-    search.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(runSearch, 250); });
-    search.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); runSearch(); } });
 
     // ---- the rest of the editor -----------------------------------------------------------------------------------
     var publishBtn = document.getElementById('annPublish');
@@ -208,7 +135,7 @@
 
     // Somebody has to be chosen before anything is saved; the server checks again.
     form.addEventListener('submit', function (e) {
-        var any = pub.checked || allC.checked || allS.checked || chosenTiers().length > 0 || peopleCount() > 0;
+        var any = pub.checked || allC.checked || allS.checked || chosenTiers().length > 0;
         if (!any) {
             e.preventDefault();
             summary.textContent = 'Choose who this is for before saving.';

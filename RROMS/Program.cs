@@ -12,10 +12,7 @@ QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------------- Your private settings (API keys, passwords) ----------------
-// appsettings.Local.json is an optional file that sits next to appsettings.json. Copy
-// appsettings.Local.example.json to appsettings.Local.json and paste your own Google / Stripe / SMTP /
-// chatbot values there. It is listed in .gitignore, so your secrets never reach GitHub. Values in this
-// file win over appsettings.json. See INTEGRATIONS.md for where to get each value.
+// appsettings.Local.json is an optional file that sits next to appsettings.json.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // ---------------- Database ----------------
@@ -26,9 +23,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // ---------------- Identity ----------------
+builder.Services.Configure<PasswordHasherOptions>(options =>
+{
+    options.IterationCount = 800000;
+});
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Password policy (brief Section 5.C): at least one uppercase, one
+    // at least one uppercase, one
     // lowercase, one digit, one symbol, minimum 8 characters. Enforced here
     // means Identity's UserManager checks it on every password creation or
     // change everywhere in the app (registration, profile "change password",

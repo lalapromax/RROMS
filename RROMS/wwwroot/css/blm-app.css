@@ -242,10 +242,105 @@ div[style*="height"]>.img{width:100%;height:100%}
 .app-bar{z-index:60}
 .app-bar .burger{display:none;color:inherit;border-color:rgba(232,209,167,.5)}
 .app-bar .nav-main{display:flex;gap:26px;align-items:center;flex:1;margin-left:12px}
-.app-bar .nav-main>a,.app-bar .nav-main .more>button{color:var(--batter);text-decoration:none;font-weight:500;font-size:15px;padding:10px 0;border:0;border-bottom:1px solid transparent;background:none;font-family:inherit;cursor:pointer}
+.app-bar .nav-main>a,.app-bar .nav-main .more>button{display:inline-flex;align-items:center;gap:6px;color:var(--batter);text-decoration:none;font-weight:500;font-size:15px;padding:10px 0;border:0;border-bottom:1px solid transparent;background:none;font-family:inherit;cursor:pointer}
 .app-bar .nav-main>a:hover,.app-bar .nav-main>a[aria-current],.app-bar .nav-main .more>button:hover,.app-bar .nav-main .more>button[aria-current]{color:var(--paper);border-bottom-color:var(--paper)}
-.app-bar .badge{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--wine);color:var(--paper);font:700 12px/20px 'Hanken Grotesk',sans-serif}
+.app-bar .badge{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:0;padding:0 6px;border-radius:999px;background:var(--wine);color:var(--paper);font:700 12px/20px 'Hanken Grotesk',sans-serif;flex:none}
 .app-bar.staff .badge{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{margin-left:0}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a span,.app-bar .nav-main .more>button span{display:inline-flex;align-items:center;gap:6px}
+
+.app-bar .nav-main>a[aria-current],.app-bar .nav-main .more>button[aria-current]{border-bottom-color:var(--paper)}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{display:inline-grid;place-items:center;flex:none}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{margin-left:0}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--wine);color:var(--paper);font:700 12px/20px 'Hanken Grotesk',sans-serif}
+
+.app-bar.staff .nav-main>a .badge-n,.app-bar.staff .nav-main .more>button .badge-n{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{margin-left:0}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{flex:none}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{flex:none}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{margin-left:0}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{display:inline-grid;place-items:center}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{display:inline-grid;place-items:center}
+
+.app-bar .nav-main>a[aria-current],.app-bar .nav-main .more>button[aria-current]{border-bottom-color:var(--paper)}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{background:var(--wine)}
+
+.app-bar.staff .nav-main>a .badge,.app-bar.staff .nav-main .more>button .badge{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{background:var(--wine)}
+
+.app-bar.staff .nav-main>a .badge-n,.app-bar.staff .nav-main .more>button .badge-n{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{flex:none}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{display:inline-grid;place-items:center}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{min-width:20px;height:20px;padding:0 6px;border-radius:999px;font:700 12px/20px 'Hanken Grotesk',sans-serif}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{color:var(--paper)}
+
+.app-bar.staff .nav-main>a .badge,.app-bar.staff .nav-main .more>button .badge{color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{color:var(--paper)}
+
+.app-bar.staff .nav-main>a .badge-n,.app-bar.staff .nav-main .more>button .badge-n{color:var(--cocoa)}
+
+.app-bar .nav-main>a,.app-bar .nav-main .more>button{display:inline-flex;align-items:center;gap:6px}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{flex:none}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{background:var(--wine);color:var(--paper)}
+
+.app-bar.staff .nav-main>a .badge,.app-bar.staff .nav-main .more>button .badge{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{background:var(--wine);color:var(--paper)}
+
+.app-bar.staff .nav-main>a .badge-n,.app-bar.staff .nav-main .more>button .badge-n{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font:700 12px/20px 'Hanken Grotesk',sans-serif}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{flex:none}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{border-radius:999px}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font:700 12px/20px 'Hanken Grotesk',sans-serif}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge{background:var(--wine);color:var(--paper)}
+
+.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{background:var(--wine);color:var(--paper)}
+
+.app-bar.staff .nav-main>a .badge,.app-bar.staff .nav-main .more>button .badge,.app-bar.staff .nav-main>a .badge-n,.app-bar.staff .nav-main .more>button .badge-n{background:var(--batter);color:var(--cocoa)}
+
+.app-bar .nav-main>a .badge,.app-bar .nav-main .more>button .badge,.app-bar .nav-main>a .badge-n,.app-bar .nav-main .more>button .badge-n{margin-left:0;flex:none}
+
 .more{position:relative}
 .more>button{display:inline-flex;align-items:center;gap:6px}
 .more .menu-pop{top:calc(100% + 12px);right:auto;left:-14px}

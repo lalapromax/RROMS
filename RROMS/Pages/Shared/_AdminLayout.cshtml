@@ -4,6 +4,7 @@
     // orders or reservations (guests place them, staff run service).
     var c = await Chrome.GetAsync();
     var path = Context.Request.Path;
+    var showUnreadNotifications = c.Unread > 0;
     string Cur(params string[] prefixes) => prefixes.Any(x => path.StartsWithSegments(x)) ? "page" : null!;
     var inMore = Cur("/Admin/Collaborations", "/Admin/Monitoring", "/Admin/Integrations", "/Admin/Settings") != null;
     var inOverview = Cur("/Admin/Dashboard", "/Admin/Reviews") != null;
@@ -65,15 +66,16 @@
             <a asp-page="/Admin/Settings" aria-current="@Cur("/Admin/Settings")">Settings</a>
             <hr />
             <a asp-page="/Account/Profile">Your profile</a>
-            <a asp-page="/Notifications/Index">Notifications@if (c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+            <a asp-page="/Notifications/Index">Notifications@(showUnreadNotifications ? Html.Raw($" <span class=\"badge-n\">{c.Unread}</span>") : Html.Raw(""))</a>
             <form method="post" asp-page="/Account/Logout"><button type="submit">Sign out</button></form>
         </nav>
     </dialog>
 
     <main id="main" tabindex="-1">
-        <partial name="_Flash" />
         @RenderBody()
     </main>
+
+    <partial name="_Flash" />
 
     <script src="~/js/blm.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

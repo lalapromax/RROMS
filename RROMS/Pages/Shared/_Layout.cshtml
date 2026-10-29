@@ -6,6 +6,7 @@
     var signedIn = c.SignedIn;
     var path = Context.Request.Path;
     var onMenu = path.StartsWithSegments("/Menu");
+    var showUnreadNotifications = c.Unread > 0;
     string Cur(params string[] prefixes) => prefixes.Any(x => path.StartsWithSegments(x)) ? "page" : null!;
     var bundle = ViewData["Bundle"] as string ?? "full";   // full = guest pages, guest = Rewards, lite = Home and Menu
     var homeHref = Url.Page("/Index")!;
@@ -98,7 +99,7 @@
             <a asp-page="/Reservations/Index">My reservations</a>
             <a asp-page="/Orders/Index">My orders</a>
             <a asp-page="/Feedback/Index">My reviews</a>
-            <a asp-page="/Notifications/Index">Notifications@if (c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+            <a asp-page="/Notifications/Index">Notifications@(showUnreadNotifications ? Html.Raw($" <span class=\"badge-n\">{c.Unread}</span>") : Html.Raw(""))</a>
             <a asp-page="/Account/Profile">Profile and dietary details</a>
             <form method="post" asp-page="/Account/Logout"><button type="submit">Sign out</button></form>
         }
@@ -112,9 +113,10 @@
 </dialog>
 
 <main id="main" tabindex="-1">
-    <partial name="_Flash" />
     @RenderBody()
 </main>
+
+<partial name="_Flash" />
 
 <footer class="foot">
     <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>

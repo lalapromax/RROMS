@@ -1,26 +1,61 @@
 @* One-off messages set with TempData["StatusMessage"] (done) or TempData["ErrorMessage"] (something to fix). *@
+@* This partial is now rendered at the top level so the modal can sit above all page content. *@
+@* See _Layout.cshtml: the partial is included AFTER </main> so it renders outside the page flow. *@
 @{
     var ok = TempData["StatusMessage"] as string;
     var bad = TempData["ErrorMessage"] as string;
+    var messages = new List<string>();
+    if (!string.IsNullOrWhiteSpace(ok)) messages.Add(ok);
+    if (!string.IsNullOrWhiteSpace(bad)) messages.Add(bad);
+    var modalTitle = string.IsNullOrWhiteSpace(bad) ? "Success" : "Notice";
 }
-@if (!string.IsNullOrWhiteSpace(ok) || !string.IsNullOrWhiteSpace(bad))
+@if (messages.Count > 0)
 {
-    <div class="wrap flash-wrap" aria-live="polite">
-        @if (!string.IsNullOrWhiteSpace(ok))
-        {
-            <div class="flash" role="status">
-                @Ui.Icon("check", 18, 2.2)
-                <span class="grow">@ok</span>
-                <button type="button" data-dismiss aria-label="Dismiss message">@Ui.Icon("x", 14, 2)</button>
+    <div class="flash-modal-root" id="flashModalRoot" aria-live="assertive">
+        <div class="flash-modal-backdrop" aria-hidden="true"></div>
+        <div class="flash-modal" role="alertdialog" aria-modal="true" aria-labelledby="flashModalTitle" tabindex="-1">
+            <div class="flash-modal-head">
+                <h2 id="flashModalTitle">@modalTitle</h2>
             </div>
-        }
-        @if (!string.IsNullOrWhiteSpace(bad))
-        {
-            <div class="flash bad" role="alert">
-                @Ui.Icon("warn", 18, 2)
-                <span class="grow">@bad</span>
-                <button type="button" data-dismiss aria-label="Dismiss message">@Ui.Icon("x", 14, 2)</button>
+            <div class="flash-modal-body">
+                @foreach (var message in messages)
+                {
+                    <p>@message</p>
+                }
             </div>
-        }
+            <div class="flash-modal-actions">
+                <button type="button" class="btn btn-wine" data-flash-close>OK</button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        (function () {
+            var root = document.getElementById('flashModalRoot');
+            if (!root) return;
+            var modal = root.querySelector('.flash-modal');
+            var closeBtn = root.querySelector('[data-flash-close]');
+
+            function open() {
+                root.classList.add('is-open');
+                document.body.classList.add('flash-open');
+                if (modal) modal.focus();
+            }
+
+            function close() {
+                root.classList.remove('is-open');
+                document.body.classList.remove('flash-open');
+            }
+
+            if (closeBtn) closeBtn.addEventListener('click', close);
+            root.addEventListener('click', function (e) {
+                if (e.target === root || e.target.classList.contains('flash-modal-backdrop')) close();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') close();
+            });
+
+            open();
+        })();
+    </script>
 }

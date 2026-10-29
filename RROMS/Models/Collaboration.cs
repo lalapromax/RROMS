@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace RROMS.Models;
 
 /// 
-/// A past or ongoing partnership shown in the home page's "Collaborations" strip (brief 6.J), optionally with
+/// A past or ongoing partnership shown in the home page's "Collaborations", optionally with
 /// one social post (an Instagram reel/post or a YouTube video) shown as a click-to-load embed.
 /// Deliberately small: a name, a few optional links, an order, and a published switch.
 /// 

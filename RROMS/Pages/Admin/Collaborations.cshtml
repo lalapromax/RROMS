@@ -1,0 +1,247 @@
+@page
+@model RROMS.Pages.Admin.CollaborationsModel
+@using System.Text.Json
+@using RROMS.Services
+@{
+    ViewData["Title"] = "Collaborations";
+    var published = Model.Items.Where(c => c.IsPublished).ToList();
+
+    string EditJson(RROMS.Models.Collaboration c) => JsonSerializer.Serialize(new
+    {
+        id = c.Id,
+        name = c.Name,
+        summary = c.Summary,
+        websiteUrl = c.WebsiteUrl,
+        socialUrl = c.SocialUrl,
+        year = c.Year,
+        isOngoing = c.IsOngoing,
+        isPublished = c.IsPublished,
+        image = c.ImageUrl
+    });
+
+    // What was typed, for when a save was refused.
+    string ReopenJson() => JsonSerializer.Serialize(new
+    {
+        id = Model.F.Id,
+        name = Model.F.Name,
+        summary = Model.F.Summary,
+        websiteUrl = Model.F.WebsiteUrl,
+        socialUrl = Model.F.SocialUrl,
+        year = Model.F.Year,
+        isOngoing = Model.F.IsOngoing,
+        isPublished = Model.F.IsPublished,
+        imageUrl = Model.F.ImageUrl,
+        removeImage = Model.F.RemoveImage,
+        image = Model.CurrentImage
+    });
+}
+
+<div class="wrap main stage">
+    <div class="page-head">
+        <div>
+            <h1>Collaborations</h1>
+            <p>The partners we want guests to know about.</p>
+        </div>
+        <div class="row-acts">
+            <button type="button" class="btn btn-wine" data-collab-new>Add collaboration</button>
+        </div>
+    </div>
+
+    <p class="note-box" style="margin-bottom:24px">Partners and past projects, shown in a slow strip on the home page. Only published entries are visible to guests. If none are published, the strip is hidden entirely. A social link can be an Instagram post or a YouTube video: guests see a still, and the video only loads when they press play.</p>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-card">
+            <h3>No collaborations yet</h3>
+            <p>Add your first partner to show the strip on the home page.</p>
+            <button type="button" class="btn btn-wine" data-collab-new>Add collaboration</button>
+        </div>
+    }
+    else
+    {
+        <div class="collab-admin-grid">
+            @for (var i = 0; i < Model.Items.Count; i++)
+            {
+                var c = Model.Items[i];
+                var isFirst = i == 0;
+                var isLast = i == Model.Items.Count - 1;
+                var hasImage = !string.IsNullOrEmpty(c.ImageUrl) && UrlSafety.IsAcceptableImageUrl(c.ImageUrl);
+                var socialLabel = SocialEmbed.TryParse(c.SocialUrl, out var socialPost) && socialPost != null ? socialPost.Platform : null;
+                var meta = new List<string> { c.IsOngoing ? "Ongoing" : "Past" };
+                if (c.Year.HasValue) meta.Add(c.Year.Value.ToString());
+                if (socialLabel != null) meta.Add(socialLabel + " link");
+                <article class="panel collab-admin @(c.IsPublished ? "" : "is-hidden")">
+                    <div class="collab-logo collab-thumb">
+                        <span class="collab-initial" aria-hidden="true">@(string.IsNullOrEmpty(c.Name) ? "?" : c.Name.Substring(0, 1).ToUpperInvariant())</span>
+                        @if (hasImage)
+                        {
+                            <img src="@c.ImageUrl" alt="" loading="lazy" referrerpolicy="no-referrer" data-collab-img />
+                        }
+                    </div>
+                    <div class="collab-admin-body">
+                        <div class="sp-b">
+                            <h3>@c.Name</h3>
+                            <span class="st @(c.IsPublished ? "st-published" : "st-cancelled")">@(c.IsPublished ? "Published" : "Hidden")</span>
+                        </div>
+                        <p class="muted collab-admin-meta">@string.Join(", ", meta)</p>
+                        @if (!string.IsNullOrEmpty(c.Summary))
+                        {
+                            <p class="collab-admin-sum">@c.Summary</p>
+                        }
+                        <div class="row-acts collab-admin-acts">
+                            <form method="post" asp-page-handler="Move" asp-route-id="@c.Id" asp-route-direction="up" class="inline-form">
+                                <button type="submit" class="ib" aria-label="Move @c.Name earlier" disabled="@isFirst"><span class="flip">@Ui.Icon("arrow", 16, 1.6)</span></button>
+                            </form>
+                            <form method="post" asp-page-handler="Move" asp-route-id="@c.Id" asp-route-direction="down" class="inline-form">
+                                <button type="submit" class="ib" aria-label="Move @c.Name later" disabled="@isLast">@Ui.Icon("arrow", 16, 1.6)</button>
+                            </form>
+                            <button type="button" class="btn btn-line btn-sm2" data-collab-edit="@EditJson(c)">Edit</button>
+                            <form method="post" asp-page-handler="TogglePublished" asp-route-id="@c.Id" class="inline-form">
+                                <button type="submit" class="btn btn-line btn-sm2">@(c.IsPublished ? "Hide" : "Publish")</button>
+                            </form>
+                            <button type="button" class="btn btn-danger btn-sm2" data-dialog-open="removeDlg" data-fields="id,name" data-id="@c.Id" data-name="@c.Name">Remove</button>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <div class="sec" style="margin:44px 0 16px">
+            <h2>How guests see it</h2>
+        </div>
+        @if (published.Count == 0)
+        {
+            <p class="note-box">Nothing is published, so the strip is hidden on the home page.</p>
+        }
+        else
+        {
+            <div class="collab-preview" aria-label="A preview of the strip on the home page">
+                <ul class="collab-track" role="list">
+                    @foreach (var c in published)
+                    {
+                        var hasImage = !string.IsNullOrEmpty(c.ImageUrl) && UrlSafety.IsAcceptableImageUrl(c.ImageUrl);
+                        <li class="collab-card">
+                            <div class="collab-logo">
+                                <span class="collab-initial" aria-hidden="true">@(string.IsNullOrEmpty(c.Name) ? "?" : c.Name.Substring(0, 1).ToUpperInvariant())</span>
+                                @if (hasImage)
+                                {
+                                    <img src="@c.ImageUrl" alt="" loading="lazy" referrerpolicy="no-referrer" data-collab-img />
+                                }
+                            </div>
+                            <div class="collab-body">
+                                <span class="collab-name">@c.Name</span>
+                                @if (!string.IsNullOrEmpty(c.Summary))
+                                {
+                                    <span class="collab-summary">@c.Summary</span>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    }
+</div>
+
+@* ---- add or change one ---- *@
+<dialog class="modal" id="collabDlg" style="--w:620px" aria-labelledby="collabT">
+    <form method="post" asp-page-handler="Save" enctype="multipart/form-data" autocomplete="off" id="collabForm" class="form">
+        <input type="hidden" id="collabDlg_id" name="F.Id" value="0" />
+        <div class="modal-head">
+            <h2 id="collabT" data-dialog-title>Add collaboration</h2>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            @if (Model.FormError != null) { <div class="form-alert" role="alert">@Ui.Icon("warn", 18, 2)<div><p>@Model.FormError</p></div></div> }
+
+            <div class="field">
+                <label for="collabDlg_name">Partner name</label>
+                <input class="in" id="collabDlg_name" name="F.Name" type="text" maxlength="100" required />
+            </div>
+            <div class="field">
+                <label for="collabDlg_summary">What you did together <span class="muted">(optional)</span></label>
+                <input class="in" id="collabDlg_summary" name="F.Summary" type="text" maxlength="200" aria-describedby="collabSumHint" />
+                <p class="hint" id="collabSumHint">One line, up to 200 characters.</p>
+            </div>
+            <div class="f-row f-2">
+                <div class="field">
+                    <label for="collabDlg_year">Year <span class="muted">(optional)</span></label>
+                    <input class="in" id="collabDlg_year" name="F.Year" type="number" inputmode="numeric" min="1990" max="2100" />
+                </div>
+                <div class="field">
+                    <span class="lab" id="collabOngL">Still going</span>
+                    <label class="swx"><input type="checkbox" id="collabDlg_ongoing" name="F.IsOngoing" value="true" aria-labelledby="collabOngL" /><span class="sw"></span></label>
+                </div>
+            </div>
+            <div class="field">
+                <label for="collabDlg_website">Website <span class="muted">(optional)</span></label>
+                <input class="in" id="collabDlg_website" name="F.WebsiteUrl" type="url" maxlength="300" placeholder="https://" />
+            </div>
+            <div class="field">
+                <label for="collabDlg_social">Instagram reel, post or YouTube video <span class="muted">(optional)</span></label>
+                <input class="in" id="collabDlg_social" name="F.SocialUrl" type="url" maxlength="300" placeholder="https://www.instagram.com/reel/..." aria-describedby="collabSocHint" />
+                <p class="hint" id="collabSocHint">Paste the link from the share menu. Other sites are not accepted.</p>
+            </div>
+
+            <fieldset class="field collab-pic">
+                <legend class="lab">Logo or photo</legend>
+                <div class="collab-pic-row">
+                    <div class="collab-pic-now" id="collabPicNow" hidden>
+                        <img id="collabPicImg" src="" alt="The picture it has now" />
+                        <label class="ckb"><input type="checkbox" id="collabDlg_removeimage" name="F.RemoveImage" value="true" /><i>@Ui.Icon("check", 13, 3)</i> Take the picture off</label>
+                    </div>
+                    <div>
+                        <label for="collabDlg_file" class="lab-sm">Upload one <span class="muted">(JPG, PNG or WebP, up to 4 MB)</span></label>
+                        <input class="in" id="collabDlg_file" name="ImageFile" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                    </div>
+                    <div>
+                        <label for="collabDlg_imageurl" class="lab-sm">or paste a web address <span class="muted">(https)</span></label>
+                        <input class="in" id="collabDlg_imageurl" name="F.ImageUrl" type="url" maxlength="300" placeholder="https://" />
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="field" style="margin-bottom:0">
+                <label class="swx"><input type="checkbox" id="collabDlg_published" name="F.IsPublished" value="true" /><span class="sw"></span> Show it on the home page</label>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn btn-wine">Save collaboration</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- take one off the site ---- *@
+<dialog class="modal" id="removeDlg" style="--w:460px" aria-labelledby="remT">
+    <form method="post" asp-page-handler="Delete" class="form">
+        <input type="hidden" id="removeDlg_id" name="id" />
+        <div class="modal-head">
+            <div>
+                <h2 id="remT">Remove this collaboration?</h2>
+                <p class="muted" id="removeDlg_name" style="margin-top:2px"></p>
+            </div>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>It leaves the list and the home page for good, and its picture is deleted. To keep it for later, hide it instead.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Keep it</button>
+            <button type="submit" class="btn btn-danger">Remove</button>
+        </div>
+    </form>
+</dialog>
+
+@if (Model.OpenForm)
+{
+    <script type="application/json" id="collabReopen">@Html.Raw(ReopenJson())</script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/AdminCollaborations.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/admin-collaborations.js" asp-append-version="true"></script>
+}

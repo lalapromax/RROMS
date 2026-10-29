@@ -200,17 +200,7 @@
 
             <fieldset class="field aud" id="annAud" data-search-url="@Url.Page("/Admin/Announcements")" aria-describedby="annAudSummary">
                 <legend class="lab">Who should see it?</legend>
-                <div class="pre" role="group" aria-label="Quick choices">
-                    <button type="button" class="chipx" data-preset="public" aria-pressed="false"><span class="ck-i">@Ui.Icon("check", 14, 2.4)</span>Everyone</button>
-                    <button type="button" class="chipx" data-preset="customers" aria-pressed="false"><span class="ck-i">@Ui.Icon("check", 14, 2.4)</span>All customers</button>
-                    <button type="button" class="chipx" data-preset="staff" aria-pressed="false"><span class="ck-i">@Ui.Icon("check", 14, 2.4)</span>All staff</button>
-                    @foreach (var t in Model.Tiers)
-                    {
-                        <button type="button" class="chipx" data-preset="tier" data-tier="@t.Id" aria-pressed="false"><span class="ck-i">@Ui.Icon("check", 14, 2.4)</span>@t.Name members</button>
-                    }
-                </div>
-
-                <div class="box">
+                <div class="ck-row" data-audience>
                     <label class="ckb"><input type="checkbox" id="annDlg_public" name="F.Public" value="true" data-aud-public /><i>@Ui.Icon("check", 13, 3)</i> Public: anyone, including visitors who are not signed in</label>
                     <label class="ckb"><input type="checkbox" id="annDlg_all" name="F.AllCustomers" value="true" data-aud-all /><i>@Ui.Icon("check", 13, 3)</i> All customers</label>
                     <div class="ck-row">
@@ -221,22 +211,6 @@
                         }
                     </div>
                     <label class="ckb"><input type="checkbox" id="annDlg_staff" name="F.AllStaff" value="true" data-aud-staff /><i>@Ui.Icon("check", 13, 3)</i> All staff</label>
-                </div>
-
-                <div class="box">
-                    <label for="annDlg_search" class="lab-sm">Add specific people <span class="muted">(customers or staff)</span></label>
-                    <div class="ann-find">
-                        <input class="in" id="annDlg_search" type="search" placeholder="Search by name or email" autocomplete="off" aria-controls="annResults" />
-                        <select class="in" id="annDlg_searchtier" aria-label="Only customers in this tier">
-                            <option value="">Any tier</option>
-                            @foreach (var t in Model.Tiers)
-                            {
-                                <option value="@t.Id">@t.Name customers</option>
-                            }
-                        </select>
-                    </div>
-                    <ul class="aud-results" id="annResults" hidden></ul>
-                    <div class="ppl" id="annPeople" aria-live="polite"></div>
                 </div>
 
                 <p class="aud-summary" id="annAudSummary" aria-live="polite"></p>

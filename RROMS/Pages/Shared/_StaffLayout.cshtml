@@ -3,6 +3,8 @@
     // Staff shell: the olive bar with only the front-of-house tools. No guest ordering, no admin pages.
     var c = await Chrome.GetAsync();
     var path = Context.Request.Path;
+    var showPendingReservations = c.PendingReservations > 0;
+    var showUnreadNotifications = c.Unread > 0;
     string Cur(params string[] prefixes) => prefixes.Any(x => path.StartsWithSegments(x)) ? "page" : null!;
     var homeHref = Url.Page("/Staff/Dashboard")!;
 }
@@ -22,7 +24,7 @@
         <partial name="_Seal" model="@(new SealVM(homeHref, "staff home", c.HasLogo))" />
         <nav class="nav-main" aria-label="Staff">
             <a asp-page="/Staff/Dashboard" aria-current="@Cur("/Staff/Dashboard")">Dashboard</a>
-            <a asp-page="/Staff/Reservations" aria-current="@Cur("/Staff/Reservations")">Reservations@if (c.PendingReservations > 0) { <span class="badge" title="@c.PendingReservations waiting">@(c.PendingReservations > 9 ? "9+" : c.PendingReservations.ToString())</span> }</a>
+            <a asp-page="/Staff/Reservations" aria-current="@Cur("/Staff/Reservations")">Reservations@(showPendingReservations ? Html.Raw($" <span class=\"badge\" title=\"{c.PendingReservations} waiting\">{(c.PendingReservations > 9 ? "9+" : c.PendingReservations.ToString())}</span>") : Html.Raw(""))</a>
             <a asp-page="/Staff/Orders" aria-current="@Cur("/Staff/Orders")">Orders</a>
             <a asp-page="/Staff/Billing" aria-current="@Cur("/Staff/Billing")">Billing</a>
             <a asp-page="/Staff/SetMenus" aria-current="@Cur("/Staff/SetMenus")">Set menus</a>
@@ -39,22 +41,23 @@
         </div>
         <nav aria-label="Staff menu">
             <a asp-page="/Staff/Dashboard" aria-current="@Cur("/Staff/Dashboard")">Dashboard</a>
-            <a asp-page="/Staff/Reservations" aria-current="@Cur("/Staff/Reservations")">Reservations@if (c.PendingReservations > 0) { <span class="badge-n">@c.PendingReservations</span> }</a>
+            <a asp-page="/Staff/Reservations" aria-current="@Cur("/Staff/Reservations")">Reservations@(showPendingReservations ? Html.Raw($" <span class=\"badge-n\">{c.PendingReservations}</span>") : Html.Raw(""))</a>
             <a asp-page="/Staff/Orders" aria-current="@Cur("/Staff/Orders")">Orders</a>
             <a asp-page="/Staff/Billing" aria-current="@Cur("/Staff/Billing")">Billing</a>
             <a asp-page="/Staff/SetMenus" aria-current="@Cur("/Staff/SetMenus")">Set menus</a>
             <a asp-page="/Staff/Announcements" aria-current="@Cur("/Staff/Announcements")">Announcements</a>
             <hr />
             <a asp-page="/Account/Profile">Your profile</a>
-            <a asp-page="/Notifications/Index">Notifications@if (c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+            <a asp-page="/Notifications/Index">Notifications@(showUnreadNotifications ? Html.Raw($" <span class=\"badge-n\">{c.Unread}</span>") : Html.Raw(""))</a>
             <form method="post" asp-page="/Account/Logout"><button type="submit">Sign out</button></form>
         </nav>
     </dialog>
 
     <main id="main" tabindex="-1">
-        <partial name="_Flash" />
         @RenderBody()
     </main>
+
+    <partial name="_Flash" />
 
     <script src="~/js/blm.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

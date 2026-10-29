@@ -361,3 +361,12 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/RROMS/wwwroot/uploads
+/RROMS/wwwroot/uploads/menu
+/RROMS/wwwroot/uploads/menu/c57ff278eb6045569c7690b482412cae.png
+/RROMS/wwwroot/uploads/profiles
+/RROMS/wwwroot/uploads/profiles/d1f45322-f5a3-4070-9229-a40c5db4c637-2e50c9e2e4ea454b87551a1d6f81013d.jpg
+/RROMS/wwwroot/uploads/reviews
+/RROMS/wwwroot/uploads/reviews/d1f45322-f5a3-4070-9229-a40c5db4c637-e6fb064f72c5486da3ec95363b99cde9.png
+/.gitignore
+/.gitignore

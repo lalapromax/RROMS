@@ -4,6 +4,7 @@
     // orders, reviews, rewards); staff and administrators get just their profile and notifications.
     var c = await Chrome.GetAsync();
     var isCustomer = User.IsInRole(Roles.Customer);
+    var showUnreadNotifications = !isCustomer && c.Unread > 0;
     string Cur(string path) => Context.Request.Path.StartsWithSegments(path) ? "page" : null!;
 }
 <div class="acct" data-menu>
@@ -31,7 +32,7 @@
             <a asp-page="/Feedback/Index" role="menuitem" aria-current="@Cur("/Feedback")">@Ui.Icon("star")My reviews</a>
             <a asp-page="/Rewards/Index" role="menuitem" aria-current="@Cur("/Rewards")">@Ui.Icon("crown")Rewards</a>
         }
-        <a asp-page="/Notifications/Index" role="menuitem" aria-current="@Cur("/Notifications")">@Ui.Icon("bell")Notifications@if (!isCustomer && c.Unread > 0) { <span class="badge-n">@c.Unread</span> }</a>
+        <a asp-page="/Notifications/Index" role="menuitem" aria-current="@Cur("/Notifications")">@Ui.Icon("bell")Notifications@(showUnreadNotifications ? Html.Raw($" <span class=\"badge-n\">{c.Unread}</span>") : Html.Raw(""))</a>
         <hr />
         <form method="post" asp-page="/Account/Logout"><button type="submit" role="menuitem">Sign out</button></form>
     </div>

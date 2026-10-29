@@ -1,2 +1,0 @@
-Put the restaurant logo here as logo.png (square works best, about 200 x 200 px or larger).
-Until it exists the bars show an empty outlined slot. Restart the app after adding it.
