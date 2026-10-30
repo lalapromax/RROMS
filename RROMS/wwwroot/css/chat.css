@@ -1,0 +1,45 @@
+/* Ask the house: the help chat on every guest page. Its own small sheet, loaded by the guest layout on every page, because
+   the guest bundles are not: on Home and Menu ("lite") the chat used to render as unstyled text under the footer. */
+.cw-fab{position:fixed;right:28px;bottom:28px;z-index:60;display:inline-flex;align-items:center;gap:12px;min-height:60px;padding:0 26px 0 20px;border:0;border-radius:999px;background:var(--wine);color:var(--paper);font:600 16px/1 'Hanken Grotesk',sans-serif;box-shadow:var(--e2);cursor:pointer}
+.cw-fab:hover{background:#5f2610}
+.cw-fab:focus-visible,.cw-x:focus-visible,.cw-send:focus-visible,.cw-sugg button:focus-visible{outline:2px solid var(--wine);outline-offset:3px}
+.cw-fab[hidden],.cw-panel[hidden]{display:none}
+.cw-panel{position:fixed;right:28px;bottom:28px;z-index:61;width:420px;max-width:calc(100vw - 24px);height:min(680px,calc(100dvh - 56px));display:flex;flex-direction:column;background:var(--card);border-radius:16px;box-shadow:var(--e3);overflow:hidden;border:1px solid var(--line)}
+.cw-head{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--cocoa);color:var(--batter)}
+.cw-head .logo-slot,.cw-head .logo-img{width:40px;height:40px;border-color:var(--batter);flex:none}
+.cw-head b{display:block;font:500 20px/1.1 'Bodoni Moda',serif;color:var(--paper)}
+.cw-head span{display:block;margin-top:3px;font-size:13.5px;line-height:1.35}
+.cw-x{margin-left:auto;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid rgba(232,209,167,.4);background:transparent;color:var(--batter);cursor:pointer}
+.cw-x:hover{background:rgba(232,209,167,.12)}
+.cw-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:var(--paper)}
+.cw-m{margin:0;max-width:86%;padding:12px 16px;border-radius:16px;font-size:15.5px;line-height:1.5;overflow-wrap:anywhere}
+.cw-m.a{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px;align-self:flex-start}
+.cw-m.u{background:var(--wine);color:var(--paper);border-bottom-right-radius:4px;align-self:flex-end}
+.cw-m.wait{color:var(--ink2);font-style:italic}
+.cw-mode{align-self:flex-start;margin:-6px 0 0 4px;font-size:12.5px;color:var(--ink2)}
+.cw-sugg{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 12px;background:var(--paper)}
+.cw-sugg[hidden]{display:none}
+.cw-sugg button{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--caramel);background:transparent;color:var(--cocoa);font:500 14px/1 'Hanken Grotesk',sans-serif;cursor:pointer}
+.cw-sugg button:hover{background:var(--linen)}
+.cw-foot{display:flex;gap:10px;padding:14px 16px 8px;border-top:1px solid var(--line);background:var(--card)}
+.cw-foot .in{flex:1;min-width:0;border-radius:999px}
+.cw-send{flex:none;display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:var(--wine);color:var(--paper);cursor:pointer}
+.cw-disc{margin:0;padding:0 20px 14px;background:var(--card);font-size:12.5px;color:var(--ink2)}
+@media (max-width:640px){
+  .cw-fab{right:16px;bottom:16px;width:56px;min-height:56px;padding:0;justify-content:center}
+  .cw-fab span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .cw-panel{right:0;bottom:0;left:0;top:0;width:auto;max-width:none;height:auto;border-radius:0;border:0}
+  .cw-body{padding:16px}
+  .cw-m{font-size:16px}
+  .cw-foot .in{font-size:16px}
+}
+
+/* the message box, styled here so it does not depend on a form bundle */
+.cw-foot .in{min-height:48px;padding:10px 18px;border:1px solid var(--caramel);background:#fff;color:var(--cocoa);font:400 15px/1.4 'Hanken Grotesk',sans-serif}
+.cw-foot .in:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+
+/* a reply keeps its line breaks (lists of set menus), and may come with one button to the right page */
+.cw-m{white-space:pre-line}
+.cw-act{align-self:flex-start;display:inline-flex;align-items:center;min-height:40px;margin:-4px 0 0 4px;padding:0 16px;border-radius:999px;border:1px solid var(--wine);color:var(--wine);font:600 14px/1 'Hanken Grotesk',sans-serif;text-decoration:none}
+.cw-act:hover{background:var(--wine);color:var(--paper)}
+.cw-act:focus-visible{outline:2px solid var(--wine);outline-offset:3px}

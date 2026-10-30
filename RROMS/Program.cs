@@ -176,8 +176,9 @@ app.MapPost("/api/chatbot/ask", async (ChatRequest request, HttpContext http, IC
     var userId = http.User.Identity?.IsAuthenticated == true
         ? http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
         : null;
-    var answer = await chatbotService.GetAnswerAsync(request.Message ?? string.Empty, userId);
-    return Results.Ok(new { answer = answer.Text, mode = answer.Mode });
+    // The conversation is kept in the visitor's session, so follow-ups ("yes", "for four") are read in context.
+    var answer = await chatbotService.GetAnswerAsync(request.Message ?? string.Empty, userId, http.Session, request.Reset);
+    return Results.Ok(new { answer = answer.Text, mode = answer.Mode, action = answer.Action });
 }).AllowAnonymous();
 
 // ---------------- Apply migrations + seed reference/demo data ----------------
@@ -188,4 +189,5 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-record ChatRequest(string? Message);
+/// Reset is true when the widget starts a new conversation, so the server forgets earlier turns.
+record ChatRequest(string? Message, bool Reset = false);

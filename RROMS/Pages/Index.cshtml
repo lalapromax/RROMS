@@ -21,8 +21,8 @@
         </div>
     </div>
     <div class="hero-art">
-        @Ui.Plate("b-saint", "olive", "arch", "arch-back")
-        @Ui.Plate("d-duck", "slate", "arch", "arch-front")
+        @Ui.Placeholder("olive", "arch", "arch-back")
+        @Ui.Placeholder("slate", "arch", "arch-front")
         @if (feature != null)
         {
             var faces = feature.Courses.OrderBy(c => c.SortOrder).Select(c => c.Dishes.FirstOrDefault()?.MenuItem).Where(m => m != null).Take(4).ToList();
@@ -49,7 +49,6 @@
 @if (Model.Sets.Count > 0)
 {
     <section class="band-cocoa">
-        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
         <div class="wrap set-grid">
             <div>
                 <h2 class="h-xl">Let us plan your evening</h2>
@@ -58,7 +57,7 @@
                     @foreach (var s in Model.Sets)
                     {
                         <li class="set-row">
-                            @Ui.SetCover(s, "width:76px;height:76px;border-radius:10px")
+                            @SetMenuLabels.Cover(s)
                             <span>
                                 <a class="set-name" asp-page="/Menu/Index" asp-route-set="@s.Id" asp-fragment="sets" style="color:inherit;text-decoration:none">@s.Name</a>
                                 <span class="set-meta">@(s.Tagline ?? string.Join(", ", s.Courses.OrderBy(c => c.SortOrder).Select(c => c.Name.ToLowerInvariant())))</span>
@@ -167,16 +166,15 @@
 @if (Model.Wines.Count > 0)
 {
     <section class="band-wine">
-        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
         <div class="wrap cellar">
             <div>
                 <h2>La cave</h2>
                 <p class="cellar-copy">Most of what is in the cellar was chosen by someone who tasted it first. Ask, and we will pour you a taste.</p>
                 <p style="margin-top:28px"><a class="btn btn-paper" asp-page="/Menu/Index" asp-fragment="cellar">See the wine list</a></p>
                 <div class="bottles" aria-hidden="true">
-                    <svg viewBox="0 0 200 200" focusable="false"><use href="#b-chablis"></use></svg>
-                    <svg viewBox="0 0 200 200" focusable="false"><use href="#b-saint"></use></svg>
-                    <svg viewBox="0 0 200 200" focusable="false"><use href="#b-champ"></use></svg>
+                    <img src="@Ui.PlaceholderImage" alt="" loading="lazy" />
+                    <img src="@Ui.PlaceholderImage" alt="" loading="lazy" />
+                    <img src="@Ui.PlaceholderImage" alt="" loading="lazy" />
                 </div>
             </div>
             <div class="wine-list">
@@ -245,19 +243,7 @@
         </div>
         <div>
             <div class="floor-card">
-                <svg viewBox="0 0 520 300" width="100%" role="img" aria-label="An illustration of the floor plan with free and booked tables" style="display:block">
-                    <rect width="520" height="300" fill="#FBF6EA"></rect>
-                    <g font-family="Hanken Grotesk,sans-serif" font-size="14" font-weight="600" text-anchor="middle">
-                        <circle cx="78" cy="74" r="36" fill="#743014"></circle><text x="78" y="79" fill="#FBF6EA">T1</text>
-                        <circle cx="176" cy="74" r="36" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></circle><text x="176" y="79" fill="#442D1C">T2</text>
-                        <rect x="258" y="42" width="104" height="64" rx="12" fill="#743014"></rect><text x="310" y="79" fill="#FBF6EA">T3</text>
-                        <circle cx="448" cy="74" r="36" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></circle><text x="448" y="79" fill="#442D1C">T4</text>
-                        <rect x="28" y="170" width="104" height="64" rx="12" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></rect><text x="80" y="207" fill="#442D1C">T5</text>
-                        <circle cx="214" cy="204" r="36" fill="#442D1C"></circle><circle cx="214" cy="204" r="44" fill="none" stroke="#442D1C" stroke-width="2"></circle><text x="214" y="200" fill="#FBF6EA">T6</text><text x="214" y="218" fill="#E8D1A7" font-size="12" font-weight="500">yours</text>
-                        <rect x="308" y="172" width="104" height="64" rx="12" fill="#743014"></rect><text x="360" y="209" fill="#FBF6EA">T7</text>
-                        <circle cx="466" cy="206" r="30" fill="#F3E8CE" stroke="#84592B" stroke-width="2"></circle><text x="466" y="211" fill="#442D1C">T8</text>
-                    </g>
-                </svg>
+                <img src="@Ui.PlaceholderImage" alt="The dining room floor plan" loading="lazy" style="display:block;width:100%;aspect-ratio:520/300;object-fit:cover" />
             </div>
             <span class="floor-note">pick the one by the window</span>
         </div>

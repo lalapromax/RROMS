@@ -17,6 +17,7 @@
 <html lang="en">
 <head>
     <partial name="_Head" />
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
     @if (bundle != "lite")
     {
         <link rel="stylesheet" href="~/css/blm-guest.css" asp-append-version="true" />
@@ -30,7 +31,6 @@
 </head>
 <body class="guest">
     <a class="skip" href="#main">Skip to the page</a>
-    <partial name="_Sprite" />
 
     <header class="nav">
         <nav class="nav-links" aria-label="Primary">
@@ -119,7 +119,6 @@
 <partial name="_Flash" />
 
 <footer class="foot">
-    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
     <div class="wrap foot-in">
         <div>
             <partial name="_Seal" model="@(new SealVM(homeHref, "home", c.HasLogo))" />
@@ -128,9 +127,9 @@
         <div>
             <h4>Visit</h4>
             <ul>
-                @if (!string.IsNullOrWhiteSpace(c.Setting?.Address))
+                @if (c.Setting?.PublicAddress is string address)
                 {
-                    <li>@c.Setting!.Address</li>
+                    <li>@address</li>
                 }
                 @foreach (var line in c.HoursLines)
                 {

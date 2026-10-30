@@ -48,6 +48,6 @@ public static class SetMenuLabels
         var dish = course?.Dishes.OrderBy(d => d.SortOrder).FirstOrDefault()?.MenuItem;
         return dish != null
             ? Ui.Pic(dish.ImageUrl, dish.Name, dish.MenuCategory?.Name, "none", null, null, null, decorative: true)
-            : Ui.Plate("d-house", "linen", "none");
+            : Ui.Placeholder("linen", "none");
     }
 }

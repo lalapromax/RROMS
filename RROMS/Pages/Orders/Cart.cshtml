@@ -101,7 +101,7 @@
                     <div class="line@(ql.Ok ? "" : " has-problem")">
                         @if (c.Kind == CartKind.SetMenu && string.IsNullOrWhiteSpace(c.ImageUrl))
                         {
-                            @Ui.Plate("d-house", "linen", "round")
+                            @Ui.Placeholder("linen", "round")
                         }
                         else
                         {
@@ -138,7 +138,6 @@
         {
             <aside class="pay" aria-label="Payment">
                 <div class="printed">
-                    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
                     <h3>Payment</h3>
 
                     <div class="promo">

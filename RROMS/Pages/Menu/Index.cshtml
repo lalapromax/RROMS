@@ -238,7 +238,6 @@
     var half = (Model.Wines.Count + 1) / 2;
     var cols = new[] { Model.Wines.Take(half).ToList(), Model.Wines.Skip(half).ToList() }.Where(c => c.Count > 0).ToList();
     <section class="band-wine" id="cellar">
-        <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
         <div class="wrap cellar">
             <h2>The cellar</h2>
             <p class="cellar-copy">Poured by the glass, or opened by the bottle. If you are not sure, ask. We would rather you ordered the one you will enjoy.</p>

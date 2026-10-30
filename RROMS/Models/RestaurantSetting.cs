@@ -20,11 +20,16 @@ public class RestaurantSetting
 
     /// The number to show guests, or null while it is still the "[YOUR PHONE]" placeholder from the seed.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? PublicPhone => PublicPhoneOf(Phone);
+    public string? PublicPhone => Shown(Phone);
 
-    /// The same rule for a number held elsewhere (the error page reads it from the cache, not the database).
-    public static string? PublicPhoneOf(string? phone) =>
-        string.IsNullOrWhiteSpace(phone) || phone.Contains('[') ? null : phone.Trim();
+    /// The address to show guests, or null while it is still the "[YOUR ADDRESS]" placeholder from the seed.
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PublicAddress => Shown(Address);
+
+    /// A setting as guests may see it: null when empty or still a "[YOUR ...]" placeholder from the seed. Also used for
+    /// values held elsewhere (the error page reads the phone from the cache, not the database).
+    public static string? Shown(string? value) =>
+        string.IsNullOrWhiteSpace(value) || value.Contains('[') ? null : value.Trim();
 
     [StringLength(120)]
     public string? Email { get; set; }

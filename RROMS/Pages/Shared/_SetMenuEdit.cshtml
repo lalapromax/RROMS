@@ -69,7 +69,7 @@
                             <div class="ph-row">
                                 <div class="ph-thumb">
                                     @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl)) { @Ui.Pic(Model.PhotoUrl, null, null, "soft", "linen", null, "The current photo", decorative: false) }
-                                    else { @Ui.Plate("d-house", "linen", "soft") }
+                                    else { @Ui.Placeholder("linen", "soft") }
                                 </div>
                                 <div class="ph-ctl">
                                     <input class="in" id="smPhoto" name="Photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="smPhotoHint" />
@@ -134,7 +134,7 @@
                     </div>
                 </article>
                 <div class="pv-note">
-                    @Ui.Plate("d-house", "linen", "round")
+                    @Ui.Placeholder("linen", "round")
                     <span>A dish with no photo shows a plain house plate, so guests never see an empty picture. Photos are optional for staff.</span>
                 </div>
                 <section class="panel check" aria-labelledby="chk" style="margin-bottom:0">

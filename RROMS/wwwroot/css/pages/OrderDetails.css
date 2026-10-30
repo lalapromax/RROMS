@@ -63,7 +63,6 @@ ol.track{list-style:none;padding:0}
   .od{display:block}
   .od>section{margin-bottom:24px}
   .printed{box-shadow:none!important;outline:1px solid #999!important}
-  .grain{display:none}
   .recv .earn{background:none;color:#000;border:1px solid #999}
   .recv .earn b{color:#000}
 }

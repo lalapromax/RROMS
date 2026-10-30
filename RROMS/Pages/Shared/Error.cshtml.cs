@@ -63,7 +63,7 @@ public class ErrorModel : PageModel
             var id = HttpContext.TraceIdentifier;
             Reference = ReferenceFor(id);
             var phone = _cache.TryGetValue(ChromeService.PhoneCacheKey, out string? p) ? p : null;
-            Phone = Models.RestaurantSetting.PublicPhoneOf(phone);
+            Phone = Models.RestaurantSetting.Shown(phone);
 
             var path = thrown?.Path ?? reExecuted?.OriginalPath;
             _logger.LogWarning("Error page shown. Reference {Reference} is request {RequestId}, path {Path}, status {Status}", Reference, id, path, Status);

@@ -61,7 +61,7 @@ else
             <div class="oline">
                 @if (l.IsSet && string.IsNullOrWhiteSpace(l.ImageUrl))
                 {
-                    @Ui.Plate("d-house", "linen", "round")
+                    @Ui.Placeholder("linen", "round")
                 }
                 else
                 {
@@ -86,7 +86,6 @@ else
 
     <aside class="recv" aria-label="Receipt">
         <div class="printed">
-            <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
             <h3 class="rc-title">Receipt</h3>
             <p class="rc-brand">@Brand.Name · Order #@o.Id</p>
             <dl class="kv">

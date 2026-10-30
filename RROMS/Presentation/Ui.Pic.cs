@@ -6,58 +6,32 @@ namespace RROMS.Presentation;
 public static partial class Ui
 {
     /// 
-    /// One guest-facing picture. If the dish, set menu or wine has its own photo that is shown; otherwise the matching
-    /// illustrated plate from the design is drawn, so a guest never sees an empty box. Staff may leave photos out.
+    /// The stand-in picture shown wherever a dish, wine or set menu has no photo of its own, and in the decorative spots
+    /// (home page, sign-in panel, tier cards, error card). One file, so it can be swapped for real photography later.
+    /// The illustrated plates that used to be drawn here (SVG with blur and noise filters) cost too much memory.
+    /// 
+    public const string PlaceholderImage = "/static/assets/placeholder.png";
+
+    /// 
+    /// One guest-facing picture: the dish, set menu or wine's own photo, or the placeholder when it has none.
     /// 
     /// <param name="shape">sq, round, arch, soft or none (the radius the design uses for that spot).</param>
-    /// <param name="surface">linen, oak, slate, olive, wine or cocoa; left empty the surface follows the picture.</param>
+    /// <param name="surface">linen, oak, slate, olive, wine or cocoa; left empty the surface follows the dish.</param>
     public static IHtmlContent Pic(string? imageUrl, string? name, string? category = null, string shape = "sq",
         string? surface = null, string? cls = null, string? alt = null, bool decorative = false)
     {
-        var (sym, surf) = Symbol(name, category);
-        surf = string.IsNullOrWhiteSpace(surface) ? surf : surface;
+        var surf = string.IsNullOrWhiteSpace(surface) ? Surface(name, category) : surface;
         var klass = $"img s-{surf} r-{shape}" + (string.IsNullOrWhiteSpace(cls) ? "" : " " + cls);
-        if (!string.IsNullOrWhiteSpace(imageUrl))
-        {
-            var a = WebUtility.HtmlEncode(decorative ? "" : (alt ?? name ?? ""));
-            return new HtmlString($"<div class=\"{klass}\"><img src=\"{WebUtility.HtmlEncode(imageUrl)}\" alt=\"{a}\" loading=\"lazy\" style=\"width:100%;height:100%;object-fit:cover;display:block\"></div>");
-        }
-        var label = decorative ? "aria-hidden=\"true\"" : $"role=\"img\" aria-label=\"{WebUtility.HtmlEncode(alt ?? name ?? "Illustrated plate")}\"";
-        return new HtmlString($"<div class=\"{klass}\"><svg viewBox=\"0 0 200 200\" {label} focusable=\"false\"><use href=\"#{sym}\"></use></svg></div>");
+        var src = string.IsNullOrWhiteSpace(imageUrl) ? PlaceholderImage : imageUrl;
+        var a = WebUtility.HtmlEncode(decorative ? "" : (alt ?? name ?? ""));
+        return new HtmlString($"<div class=\"{klass}\"><img src=\"{WebUtility.HtmlEncode(src)}\" alt=\"{a}\" loading=\"lazy\" style=\"width:100%;height:100%;object-fit:cover;display:block\"></div>");
     }
 
-    /// A fixed illustrated plate from the design (used where the picture is decoration, not a specific dish).
-    public static IHtmlContent Plate(string symbol, string surface, string shape = "sq", string? cls = null)
+    /// The placeholder in a decorative spot (no dish behind it), on the given surface and shape.
+    public static IHtmlContent Placeholder(string surface, string shape = "sq", string? cls = null)
     {
         var klass = $"img s-{surface} r-{shape}" + (string.IsNullOrWhiteSpace(cls) ? "" : " " + cls);
-        return new HtmlString($"<div class=\"{klass}\"><svg viewBox=\"0 0 200 200\" aria-hidden=\"true\" focusable=\"false\"><use href=\"#{symbol}\"></use></svg></div>");
-    }
-
-    /// 
-    /// The 2 x 2 collage that stands for a set menu: the picture of the first dish of each of its first four courses.
-    /// A set menu photo, when staff added one, replaces the collage.
-    /// 
-    public static IHtmlContent SetCover(RROMS.Models.SetMenu menu, string? style = null, string shape = "none")
-    {
-        var sb = new System.Text.StringBuilder();
-        var st = string.IsNullOrWhiteSpace(style) ? "" : $" style=\"{WebUtility.HtmlEncode(style)}\"";
-        if (!string.IsNullOrWhiteSpace(menu.ImageUrl))
-        {
-            sb.Append($"<div class=\"cover\"{st}>");
-            sb.Append(Pic(menu.ImageUrl, menu.Name, null, shape, "linen", "cover-photo", menu.Name).ToString());
-            sb.Append("</div>");
-            return new HtmlString(sb.ToString());
-        }
-        sb.Append($"<div class=\"cover\"{st} role=\"img\" aria-label=\"{WebUtility.HtmlEncode(menu.Name)}\">");
-        var firsts = menu.Courses.OrderBy(c => c.SortOrder)
-            .Select(c => c.Dishes.OrderBy(d => d.SortOrder).FirstOrDefault()?.MenuItem)
-            .Where(m => m != null).Take(4).ToList();
-        foreach (var m in firsts)
-            sb.Append(Pic(m!.ImageUrl, m.Name, m.MenuCategory?.Name, shape, null, null, null, decorative: true).ToString());
-        for (var i = firsts.Count; i < 4; i++)
-            sb.Append(Plate("d-house", i % 2 == 0 ? "linen" : "olive", shape).ToString());
-        sb.Append("</div>");
-        return new HtmlString(sb.ToString());
+        return new HtmlString($"<div class=\"{klass}\"><img src=\"{PlaceholderImage}\" alt=\"\" loading=\"lazy\" style=\"width:100%;height:100%;object-fit:cover;display:block\"></div>");
     }
 
     /// "Contains dairy, gluten" for the line under a dish; null when nothing is recorded.
@@ -70,8 +44,8 @@ public static partial class Ui
         return "Contains " + string.Join(", ", names);
     }
 
-    /// Picks the illustrated plate for a dish by its name and category. Falls back to the plain house plate.
-    public static (string Symbol, string Surface) Symbol(string? name, string? category)
+    /// The background colour behind a dish's picture, picked from its name and category (wine dark, salads light...).
+    public static string Surface(string? name, string? category)
     {
         var n = (name ?? "").ToLowerInvariant();
         var c = (category ?? "").ToLowerInvariant();
@@ -80,22 +54,22 @@ public static partial class Ui
         var isWine = Has(c, "wine", "cellar", "champagne", "bubbl") || Has(n, "chablis", "champagne", "bordeaux", "burgundy", "merlot", "syrah", "rhône", "rhone", "cabernet", "pinot", "chardonnay", "sauvignon", "riesling", "prosecco", "crémant", "cremant", "brut", "rosé", "rose ");
         if (isWine)
         {
-            if (Has(n, "champagne", "sparkling", "brut", "prosecco", "crémant", "cremant", "bubbl")) return ("b-champ", "cocoa");
-            if (Has(n, "chablis", "white", "blanc", "chardonnay", "sauvignon", "riesling", "rosé")) return ("b-chablis", "olive");
-            return ("b-saint", "wine");
+            if (Has(n, "champagne", "sparkling", "brut", "prosecco", "crémant", "cremant", "bubbl")) return "cocoa";
+            if (Has(n, "chablis", "white", "blanc", "chardonnay", "sauvignon", "riesling", "rosé")) return "olive";
+            return "wine";
         }
-        if (Has(n, "glass of red", "house red")) return ("g-red", "wine");
-        if (Has(n, "glass of white", "house white")) return ("g-white", "olive");
-        if (Has(n, "tartare", "carpaccio", "crudo")) return ("d-tartare", "linen");
-        if (Has(n, "consommé", "consomme", "broth", "bouillon")) return ("d-consomme", "wine");
-        if (Has(n, "soup", "velouté", "veloute", "bisque", "potage", "chowder") || Has(c, "soup")) return ("d-soup", "olive");
-        if (Has(n, "chèvre", "chevre", "salad", "salade", "burrata") || Has(c, "salad")) return ("d-chevre", "linen");
-        if (Has(n, "duck", "canard", "magret", "confit")) return ("d-duck", "slate");
-        if (Has(n, "sole", "fish", "salmon", "saumon", "cod", "bass", "turbot", "trout", "prawn", "shrimp", "scallop", "lobster", "oyster", "seafood") || Has(c, "seafood", "fish")) return ("d-sole", "slate");
-        if (Has(n, "gnocchi", "pasta", "risotto", "ravioli", "tagliatelle", "spaghetti", "noodle")) return ("d-gnocchi", "oak");
-        if (Has(n, "tatin", "tart", "cake", "crème", "creme", "mousse", "soufflé", "souffle", "pudding", "macaron", "sorbet", "ice cream", "chocolate") || Has(c, "dessert", "sweet", "pastry")) return ("d-tatin", "linen");
-        if (Has(n, "poulet", "chicken", "volaille", "coq", "beef", "bœuf", "boeuf", "steak", "lamb", "agneau", "pork", "veal", "filet", "fillet", "rib") || Has(c, "main", "grill", "meat")) return ("d-poulet", "oak");
-        return ("d-house", "linen");
+        if (Has(n, "glass of red", "house red")) return "wine";
+        if (Has(n, "glass of white", "house white")) return "olive";
+        if (Has(n, "tartare", "carpaccio", "crudo")) return "linen";
+        if (Has(n, "consommé", "consomme", "broth", "bouillon")) return "wine";
+        if (Has(n, "soup", "velouté", "veloute", "bisque", "potage", "chowder") || Has(c, "soup")) return "olive";
+        if (Has(n, "chèvre", "chevre", "salad", "salade", "burrata") || Has(c, "salad")) return "linen";
+        if (Has(n, "duck", "canard", "magret", "confit")) return "slate";
+        if (Has(n, "sole", "fish", "salmon", "saumon", "cod", "bass", "turbot", "trout", "prawn", "shrimp", "scallop", "lobster", "oyster", "seafood") || Has(c, "seafood", "fish")) return "slate";
+        if (Has(n, "gnocchi", "pasta", "risotto", "ravioli", "tagliatelle", "spaghetti", "noodle")) return "oak";
+        if (Has(n, "tatin", "tart", "cake", "crème", "creme", "mousse", "soufflé", "souffle", "pudding", "macaron", "sorbet", "ice cream", "chocolate") || Has(c, "dessert", "sweet", "pastry")) return "linen";
+        if (Has(n, "poulet", "chicken", "volaille", "coq", "beef", "bœuf", "boeuf", "steak", "lamb", "agneau", "pork", "veal", "filet", "fillet", "rib") || Has(c, "main", "grill", "meat")) return "oak";
+        return "linen";
     }
 
     /// " err" when the model-state entry has an error, so the field gets the wine outline. Use inside class="in@(Ui.Err(...))".

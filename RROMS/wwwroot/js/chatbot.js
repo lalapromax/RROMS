@@ -1,4 +1,6 @@
 // "Ask the house": the help chat on guest pages. Talks to POST /api/chatbot/ask. Answers are inserted as plain text, never as HTML.
+// The server keeps the conversation (so "yes" is read against the last question); a reply may come with one button to a
+// page of this site, which is shown under it.
 (function () {
     'use strict';
 
@@ -30,14 +32,27 @@
         return hello + ' I can help with the menu, opening hours, or finding you a table.';
     }
 
+    // Only a page of this site may become a button; anything else is ignored.
+    function safeAction(a) {
+        return a && typeof a.url === 'string' && a.url.charAt(0) === '/' && a.url.charAt(1) !== '/' && typeof a.label === 'string' ? a : null;
+    }
+
     // Answers carry no label about how they were produced; the footer of the panel says the replies are automatic.
-    function bubble(text, who, remember) {
+    function bubble(text, who, remember, action) {
         var p = document.createElement('p');
         p.className = 'cw-m ' + (who === 'user' ? 'u' : 'a');
         p.textContent = text;
         log.appendChild(p);
+        action = who === 'user' ? null : safeAction(action);
+        if (action) {
+            var a = document.createElement('a');
+            a.className = 'cw-act';
+            a.href = action.url;
+            a.textContent = action.label;
+            log.appendChild(a);
+        }
         log.scrollTop = log.scrollHeight;
-        if (remember !== false) { history.push({ w: who, t: text }); }
+        if (remember !== false) { history.push(action ? { w: who, t: text, a: action } : { w: who, t: text }); }
         return p;
     }
 
@@ -64,6 +79,7 @@
         text = (text || '').trim();
         if (!text || sending) return;
         sending = true;
+        var fresh = history.length === 0;   // nothing said yet in this visit: the server starts a new conversation
         bubble(text, 'user');
         input.value = '';
         if (sugg) sugg.hidden = true;
@@ -73,12 +89,12 @@
         fetch('/api/chatbot/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message: text, reset: fresh })
         })
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 wait.remove();
-                bubble(data.answer || 'Sorry, I could not work that out. Please ask the team.', 'bot');
+                bubble(data.answer || 'Sorry, I could not work that out. Please ask the team.', 'bot', true, data.action);
             })
             .catch(function () {
                 wait.remove();
@@ -96,7 +112,7 @@
     // restore the conversation from earlier in this visit, or start with a greeting
     var saved = load();
     if (saved && saved.log && saved.log.length) {
-        saved.log.forEach(function (m) { bubble(m.t, m.w, true); });
+        saved.log.forEach(function (m) { bubble(m.t, m.w, true, m.a); });
         if (sugg) sugg.hidden = true;
         if (saved.open) open(false);
     } else {
