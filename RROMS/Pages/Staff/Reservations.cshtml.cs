@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
+using RROMS.Presentation;
 using RROMS.Services;
 
 namespace RROMS.Pages.Staff;
@@ -130,7 +131,7 @@ public class ReservationsModel : PageModel
 
             var detail = new List<string>();
             if (!string.IsNullOrWhiteSpace(r.Occasion)) detail.Add(r.Occasion!);
-            if (r.SetMenu != null) detail.Add("Set menu: " + r.SetMenu.Name);
+            if (r.SetMenus.Count > 0) detail.Add((r.SetMenus.Count == 1 ? "Set menu: " : "Set menus: ") + SetMenuLabels.Booked(r.SetMenus));
             if (!string.IsNullOrWhiteSpace(r.SpecialRequests)) detail.Add(r.SpecialRequests!);
 
             var choices = new List<RestaurantTable>();

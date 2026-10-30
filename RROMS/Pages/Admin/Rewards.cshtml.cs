@@ -155,7 +155,7 @@ public class RewardsModel : PageModel
     }
 
     // ------------------------------------------------------------------ perks
-    public async Task<IActionResult> OnPostSavePerkAsync(int? id, int tierId, string title, string? description, string? icon, string? group, PerkFrequency frequency, bool isActive)
+    public async Task<IActionResult> OnPostSavePerkAsync(int? id, int tierId, string title, string? description, string? icon, string? group, PerkFrequency frequency, bool isActive, bool birthdayOnly)
     {
         title = (title ?? string.Empty).Trim();
         description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
@@ -188,6 +188,7 @@ public class RewardsModel : PageModel
         perk.Group = group;
         perk.Frequency = frequency;
         perk.IsActive = isActive;
+        perk.BirthdayOnly = birthdayOnly && frequency != PerkFrequency.Always;   // an always-on perk has nothing to claim
         await _context.SaveChangesAsync();
 
         await LogAsync(wasNew ? "AddRewardPerk" : "EditRewardPerk", title);

@@ -40,7 +40,7 @@
 
 <div class="wrap main">
     <form method="post" class="cart@(empty ? " is-empty" : "")" id="checkoutForm" data-cart
-          data-stripe-key="@(Model.StripeEnabled ? Model.StripePublishableKey : "")">
+          data-stripe-key="@(Model.StripeEnabled && !Model.NeedsBooking ? Model.StripePublishableKey : "")">
         @* Pressing Enter in the promo box must apply the code, not trigger the first quantity button below. *@
         <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" asp-page-handler="ApplyCode" formnovalidate>Apply promo code</button>
 
@@ -89,9 +89,9 @@
                     {
                         <div>
                             <b>No table booked yet</b>
-                            <span class="muted">Book a table to have this brought to you. Without one, the order is for you to collect.</span>
+                            <span class="muted">Book a table first and we will bring you straight back here to place your order for it.</span>
                         </div>
-                        <a class="link" asp-page="/Reservations/Create">Book a table</a>
+                        <a class="link" href="@Model.BookFirstUrl">Book a table</a>
                     }
                 </div>
 
@@ -205,7 +205,15 @@
                     <p id="paymentElementErrors" class="err-msg" role="alert"></p>
                     <input type="hidden" name="Checkout.StripePaymentIntentId" id="stripePaymentIntentIdInput" />
 
-                    <button type="submit" id="placeOrderBtn" class="btn btn-wine btn-lg" asp-page-handler="Checkout" disabled="@blocked" style="width:100%;margin-top:22px">Place order</button>
+                    @if (Model.NeedsBooking)
+                    {
+                        <a class="btn btn-wine btn-lg" href="@Model.BookFirstUrl" style="width:100%;margin-top:22px">Book a table to order</a>
+                        <p class="hint-line">Orders are brought to your table, so we need a booking first. You pay once it is made.</p>
+                    }
+                    else
+                    {
+                        <button type="submit" id="placeOrderBtn" class="btn btn-wine btn-lg" asp-page-handler="Checkout" disabled="@blocked" style="width:100%;margin-top:22px">Place order</button>
+                    }
                     @if (q.HasProblem)
                     {
                         <p class="fine-line">Take out the item marked above to place your order.</p>

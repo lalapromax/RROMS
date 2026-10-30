@@ -33,13 +33,17 @@ public class LoginModel : PageModel
     public bool GoogleEnabled => _googleAuth.IsConfigured;
     public string GoogleClientId => _googleAuth.ClientId;
 
-    public void OnGet(string? returnUrl = null)
+    public IActionResult OnGet(string? returnUrl = null)
     {
+        // Someone already signed in has nothing to do here: send them to their own start page.
+        if (User.Identity?.IsAuthenticated == true) return LocalRedirect(HomeFor(User, Url));
         ReturnUrl = returnUrl;
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
+        if (User.Identity?.IsAuthenticated == true) return LocalRedirect(HomeFor(User, Url));
         returnUrl = SafeReturnUrl(returnUrl);
 
         if (!ModelState.IsValid)
@@ -132,6 +136,13 @@ public class LoginModel : PageModel
         if (await _userManager.IsInRoleAsync(user, Roles.Staff)) return Url.Page("/Staff/Dashboard") ?? home;
         return home;
     }
+
+    /// The start page of a signed-in person, from their role: the admin or staff dashboard, otherwise the home page.
+    /// Also used by Register, so neither page is shown again after signing in.
+    public static string HomeFor(System.Security.Claims.ClaimsPrincipal user, IUrlHelper url) =>
+        user.IsInRole(Roles.Administrator) ? url.Page("/Admin/Dashboard") ?? url.Content("~/")
+        : user.IsInRole(Roles.Staff) ? url.Page("/Staff/Dashboard") ?? url.Content("~/")
+        : url.Content("~/");
 
     private string SafeReturnUrl(string? returnUrl) =>
         !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) ? returnUrl : Url.Content("~/");

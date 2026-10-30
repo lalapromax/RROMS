@@ -31,6 +31,7 @@
         show('scopeCategory', scope === 'category');
         show('scopeItem', scope === 'item');
         show('eligEmails', eligibility === 'specific');
+        show('eligTiers', eligibility === 'tier');
 
         // Telling every guest only suits a new, open promotion that applies by itself.
         var isNew = !(parseInt(el('id').value, 10) > 0);
@@ -59,6 +60,8 @@
         setValue('item', d.item);
         setRadio('Input.Eligibility', d.eligibility || 'all');
         setValue('emails', d.emails);
+        var tiers = (d.tiers || []).map(String);
+        dlg.querySelectorAll('[data-tier]').forEach(function (c) { c.checked = tiers.indexOf(c.value) >= 0; });
         for (var i = 0; i < 7; i++) {
             var c = el('day' + i);
             if (c) c.checked = (d.days || []).indexOf(i) >= 0;

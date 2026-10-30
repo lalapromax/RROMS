@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="Google.Apis.Auth" Version="1.77.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.13" />
@@ -22,6 +23,9 @@
     </PackageReference>
     <PackageReference Include="QuestPDF" Version="2026.9.1" />
     <PackageReference Include="Stripe.net" Version="47.3.0" />
+    <!-- Not used by the app's own code: these pin patched versions of packages that Microsoft.Data.SqlClient (via EF Core
+         SqlServer) and Stripe.net pull in (Pkcs 9.0.11 has known vulnerabilities). Passwords are hashed with BCrypt
+         (Services/BCryptPasswordHasher.cs), not with these. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
   </ItemGroup>

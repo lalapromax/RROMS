@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
@@ -38,7 +39,12 @@ public class BookForm
     public string? Notes { get; set; }
 
     public int? DiningAreaId { get; set; }
-    public int? SetMenuId { get; set; }
+
+    /// The set menus ticked. Each can be for part of the table (<see cref="SetGuests"/>), so a booking can carry several.
+    public List<int> SetMenuIds { get; set; } = new();
+
+    /// How many guests have each ticked set menu, keyed by set menu id.
+    public Dictionary<int, int> SetGuests { get; set; } = new();
 }
 
 /// One cell of the calendar: a date a guest can pick, or a blank/closed/past one.
@@ -65,6 +71,10 @@ public class CreateModel : PageModel
     [BindProperty]
     public BookForm Form { get; set; } = new();
 
+    /// Where to go once the table is booked, for example back to the cart. Only ever a page on this site.
+    [BindProperty(SupportsGet = true)]
+    public string? ReturnUrl { get; set; }
+
     public DateTime Month { get; private set; }
     public DateTime? SelectedDate { get; private set; }
     public List<CalendarDay> Calendar { get; private set; } = new();
@@ -80,7 +90,16 @@ public class CreateModel : PageModel
     public string? SelectedSlotNote { get; private set; }
 
     public bool SelectedSlotIsFull => Form.Time != null && Slots.Slots.Any(s => s.Time == Form.Time && s.Full);
-    public SetMenu? SelectedSetMenu => SetMenus.FirstOrDefault(m => m.Id == Form.SetMenuId);
+
+    /// The set menus ticked so far, with how many guests have each.
+    public List<(SetMenu Menu, int Guests)> ChosenSetMenus => SetMenus
+        .Where(m => Form.SetMenuIds.Contains(m.Id))
+        .Select(m => (m, GuestsFor(m.Id)))
+        .ToList();
+
+    /// Guests on one set menu: what was chosen, else the whole table, never more than the table.
+    public int GuestsFor(int setMenuId) =>
+        Math.Clamp(Form.SetGuests.TryGetValue(setMenuId, out var n) ? n : Form.PartySize, 1, Math.Max(1, Form.PartySize));
 
     public async Task OnGetAsync(int? party, string? date)
     {
@@ -122,15 +141,25 @@ public class CreateModel : PageModel
 
         if (ModelState.IsValid)
         {
+            var sets = Form.SetMenuIds.Distinct().Select(id => new SetMenuChoice(id, GuestsFor(id))).ToList();
             var (ok, message, reservation) = await _reservations.CreateReservationAsync(new ReservationRequest(
                 user!.Id, date, time, Form.PartySize, Form.Notes, Form.DiningAreaId, null,
-                Occasions.Contains(Form.Occasion) ? Form.Occasion : null, Form.SetMenuId, Form.Name, Form.Phone));
+                Occasions.Contains(Form.Occasion) ? Form.Occasion : null, sets, Form.Name, Form.Phone));
             if (ok)
             {
+                // The number given here is remembered on the account when it has none yet, so the next booking is filled in.
+                if (string.IsNullOrWhiteSpace(user.PhoneNumber) && !string.IsNullOrWhiteSpace(Form.Phone))
+                {
+                    user.PhoneNumber = Form.Phone.Trim();
+                    await _userManager.UpdateAsync(user);
+                }
+
                 var when = reservation!.ReservationDateTime;
                 TempData["StatusMessage"] = reservation.Status == ReservationStatus.Pending
                     ? $"We have your request for {when:dddd d MMMM} at {when:HH:mm}. The team will confirm it within the day."
                     : $"Your table is booked for {when:dddd d MMMM} at {when:HH:mm}.";
+                if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
+                    return LocalRedirect(WithReservation(ReturnUrl, reservation.Id));
                 return RedirectToPage("/Reservations/Index");
             }
             ModelState.AddModelError(string.Empty, message);
@@ -161,6 +190,22 @@ public class CreateModel : PageModel
         return Page();
     }
 
+    /// The return address with this booking selected. Any reservationId it already carried is replaced, not repeated,
+    /// because a repeated key binds to its first value and the old booking would be chosen.
+    private static string WithReservation(string url, int reservationId)
+    {
+        var hash = url.IndexOf('#');
+        var fragment = hash >= 0 ? url[hash..] : "";
+        var rest = hash >= 0 ? url[..hash] : url;
+        var q = rest.IndexOf('?');
+        var path = q >= 0 ? rest[..q] : rest;
+        var query = QueryHelpers.ParseQuery(q >= 0 ? rest[q..] : "")
+            .Where(p => !p.Key.Equals("reservationId", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(p => p.Value.Select(v => new KeyValuePair<string, string?>(p.Key, v)))
+            .Append(new KeyValuePair<string, string?>("reservationId", reservationId.ToString()));
+        return QueryHelpers.AddQueryString(path, query) + fragment;
+    }
+
     private bool TryReadSlot(out DateTime date, out TimeSpan time)
     {
         time = default;
@@ -173,7 +218,7 @@ public class CreateModel : PageModel
     {
         var setting = await _context.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
         HoldMinutes = setting?.HoldMinutes ?? 15;
-        Phone = setting?.Phone;
+        Phone = setting?.PublicPhone;
         var maxAdvance = setting?.MaxAdvanceBookingDays ?? 60;
 
         var hours = await _context.OperatingHours.AsNoTracking().ToListAsync();
@@ -222,6 +267,6 @@ public class CreateModel : PageModel
         if (Form.Time != null && Slots.Slots.All(s => s.Time != Form.Time)) Form.Time = null;
 
         SetMenus = (await _setMenus.ListForGuestsAsync(picked?.DayOfWeek)).ToList();
-        if (Form.SetMenuId.HasValue && SetMenus.All(s => s.Id != Form.SetMenuId)) Form.SetMenuId = null;
+        Form.SetMenuIds = Form.SetMenuIds.Where(id => SetMenus.Any(s => s.Id == id)).Distinct().ToList();
     }
 }

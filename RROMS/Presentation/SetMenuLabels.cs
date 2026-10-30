@@ -35,6 +35,10 @@ public static class SetMenuLabels
 
     public static string Courses(SetMenu m) => m.Courses.Count == 1 ? "1 course" : $"{m.Courses.Count} courses";
 
+    /// The set menus on a booking: "Menu du Soir for 2, Menu Enfant for 1".
+    public static string Booked(IEnumerable<ReservationSetMenu> sets) =>
+        string.Join(", ", sets.Select(s => $"{s.SetMenu?.Name ?? s.SetMenuName} for {s.Guests}"));
+
     /// The picture for a card: the menu's own photo, else its main course's first dish, else the plain house plate.
     public static Microsoft.AspNetCore.Html.IHtmlContent Cover(SetMenu m)
     {

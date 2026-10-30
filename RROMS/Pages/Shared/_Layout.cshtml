@@ -136,9 +136,9 @@
                 {
                     <li>@line</li>
                 }
-                @if (!string.IsNullOrWhiteSpace(c.Setting?.Phone))
+                @if (c.Setting?.PublicPhone is string phone)
                 {
-                    <li>@c.Setting!.Phone</li>
+                    <li><a href="tel:@(new string(phone.Where(ch => char.IsDigit(ch) || ch == '+').ToArray()))">@phone</a></li>
                 }
                 @if (!string.IsNullOrWhiteSpace(c.Setting?.Email))
                 {

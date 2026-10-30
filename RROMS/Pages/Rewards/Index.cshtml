@@ -124,6 +124,9 @@
                                             case "done":
                                                 <p class="pk-s done">@Ui.Icon("check", 16, 2.2) Enjoyed @pv.When?.ToLocalTime().ToString("d MMM")</p>
                                                 break;
+                                            case "held":
+                                                <p class="pk-s lock">@Ui.Icon("lock", 15, 1.6) @pv.Note</p>
+                                                break;
                                             case "resting":
                                                 <p class="pk-s done">@Ui.Icon("check", 16, 2.2) Claimed @pv.When?.ToLocalTime().ToString("d MMM"). Back on @pv.AvailableAgain?.ToLocalTime().ToString("d MMM").</p>
                                                 break;

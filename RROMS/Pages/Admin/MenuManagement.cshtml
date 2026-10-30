@@ -44,7 +44,7 @@
             }
             else
             {
-                <button type="button" class="btn btn-wine" data-dialog-open="dishDlg" data-fields="id,name,price,glass,cat,calories,description,winenote,available,veg,spicy,pick,reviewed" data-title="@(isWineTab ? "Add a wine" : "Add a dish")" data-cat="@firstCat" data-available="true" data-allergens="" data-tags="" data-photo="">@(isWineTab ? "Add a wine" : "Add a dish")</button>
+                <button type="button" class="btn btn-wine" data-dialog-open="dishDlg" data-fields="id,name,price,glass,cat,calories,description,winenote,available,veg,spicy,pick,reviewed" data-title="@(isWineTab ? "Add a wine" : "Add a dish")" data-cat="@firstCat" data-wine-default="@(isWineTab ? "true" : null)" data-available="true" data-allergens="" data-tags="" data-photo="">@(isWineTab ? "Add a wine" : "Add a dish")</button>
             }
         </div>
     </div>

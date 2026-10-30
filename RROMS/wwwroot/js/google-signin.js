@@ -42,8 +42,19 @@
                 size: 'large',
                 text: host.getAttribute('data-text') || 'continue_with',
                 shape: 'rectangular',
-                width: Math.min(host.parentElement.clientWidth || 320, 400)
+                width: Math.min(host.parentElement.clientWidth || 320, 400, room(host))
             });
+        }
+
+        // The width the button really has: the content box of the nearest container that has a width. A wrapper that
+        // shrinks to fit the button reports nothing before it is drawn, and the 320px fallback is wider than a phone row.
+        function room(el) {
+            for (var p = el.parentElement; p; p = p.parentElement) {
+                var cs = window.getComputedStyle(p);
+                var w = p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                if (w > 0) return Math.floor(w);
+            }
+            return 320;
         }
 
         function onCredential(response) {

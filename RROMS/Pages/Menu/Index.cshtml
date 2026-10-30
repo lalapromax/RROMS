@@ -49,7 +49,7 @@
                     @Ui.Pic(m!.ImageUrl, m.Name, m.MenuCategory?.Name, "none", decorative: true)
                 }
             </div>
-            <form method="post" asp-page-handler="AddSet" class="card-body" data-setform data-base="@basePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+            <form method="post" asp-page-handler="AddSet" class="card-body" data-setform data-quick-add data-base="@basePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)">
                 <input type="hidden" name="setMenuId" value="@f.Id" />
                 <div class="card-head">
                     <h3>@f.Name</h3>
@@ -184,7 +184,7 @@
                         <partial name="_Price" model="@(new PriceVM(m.Price, Model.Discounts.GetValueOrDefault(m.Id)))" />
                         @if (canOrder)
                         {
-                            <form method="post" asp-page-handler="AddDish" class="dish-add">
+                            <form method="post" asp-page-handler="AddDish" class="dish-add" data-quick-add>
                                 <input type="hidden" name="menuItemId" value="@m.Id" />
                                 <input type="hidden" name="returnTo" value="carte" />
                                 <button class="btn btn-line btn-sm" type="submit" aria-label="Add @m.Name to your order">Add to order</button>
@@ -221,7 +221,7 @@
                 }
                 @if (canOrder)
                 {
-                    <form method="post" asp-page-handler="AddDish" class="dish-add">
+                    <form method="post" asp-page-handler="AddDish" class="dish-add" data-quick-add>
                         <input type="hidden" name="menuItemId" value="@m.Id" />
                         <input type="hidden" name="returnTo" value="carte" />
                         <button class="btn btn-line btn-sm" type="submit" aria-label="Add @m.Name to your order">Add to order</button>
@@ -253,7 +253,7 @@
                         <div class="wine-head"><span></span><span>Wine</span><span>Glass</span><span>Bottle</span></div>
                         @foreach (var w in col)
                         {
-                            <form method="post" asp-page-handler="AddWine" class="wine-row">
+                            <form method="post" asp-page-handler="AddWine" class="wine-row" data-quick-add>
                                 <input type="hidden" name="menuItemId" value="@w.Id" />
                                 <input type="hidden" name="returnTo" value="cellar" />
                                 @Ui.Pic(w.ImageUrl, w.Name, w.MenuCategory?.Name, "sq")

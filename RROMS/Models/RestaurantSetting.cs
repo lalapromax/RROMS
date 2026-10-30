@@ -18,6 +18,14 @@ public class RestaurantSetting
     [StringLength(30)]
     public string? Phone { get; set; }
 
+    /// The number to show guests, or null while it is still the "[YOUR PHONE]" placeholder from the seed.
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PublicPhone => PublicPhoneOf(Phone);
+
+    /// The same rule for a number held elsewhere (the error page reads it from the cache, not the database).
+    public static string? PublicPhoneOf(string? phone) =>
+        string.IsNullOrWhiteSpace(phone) || phone.Contains('[') ? null : phone.Trim();
+
     [StringLength(120)]
     public string? Email { get; set; }
 

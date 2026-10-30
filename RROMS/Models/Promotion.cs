@@ -47,8 +47,9 @@ public class Promotion
     public int? MenuCategoryId { get; set; }
     public MenuCategory? MenuCategory { get; set; }
 
-    public DateTime StartDate { get; set; } = DateTime.UtcNow.Date;
-    public DateTime EndDate { get; set; } = DateTime.UtcNow.Date.AddDays(7);
+    /// First and last day the promotion runs, as calendar days in the restaurant's own time (like bookings), never UTC.
+    public DateTime StartDate { get; set; } = DateTime.Today;
+    public DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
 
     public bool IsActive { get; set; } = true;
 
@@ -61,6 +62,11 @@ public class Promotion
     /// emails. Null or blank means open to every customer.
     [StringLength(2000)]
     public string? EligibleEmailsRaw { get; set; }
+
+    /// Comma-separated RewardTier ids (membership ranks such as Silver and Gold) whose members may use this promotion.
+    /// Null or blank means no rank restriction. A guest's rank comes from their lifetime points at the moment they order.
+    [StringLength(200)]
+    public string? EligibleTierIdsRaw { get; set; }
 
     /// Cart subtotal (before any discount) that must be reached for this
     /// promotion to apply. Null means no minimum.
@@ -79,10 +85,23 @@ public class Promotion
     public ICollection<PromotionRedemption> Redemptions { get; set; } = new List<PromotionRedemption>();
 
     [NotMapped]
-    public bool IsCurrentlyRunning => IsActive && DateTime.UtcNow.Date >= StartDate.Date && DateTime.UtcNow.Date <= EndDate.Date;
+    public bool IsCurrentlyRunning => IsActive && DateTime.Today >= StartDate.Date && DateTime.Today <= EndDate.Date;
 
     [NotMapped]
     public bool IsEligibilityRestricted => !string.IsNullOrWhiteSpace(EligibleEmailsRaw);
+
+    [NotMapped]
+    public bool IsTierRestricted => !string.IsNullOrWhiteSpace(EligibleTierIdsRaw);
+
+    public HashSet<int> GetEligibleTierIds()
+    {
+        if (string.IsNullOrWhiteSpace(EligibleTierIdsRaw)) return new HashSet<int>();
+        return EligibleTierIdsRaw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => int.TryParse(s, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .ToHashSet();
+    }
 
     /// Parses <see cref="EligibleEmailsRaw"/> into a case-insensitive set of
     /// trimmed, lower-cased emails. Accepts commas, semicolons or newlines as separators.

@@ -71,10 +71,12 @@ public interface IOrderService
         string customerId, List<CartItemVM> items, OrderType type, string? promoCode, bool onlineBanking);
 
     /// 
-    /// Authoritative, signature-verified Stripe webhook handling (brief 6.C): reconciles
-    /// Payment/Order status from Stripe's own event, never from a frontend callback.
+    /// When a table is seated, the set menus booked with the reservation become one order for the kitchen. Courses with
+    /// one dish are sent as they are; where a course offers a choice the house choice is sent and marked for the team to
+    /// confirm at the table. Returns the order sent (null when nothing was waiting or nothing could be sent) and, for any set
+    /// menu that could not be sent, a note for the team saying which and why.
     /// 
-    Task HandleStripeEventAsync(Stripe.Event stripeEvent);
+    Task<(Order? Order, string? Problem)> SendBookedSetMenusAsync(int reservationId, string staffId);
 
     Task<(bool Success, string Message)> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus, string staffId);
     Task<(bool Success, string Message)> CancelOrderAsync(int orderId, string requestingUserId, bool isStaffOrAdmin);
@@ -177,7 +179,7 @@ public class OrderService : IOrderService
         var auto = await _promotionService.CalculateOrderDiscountsAsync(
             customerId, email,
             offerLines.GroupBy(l => l.Item!.Id).Select(g => (g.First().Item!, g.Sum(l => l.Cart.Quantity))),
-            DateTime.UtcNow, quote.SubTotal);
+            DateTime.Now, quote.SubTotal);   // promotion dates are the restaurant's local calendar days
         foreach (var d in auto.Lines)
         {
             var group = offerLines.Where(l => l.Item!.Id == d.MenuItemId).ToList();
@@ -192,7 +194,7 @@ public class OrderService : IOrderService
         {
             quote.CodeEntered = promoCode.Trim();
             var check = await _promotionService.CheckCodeAsync(promoCode, customerId, email, quote.SubTotal,
-                offerLines.Select(l => (l.Item!, l.Gross)), DateTime.UtcNow);
+                offerLines.Select(l => (l.Item!, l.Gross)), DateTime.Now);
             if (!check.Ok)
             {
                 quote.CodeMessage = check.Message;
@@ -362,7 +364,7 @@ public class OrderService : IOrderService
 
         // Paying at the restaurant is settled later by staff in Billing. Online payment was already taken through
         // Stripe and verified above, so it is recorded as paid straight away with the PaymentIntent id as the
-        // reference (it is also how the webhook finds this payment again).
+        // reference (used again if the order is cancelled and the payment refunded).
         var payment = new Payment
         {
             Amount = order.TotalAmount,
@@ -432,60 +434,99 @@ public class OrderService : IOrderService
         return (true, "Payment intent created.", clientSecret, paymentIntentId);
     }
 
-    public async Task HandleStripeEventAsync(Stripe.Event stripeEvent)
+    public async Task<(Order? Order, string? Problem)> SendBookedSetMenusAsync(int reservationId, string staffId)
     {
-        if (stripeEvent.Data.Object is not Stripe.PaymentIntent intent)
-            return;
+        var reservation = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId);
+        if (reservation == null) return (null, null);
 
-        // Looked up by the id Stripe generated, never by anything a client sent - this
-        // is what makes the handler safe to expose with no sign-in required.
-        var payment = await _context.Payments
-            .Include(p => p.Order)
-            .FirstOrDefaultAsync(p => p.TransactionReference == intent.Id);
+        // Claim the set menus still waiting in one UPDATE, so two Seat presses at the same moment cannot both send them:
+        // the second finds nothing left to claim.
+        var stamp = DateTime.UtcNow;
+        var claimed = await _context.ReservationSetMenus
+            .Where(s => s.ReservationId == reservationId && s.SentToKitchenAt == null && s.SetMenuId != null)
+            .ExecuteUpdateAsync(u => u.SetProperty(s => s.SentToKitchenAt, stamp));
+        if (claimed == 0) return (null, null);
+        var waiting = await _context.ReservationSetMenus
+            .Where(s => s.ReservationId == reservationId && s.SentToKitchenAt == stamp)
+            .ToListAsync();
 
-        // No matching payment yet (e.g. the event arrived before OnPostCheckoutAsync
-        // finished creating the order) - nothing to reconcile. The synchronous check in
-        // PlaceOrderAsync is what actually gates order placement; this handler only
-        // keeps a placed order's status in sync with later Stripe events.
-        if (payment == null)
-            return;
-
-        switch (stripeEvent.Type)
+        // Each set menu is checked on its own, so one that cannot be served (sold out, taken off the menu) does not stop the others.
+        const string confirm = "House choice - confirm with the guest";
+        var items = new List<CartItemVM>();
+        var sent = new List<ReservationSetMenu>();
+        var problems = new List<string>();
+        var anyChoice = false;
+        foreach (var booked in waiting)
         {
-            case "payment_intent.succeeded":
-                if (payment.Status != PaymentStatus.Paid)
+            var menu = await _setMenus.GetAsync(booked.SetMenuId!.Value);
+            if (menu == null || menu.Status != SetMenuStatus.Active)
+            {
+                problems.Add($"{booked.SetMenuName} is no longer on the menu");
+                continue;
+            }
+            var picks = new List<CartPickVM>();
+            var hasChoice = false;
+            string? missing = null;
+            foreach (var course in menu.Courses.OrderBy(c => c.SortOrder))
+            {
+                var available = course.Dishes.Where(d => d.MenuItem is { IsAvailable: true })
+                    .OrderBy(d => d.Supplement).ThenBy(d => d.SortOrder).ToList();
+                var need = course.Picks == 0 ? available.Count : course.Picks;
+                if (available.Count == 0 || available.Count < need) { missing = course.Name.ToLowerInvariant(); break; }
+                if (available.Count > need) hasChoice = true;
+                picks.AddRange(available.Take(need).Select(d => new CartPickVM
                 {
-                    payment.Status = PaymentStatus.Paid;
-                    payment.PaidAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-
-                    if (payment.Order != null)
-                        await _rewardService.TryAwardForOrderAsync(payment.Order.Id);
-                }
-                break;
-
-            case "payment_intent.payment_failed":
-            case "payment_intent.canceled":
-                // Idempotent: a duplicate delivery of the same event, or one arriving
-                // after the payment was already confirmed another way, changes nothing.
-                if (payment.Status == PaymentStatus.Pending)
-                {
-                    payment.Status = PaymentStatus.Failed;
-                    await _context.SaveChangesAsync();
-
-                    if (payment.Order != null)
-                    {
-                        await _notificationService.NotifyAsync(
-                            payment.Order.CustomerId,
-                            "Payment failed",
-                            $"Online payment for order #{payment.Order.Id} did not go through. Please contact staff to arrange payment.",
-                            NotificationType.Payment,
-                            "/Orders/Details?id=" + payment.Order.Id,
-                            sendEmail: false);
-                    }
-                }
-                break;
+                    CourseId = course.Id,
+                    CourseName = course.Name,
+                    MenuItemId = d.MenuItemId,
+                    Name = d.MenuItem!.Name,
+                    Supplement = d.Supplement
+                }));
+            }
+            if (missing != null)
+            {
+                problems.Add($"{menu.Name} cannot be served as booked (the {missing} is sold out)");
+                continue;
+            }
+            items.Add(new CartItemVM
+            {
+                Kind = CartKind.SetMenu,
+                SetMenuId = menu.Id,
+                Name = menu.Name,
+                Quantity = Math.Min(booked.Guests, 50),
+                ImageUrl = menu.ImageUrl,
+                CategoryName = "Set menu",
+                Picks = picks,
+                SpecialInstructions = hasChoice ? confirm : null
+            });
+            sent.Add(booked);
+            anyChoice |= hasChoice;
         }
+
+        Order? order = null;
+        if (items.Count > 0)
+        {
+            var note = "Set menu booked with the reservation." + (anyChoice ? " Where a course has a choice, the house choice was sent: please confirm it with the table." : "");
+            var (ok, message, placed) = await PlaceOrderAsync(reservation.CustomerId, items, OrderType.DineIn, reservation.Id, note, PaymentMethod.Cash);
+            if (ok && placed != null)
+            {
+                order = placed;
+                order.HandledByStaffId = staffId;
+            }
+            else
+            {
+                problems.Add("the set menus could not be sent (" + message.TrimEnd('.') + ")");
+                sent.Clear();
+            }
+        }
+
+        // Anything not sent goes back to waiting, so seating the table again (once it is sorted out) can still send it.
+        foreach (var booked in waiting.Except(sent)) booked.SentToKitchenAt = null;
+        await _context.SaveChangesAsync();
+
+        var problem = problems.Count == 0 ? null
+            : char.ToUpperInvariant(problems[0][0]) + string.Join("; ", problems)[1..] + ". Please take their order at the table.";
+        return (order, problem);
     }
 
     public async Task<(bool Success, string Message)> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus, string staffId)

@@ -30,9 +30,8 @@ public class Reservation
     [StringLength(40)]
     public string? Occasion { get; set; }
 
-    /// Optional: one set menu chosen for the whole table when booking.
-    public int? SetMenuId { get; set; }
-    public SetMenu? SetMenu { get; set; }
+    /// Optional: the set menus chosen when booking, each for some of the table.
+    public ICollection<ReservationSetMenu> SetMenus { get; set; } = new List<ReservationSetMenu>();
 
     /// Who to ask for at the door, if different from the account name, and a number to reach them on the day.
     [StringLength(80)]

@@ -16,7 +16,7 @@
     {
         "cal" => "Calendar", "fork" => "Fork and knife", "bag" => "Shopping bag", "table" => "Table", _ => char.ToUpperInvariant(k[0]) + k[1..]
     };
-    var perkFields = "id,tierid,name,description,icon,group,frequency,isactive";
+    var perkFields = "id,tierid,name,description,icon,group,frequency,isactive,birthday";
     // The ranking tab previews the band a guest in the upper-middle of the list would be in.
     var previewIndex = Model.Bands.FindLastIndex(b => b.UpToPercent <= 50 && b.UpToPercent > 10);
     RankBand? previewBand = previewIndex >= 0 ? Model.Bands[previewIndex] : null;
@@ -39,7 +39,7 @@
 
     <nav class="tabs" role="tablist" aria-label="Rewards sections">
         <a role="tab" asp-page="/Admin/Rewards" aria-current="@(tab == "tiers" ? "page" : null)">Tiers and perks</a>
-        <a role="tab" asp-page="/Admin/Rewards" asp-route-tab="claims" aria-current="@(tab == "claims" ? "page" : null)">Claims@if (Model.WaitingClaims > 0) { <small>@Model.WaitingClaims</small> }</a>
+        <a role="tab" asp-page="/Admin/Rewards" asp-route-tab="claims" aria-current="@(tab == "claims" ? "page" : null)">Claims @if (Model.WaitingClaims > 0) { <small>@Model.WaitingClaims</small> }</a>
         <a role="tab" asp-page="/Admin/Rewards" asp-route-tab="ranking" aria-current="@(tab == "ranking" ? "page" : null)">Ranking and messages</a>
     </nav>
 
@@ -85,13 +85,13 @@
                                 <span class="i" aria-hidden="true">@Ui.Icon(PerkIcons.Normalize(perk.Icon), 18, 1.6)</span>
                                 <div>
                                     <b>@perk.Title@if (!perk.IsActive) { <span class="st st-cancelled">Hidden</span> }</b>
-                                    <small>@FreqLabel(perk.Frequency) · @perk.Group</small>
+                                    <small>@FreqLabel(perk.Frequency)@(perk.BirthdayOnly ? " in the birthday month" : "") · @perk.Group</small>
                                     @if (!string.IsNullOrWhiteSpace(perk.Description)) { <small class="perk-d">@perk.Description</small> }
                                 </div>
                                 <div class="b">
                                     <button type="button" class="ib" aria-label="Edit @perk.Title" data-dialog-open="perkDlg" data-fields="@perkFields" data-title="Edit perk"
                                             data-id="@perk.Id" data-tierid="@perk.RewardTierId" data-name="@perk.Title" data-description="@perk.Description"
-                                            data-icon="@PerkIcons.Normalize(perk.Icon)" data-group="@perk.Group" data-frequency="@((int)perk.Frequency)" data-isactive="@(perk.IsActive ? "true" : "false")">@Ui.Icon("pen", 16, 1.6)</button>
+                                            data-icon="@PerkIcons.Normalize(perk.Icon)" data-group="@perk.Group" data-frequency="@((int)perk.Frequency)" data-isactive="@(perk.IsActive ? "true" : "false")" data-birthday="@(perk.BirthdayOnly ? "true" : "false")">@Ui.Icon("pen", 16, 1.6)</button>
                                     <button type="button" class="ib" aria-label="Delete @perk.Title" data-dialog-open="delPerkDlg" data-fields="id,name" data-id="@perk.Id" data-name="@perk.Title">@Ui.Icon("trash", 16, 1.6)</button>
                                 </div>
                             </div>
@@ -103,7 +103,7 @@
                         }
 
                         <button type="button" class="add-p" data-dialog-open="perkDlg" data-fields="@perkFields" data-title="Add a perk to @tier.Name"
-                                data-tierid="@tier.Id" data-icon="gift" data-group="Welcome treats" data-frequency="1" data-isactive="true">@Ui.Icon("plus", 16, 2) Add a perk</button>
+                                data-tierid="@tier.Id" data-icon="gift" data-group="Welcome treats" data-frequency="1" data-isactive="true" data-birthday="false">@Ui.Icon("plus", 16, 2) Add a perk</button>
 
                         @if (tier.MinPoints != 0 && !tier.Perks.Any())
                         {
@@ -395,6 +395,7 @@
                     </select>
                 </div>
             </div>
+            <label class="ckb" style="margin-bottom:12px"><input type="checkbox" id="perkDlg_birthday" name="birthdayOnly" value="true" /><i>@Ui.Icon("check", 13, 3)</i> Only in the guest's birthday month <span class="muted">(they need their birthday on their profile)</span></label>
             <label class="swx"><input type="checkbox" id="perkDlg_isactive" name="isActive" value="true" /><span class="sw"></span> Show to guests</label>
         </div>
         <div class="modal-foot">

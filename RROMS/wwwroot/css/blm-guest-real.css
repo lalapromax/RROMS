@@ -25,12 +25,16 @@
 .set-opt{position:relative;cursor:pointer}
 .set-opt:has(input:checked){border:2px solid var(--wine);padding:15px}
 .set-opt:has(input:focus-visible){outline:2px solid var(--wine);outline-offset:3px}
-.set-opt .cover,.set-opt .img{width:96px;height:96px;flex:none}
-.set-opt.none .img{display:grid;place-items:center;color:var(--caramel);background:var(--linen)}
-.set-opt .ck-t::before{content:"Select"}
-.set-opt:has(input:checked) .ck-t::before{content:"Selected"}
-.set-opt:has(input:checked) .ck i.rad{background:#fff;border-color:var(--cocoa);position:relative}
-.set-opt:has(input:checked) .ck i.rad::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--wine)}
+.set-opt .cover,.set-opt .img{width:96px;height:96px;flex:none;overflow:hidden;border-radius:8px}
+.set-opt .ck-t::before{content:"Add"}
+.set-opt:has(input:checked) .ck-t::before{content:"Added"}
+.set-opt .ck i svg{opacity:0}
+.set-opt:has(input:checked) .ck i{background:var(--cocoa);border-color:var(--cocoa)}
+.set-opt:has(input:checked) .ck i svg{opacity:1}
+/* how many of the table have this set menu: only once it is ticked */
+.set-guests{display:none;align-items:center;gap:10px;margin-top:10px;font-size:15px;color:var(--ink2)}
+.set-opt:has(input:checked) .set-guests{display:flex}
+.set-guests select.in{width:auto;min-width:130px;min-height:44px;padding-top:0;padding-bottom:0}
 .err-msg:empty{display:none}
 
 /* ---- My reservations ---- */

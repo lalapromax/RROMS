@@ -23,10 +23,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // ---------------- Identity ----------------
-builder.Services.Configure<PasswordHasherOptions>(options =>
-{
-    options.IterationCount = 800000;
-});
+// Passwords are hashed with BCrypt. Hashes made by Identity's previous PBKDF2 hasher are still accepted and are
+// re-saved as BCrypt the next time that person signs in (see BCryptPasswordHasher).
+builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BCryptPasswordHasher>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -179,33 +178,6 @@ app.MapPost("/api/chatbot/ask", async (ChatRequest request, HttpContext http, IC
         : null;
     var answer = await chatbotService.GetAnswerAsync(request.Message ?? string.Empty, userId);
     return Results.Ok(new { answer = answer.Text, mode = answer.Mode });
-}).AllowAnonymous();
-
-// ---------------- Stripe webhook minimal API ----------------
-// Anonymous because Stripe's own servers call this directly - no RROMS user is signed
-// in. That's safe only because of the signature check below: ConstructWebhookEvent
-// rejects anything not signed with the webhook secret, so an attacker posting a fake
-// "payment succeeded" body here cannot mark an order as paid. This is the authoritative,
-// server-verified source of truth for payment status changes (brief 6.C) - the Cart
-// page's own synchronous check at checkout time never substitutes for this.
-app.MapPost("/api/stripe/webhook", async (HttpRequest request, IStripePaymentService stripeService, IOrderService orderService, ILogger<Program> logger) =>
-{
-    var json = await new StreamReader(request.Body).ReadToEndAsync();
-    var signature = request.Headers["Stripe-Signature"].ToString();
-
-    Stripe.Event stripeEvent;
-    try
-    {
-        stripeEvent = stripeService.ConstructWebhookEvent(json, signature);
-    }
-    catch (Stripe.StripeException ex)
-    {
-        logger.LogWarning("Rejected a Stripe webhook call with an invalid signature: {Message}", ex.Message);
-        return Results.BadRequest();
-    }
-
-    await orderService.HandleStripeEventAsync(stripeEvent);
-    return Results.Ok();
 }).AllowAnonymous();
 
 // ---------------- Apply migrations + seed reference/demo data ----------------

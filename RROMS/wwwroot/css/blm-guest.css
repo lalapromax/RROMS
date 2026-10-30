@@ -12,6 +12,11 @@ body{margin:0;background:var(--paper);color:var(--cocoa);font:400 17px/1.6 'Hank
 /* forms */
 .form .field{margin-bottom:16px}
 .form .field label,.form .field .lab{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+/* selection controls inside .form .field keep their own look (the rule above makes every label a bold block, which
+   pushed chip text to the top edge of the pill) - the same overrides the staff and admin sheet has */
+.form .field label.chipx{display:inline-flex;align-items:center;justify-content:center;font-weight:500;font-size:15px;line-height:1;margin-bottom:0}
+.form .field label.ckb{display:flex;font-weight:400;font-size:15px;margin-bottom:0}
+.form .field label.swx{display:inline-flex;font-weight:400;margin-bottom:0}
 .form .in{width:100%}
 .form textarea.in{min-height:84px;resize:vertical}
 .form select.in{width:100%;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23442D1C' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center}

@@ -43,6 +43,10 @@ public class RewardPerk
     public bool IsActive { get; set; } = true;
 
     public int SortOrder { get; set; }
+
+    /// A birthday treat ("Birthday dessert", "Birthday glass of champagne"): claimable only in the guest's birthday month,
+    /// so it needs the birthday on their profile. Set by the administrator on the perk.
+    public bool BirthdayOnly { get; set; }
 }
 
 /// The icons an administrator may pick for a perk, stored as short keys that name drawings in the shared icon set

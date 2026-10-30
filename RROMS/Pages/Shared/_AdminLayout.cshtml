@@ -30,7 +30,7 @@
             <a asp-page="/Admin/MenuManagement" aria-current="@Cur("/Admin/MenuManagement")">Menu and sets</a>
             <a asp-page="/Admin/Venue" aria-current="@Cur("/Admin/Venue")">Floor plan</a>
             <a asp-page="/Admin/Promotions" aria-current="@Cur("/Admin/Promotions")">Promotions</a>
-            <a asp-page="/Admin/Rewards" aria-current="@Cur("/Admin/Rewards")">Rewards@if (c.WaitingClaims > 0) { <span class="badge" title="@c.WaitingClaims reward claims waiting">@(c.WaitingClaims > 9 ? "9+" : c.WaitingClaims.ToString())</span> }</a>
+            <a asp-page="/Admin/Rewards" aria-current="@Cur("/Admin/Rewards")">Rewards @if (c.WaitingClaims > 0) { <span class="badge" title="@c.WaitingClaims reward claims waiting">@(c.WaitingClaims > 9 ? "9+" : c.WaitingClaims.ToString())</span> }</a>
             <a asp-page="/Admin/Announcements" aria-current="@Cur("/Admin/Announcements")">Announcements</a>
             <div class="more" data-menu>
                 <button type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu" data-menu-toggle aria-current="@(inMore ? "page" : null)">More @Ui.Icon("chev", 14, 2)</button>
@@ -57,7 +57,7 @@
             <a asp-page="/Admin/MenuManagement" aria-current="@Cur("/Admin/MenuManagement")">Menu and sets</a>
             <a asp-page="/Admin/Venue" aria-current="@Cur("/Admin/Venue")">Floor plan</a>
             <a asp-page="/Admin/Promotions" aria-current="@Cur("/Admin/Promotions")">Promotions</a>
-            <a asp-page="/Admin/Rewards" aria-current="@Cur("/Admin/Rewards")">Rewards@if (c.WaitingClaims > 0) { <span class="badge-n">@c.WaitingClaims</span> }</a>
+            <a asp-page="/Admin/Rewards" aria-current="@Cur("/Admin/Rewards")">Rewards @if (c.WaitingClaims > 0) { <span class="badge-n">@c.WaitingClaims</span> }</a>
             <a asp-page="/Admin/Announcements" aria-current="@Cur("/Admin/Announcements")">Announcements</a>
             <span class="sheet-label">More</span>
             <a asp-page="/Admin/Collaborations" aria-current="@Cur("/Admin/Collaborations")">Collaborations</a>

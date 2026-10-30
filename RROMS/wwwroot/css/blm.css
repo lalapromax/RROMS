@@ -279,6 +279,9 @@ body.flash-open > .flash-modal-root .flash-modal{filter:none;-webkit-filter:none
 /* ---- account menu (the popover the Profile board draws open) ---- */
 .acct{position:relative}
 .acct>button.icon-btn{background:transparent;cursor:pointer}
+/* the account button shows the profile picture when there is one */
+.acct>button.icon-btn.has-av{padding:0;overflow:hidden}
+.acct .nav-av{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
 .pop{position:absolute;top:calc(100% + 12px);right:0;z-index:70;width:300px;padding:10px;background:var(--card);color:var(--cocoa);border-radius:12px;box-shadow:var(--e3);border:1px solid var(--line)}
 .pop .who{padding:14px 16px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .pop .who b{display:block;font:500 20px/1.2 'Bodoni Moda',serif}

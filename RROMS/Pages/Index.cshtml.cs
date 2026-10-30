@@ -64,7 +64,7 @@ public class IndexModel : PageModel
 
         var viewerId = User.Identity?.IsAuthenticated == true ? _userManager.GetUserId(User) : null;
         var viewerEmail = viewerId != null ? await _context.Users.Where(u => u.Id == viewerId).Select(u => u.Email).FirstOrDefaultAsync() : null;
-        Discounts = await _promotions.GetDisplayDiscountsAsync(Pass, viewerEmail);
+        Discounts = await _promotions.GetDisplayDiscountsAsync(Pass, viewerId, viewerEmail);
 
         Wines = await _context.MenuItems.AsNoTracking().Include(m => m.MenuCategory)
             .Where(m => m.IsAvailable && m.MenuCategory!.IsWine && m.MenuCategory.IsActive)
