@@ -4,7 +4,7 @@
     var surface = Model.Kind switch { "missing" => "linen", "denied" => "olive", _ => "wine" };
 }
 <article class="ec" aria-labelledby="ecTitle">
-    @Ui.Plate("d-house", surface, "round")
+    @Ui.Placeholder(surface, "round")
     <span class="code">@Model.Code</span>
     <h1 id="ecTitle">@Model.Title</h1>
     <p>@Model.Text</p>

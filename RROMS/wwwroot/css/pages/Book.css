@@ -32,3 +32,27 @@
 .sum .btn{width:100%;margin-top:22px}
 .sum .fine{margin-top:12px;font-size:13.5px;color:var(--ink2);text-align:center}
 .askus{margin-top:20px;font-size:15px;color:var(--ink2);padding:0 6px}
+
+/* ---- tablet and phone: the booking summary moves under the form, and the steps lose their desktop indent ---- */
+@media (max-width:980px){
+  .book{grid-template-columns:minmax(0,1fr);gap:32px}
+  .sum{position:static}
+}
+@media (max-width:640px){
+  .step{padding:26px 0}
+  .step h2{font-size:26px;gap:12px}
+  .step h2 .no{width:32px;height:32px;font-size:14px}
+  .step .body{padding-left:0;margin-top:16px}
+  .party{gap:8px}
+  .party span{width:44px;height:44px;font-size:18px}
+  .days{gap:5px}
+  .slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .slots span{min-height:46px}
+  .month{flex-wrap:wrap;gap:10px}
+  .month-nav{flex-wrap:wrap;font-size:14px}
+  .set-opt{grid-template-columns:72px minmax(0,1fr);gap:14px}
+  .set-opt .cover,.set-opt .img{width:72px;height:72px}
+  .set-opt h3{font-size:21px}
+  .set-opt .ck{grid-column:2}
+  .sum .printed{padding:26px 22px 24px}
+}

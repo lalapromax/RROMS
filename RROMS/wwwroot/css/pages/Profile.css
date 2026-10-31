@@ -77,6 +77,7 @@
 @media (max-width:620px){
   .danger{flex-direction:column;align-items:flex-start}
   .linked{flex-wrap:wrap}
+  .linked>*{min-width:0;max-width:100%}   /* the Google button sizes itself from this box, so it must not be wider than the row */
   .rules{grid-template-columns:1fr}
   .id{gap:14px}
   .id .av{width:64px;height:64px;font-size:26px}

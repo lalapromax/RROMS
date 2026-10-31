@@ -48,9 +48,11 @@
     out('party', String(party()));
     var occ = val('Form.Occasion');
     out('occasion', occ); row('occasion', !!occ);
-    var setEl = form.querySelector('input[data-sum="set"]:checked');
-    var setName = setEl ? setEl.getAttribute('data-label') : '';
-    out('set', setName); row('set', !!setName);
+    var sets = Array.prototype.map.call(form.querySelectorAll('input[data-sum="set"]:checked'), function (box) {
+      var count = box.closest('.set-opt').querySelector('[data-set-guests]');
+      return box.getAttribute('data-label') + ' for ' + (count ? count.value : party());
+    });
+    out('set', sets.join(', ')); row('set', sets.length > 0);
     if (bigNote) bigNote.hidden = party() < big;
     syncButtons();
   }
@@ -107,9 +109,33 @@
       .then(function () { slotBox.removeAttribute('aria-busy'); });
   }
 
+  // A set menu can be for anyone from one guest to the whole table, so the counts follow the party size.
+  function syncSetGuests() {
+    var p = party();
+    form.querySelectorAll('[data-set-guests]').forEach(function (sel) {
+      Array.prototype.forEach.call(sel.options, function (o) { o.disabled = +o.value > p; });
+      if (+sel.value > p) sel.value = String(p);
+    });
+  }
+
   form.addEventListener('change', function (e) {
     var n = e.target && e.target.name;
     if (n === 'Form.PartySize' || n === 'Form.Date' || n === 'Form.DiningAreaId') refreshSlots();
+    if (n === 'Form.PartySize') syncSetGuests();
+    // Ticking a set menu starts it at the whole table, less anyone already on another set menu. When the table is
+    // already covered, one guest moves over from the set menu with the most guests, so the total never passes the party.
+    if (e.target && e.target.matches('input[data-sum="set"]') && e.target.checked) {
+      var count = e.target.closest('.set-opt').querySelector('[data-set-guests]');
+      var others = Array.prototype.filter.call(form.querySelectorAll('input[data-sum="set"]:checked'), function (box) { return box !== e.target; })
+        .map(function (box) { return box.closest('.set-opt').querySelector('[data-set-guests]'); });
+      var taken = others.reduce(function (sum, sel) { return sum + +sel.value; }, 0);
+      var left = party() - taken;
+      if (left < 1) {
+        var biggest = others.sort(function (a, b) { return +b.value - +a.value; })[0];
+        if (biggest && +biggest.value > 1) { biggest.value = String(+biggest.value - 1); left = 1; }
+      }
+      if (count) count.value = String(Math.max(1, left));
+    }
     syncSummary();
   });
 
@@ -136,5 +162,6 @@
     form.querySelectorAll('button[type=submit]:not(.mnav)').forEach(function (b) { b.disabled = false; });
   });
 
+  syncSetGuests();
   syncSummary();
 })();

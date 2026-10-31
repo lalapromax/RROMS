@@ -181,7 +181,6 @@
 
             <aside class="visit">
                 <div class="printed">
-                    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
                     <h3>Your visit</h3>
                     @if (Model.Visit != null)
                     {
@@ -203,7 +202,7 @@
                         }
                         else
                         {
-                            @Ui.Plate("d-house", "linen", "sq")
+                            @Ui.Placeholder("linen", "sq")
                         }
                     }
                     @if (!editing && Model.Targets.Count > 1)

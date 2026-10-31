@@ -31,16 +31,13 @@ public class IntegrationsModel : PageModel
     }
 
     public string Origin => $"{Request.Scheme}://{Request.Host}";
-    public string WebhookUrl => $"{Origin}/api/stripe/webhook";
 
     public bool GoogleOn => _google.IsConfigured;
     public string GoogleClientIdState => IntegrationSettings.Describe(_google.ClientId);
 
     public bool StripeOn => _stripe.IsConfigured;
-    public bool StripeWebhookOn => _stripe.IsWebhookConfigured;
     public string StripeSecretState => IntegrationSettings.Describe(_config["StripeSettings:SecretKey"]);
     public string StripePublishableState => IntegrationSettings.Describe(_config["StripeSettings:PublishableKey"]);
-    public string StripeWebhookState => IntegrationSettings.Describe(_config["StripeSettings:WebhookSecret"]);
     public string StripeMode
     {
         get

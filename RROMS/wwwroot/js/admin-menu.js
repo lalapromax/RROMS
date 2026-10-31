@@ -53,6 +53,11 @@
             if (fileName) fileName.textContent = '';
             if (removeBox) { removeBox.hidden = !photo; var cb = $('input', removeBox); if (cb) cb.checked = false; }
             if (remove) remove.hidden = !b.getAttribute('data-id');
+            // "Add a wine" always starts on a wine category, even if the one the page suggested is not in the list.
+            if (b.getAttribute('data-wine-default') === 'true' && cat && !isWine()) {
+                var wineOpt = $('option[data-wine="true"]', cat);
+                if (wineOpt) cat.value = wineOpt.value;
+            }
             syncWine();
         });
 

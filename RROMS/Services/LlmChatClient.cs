@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace RROMS.Services;
 
@@ -18,23 +19,35 @@ public interface ILlmChatClient
     bool IsConfigured { get; }
     string ProviderLabel { get; }
 
+    /// True when the model runs on this machine (a local Ollama), so nothing said to it leaves the server.
+    bool IsLocal { get; }
+
     /// Returns the model's reply, or null when the call failed (the caller then falls back to the FAQ).
     Task<string?> AskAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken = default);
+
+    /// The same with the conversation so far: turns alternate user / assistant and end with the user's new message.
+    Task<string?> AskAsync(string systemPrompt, IReadOnlyList<ChatTurn> conversation, CancellationToken cancellationToken = default);
 }
 
 public class LlmChatClient : ILlmChatClient
 {
     public const string HttpClientName = "llm-chat";
 
+    /// After a call fails to connect, the model is left alone for this long, so every chat message does not wait for it.
+    private static readonly TimeSpan RestAfterFailure = TimeSpan.FromSeconds(60);
+    private const string DownKey = "llm-chat.down";
+
     private readonly IConfiguration _config;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmChatClient> _logger;
+    private readonly IMemoryCache _cache;
 
-    public LlmChatClient(IConfiguration config, IHttpClientFactory httpFactory, ILogger<LlmChatClient> logger)
+    public LlmChatClient(IConfiguration config, IHttpClientFactory httpFactory, ILogger<LlmChatClient> logger, IMemoryCache cache)
     {
         _config = config;
         _httpFactory = httpFactory;
         _logger = logger;
+        _cache = cache;
     }
 
     private string Provider => (_config["ChatbotSettings:Provider"] ?? "Rules").Trim();
@@ -72,9 +85,15 @@ public class LlmChatClient : ILlmChatClient
 
     public string ProviderLabel => IsAnthropic ? "Anthropic" : IsOpenAiStyle ? "OpenAI-compatible" : "Rules";
 
-    public async Task<string?> AskAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken = default)
+    public bool IsLocal => IsOpenAiStyle && BaseUrlIsLocal;
+
+    public Task<string?> AskAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken = default) =>
+        AskAsync(systemPrompt, new[] { new ChatTurn("user", userMessage) }, cancellationToken);
+
+    public async Task<string?> AskAsync(string systemPrompt, IReadOnlyList<ChatTurn> conversation, CancellationToken cancellationToken = default)
     {
-        if (!IsConfigured) return null;
+        if (!IsConfigured || conversation.Count == 0) return null;
+        if (_cache.TryGetValue(DownKey, out _)) return null;   // it could not be reached a moment ago
 
         try
         {
@@ -83,8 +102,8 @@ public class LlmChatClient : ILlmChatClient
 
             var http = _httpFactory.CreateClient(HttpClientName);
             using var request = IsAnthropic
-                ? BuildAnthropicRequest(systemPrompt, userMessage)
-                : BuildOpenAiRequest(systemPrompt, userMessage);
+                ? BuildAnthropicRequest(systemPrompt, conversation)
+                : BuildOpenAiRequest(systemPrompt, conversation);
 
             using var response = await http.SendAsync(request, timeout.Token);
             var body = await response.Content.ReadAsStringAsync(timeout.Token);
@@ -99,19 +118,25 @@ public class LlmChatClient : ILlmChatClient
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or KeyNotFoundException)
         {
-            _logger.LogWarning(ex, "Chat model call failed; falling back to the FAQ answer.");
+            // Not reachable (no local model running, no network) or too slow: rest it for a minute before trying again.
+            if (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+                _cache.Set(DownKey, true, RestAfterFailure);
+            _logger.LogWarning(ex, "Chat model call failed; falling back to the built-in answers.");
             return null;
         }
     }
 
-    private HttpRequestMessage BuildAnthropicRequest(string systemPrompt, string userMessage)
+    private static IEnumerable<object> Messages(IReadOnlyList<ChatTurn> conversation) =>
+        conversation.Select(t => (object)new { role = t.Role == "assistant" ? "assistant" : "user", content = t.Text });
+
+    private HttpRequestMessage BuildAnthropicRequest(string systemPrompt, IReadOnlyList<ChatTurn> conversation)
     {
         var payload = new
         {
             model = Model,
             max_tokens = MaxTokens,
             system = systemPrompt,
-            messages = new[] { new { role = "user", content = userMessage } }
+            messages = Messages(conversation)
         };
         var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
         {
@@ -122,17 +147,13 @@ public class LlmChatClient : ILlmChatClient
         return request;
     }
 
-    private HttpRequestMessage BuildOpenAiRequest(string systemPrompt, string userMessage)
+    private HttpRequestMessage BuildOpenAiRequest(string systemPrompt, IReadOnlyList<ChatTurn> conversation)
     {
         var payload = new
         {
             model = Model,
             max_tokens = MaxTokens,
-            messages = new object[]
-            {
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = userMessage }
-            }
+            messages = new object[] { new { role = "system", content = systemPrompt } }.Concat(Messages(conversation))
         };
         var request = new HttpRequestMessage(HttpMethod.Post, OpenAiBaseUrl + "/chat/completions")
         {

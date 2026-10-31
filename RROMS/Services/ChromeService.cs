@@ -17,6 +17,9 @@ public class ChromeInfo
     public string DisplayName { get; init; } = string.Empty;
     public string Email { get; init; } = string.Empty;
     public string Initials { get; init; } = string.Empty;
+
+    /// The signed-in person's profile picture, or null when they have none (or its file is missing) and the icon is shown.
+    public string? ImagePath { get; init; }
     public int Unread { get; init; }
     public int CartCount { get; init; }
     public string? TierName { get; init; }
@@ -67,14 +70,19 @@ public class ChromeService : IChromeService
         _cache.Set(PhoneCacheKey, setting?.Phone ?? string.Empty, TimeSpan.FromHours(6));
 
         string name = string.Empty, email = string.Empty;
+        string? image = null;
         int unread = 0, cart = 0, points = 0, pending = 0, claims = 0;
         string? tier = null;
 
         if (signedIn && userId != null)
         {
-            var me = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.FullName, u.Email }).FirstOrDefaultAsync();
+            var me = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.FullName, u.Email, u.ProfileImagePath }).FirstOrDefaultAsync();
             name = me?.FullName ?? user.Identity?.Name ?? string.Empty;
             email = me?.Email ?? string.Empty;
+            // Only point the bar at a picture that is really there, so a lost upload shows the icon instead of a broken image.
+            if (!string.IsNullOrWhiteSpace(me?.ProfileImagePath) && me.ProfileImagePath.StartsWith('/')
+                && _env.WebRootFileProvider.GetFileInfo(me.ProfileImagePath.TrimStart('/')).Exists)
+                image = me.ProfileImagePath;
             unread = await _db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
 
             if (user.IsInRole(Roles.Customer))
@@ -103,6 +111,7 @@ public class ChromeService : IChromeService
             DisplayName = name,
             Email = email,
             Initials = InitialsOf(name),
+            ImagePath = image,
             Unread = unread,
             CartCount = cart,
             TierName = tier,

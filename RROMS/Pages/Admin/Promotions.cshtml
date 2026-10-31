@@ -5,7 +5,7 @@
 @using RROMS.Presentation
 @{
     ViewData["Title"] = "Promotions";
-    var today = DateTime.UtcNow.Date;
+    var today = DateTime.Today;   // promotion dates are the restaurant's local calendar days, as at checkout
     var inp = Model.Input;
     // Monday first, because that is how a week reads on a restaurant's rota.
     var weekOrder = new[] { 1, 2, 3, 4, 5, 6, 0 };
@@ -44,6 +44,12 @@
         var r = new List<string>();
         if (p.AllowedDaysMask.HasValue) r.Add(DaysLabel(p.AllowedDaysMask.Value));
         if (p.MinimumOrderAmount is > 0) r.Add("min " + Ui.Rm(p.MinimumOrderAmount.Value));
+        if (p.IsTierRestricted)
+        {
+            var ids = p.GetEligibleTierIds();
+            var names = Model.Tiers.Where(t => ids.Contains(t.Id)).Select(t => t.Name).ToList();
+            r.Add((names.Count == 0 ? "Chosen" : string.Join(", ", names)) + " members");
+        }
         if (p.IsEligibilityRestricted) { var n = p.GetEligibleEmails().Count; r.Add(n == 1 ? "1 named guest" : n + " named guests"); }
         if (p.MaxRedemptionsTotal.HasValue) r.Add(p.MaxRedemptionsTotal + " uses in all");
         if (p.MaxRedemptionsPerCustomer.HasValue) r.Add(p.MaxRedemptionsPerCustomer == 1 ? "once per guest" : p.MaxRedemptionsPerCustomer + " per guest");
@@ -56,7 +62,7 @@
         percent = p.DiscountPercent > 0 ? p.DiscountPercent : (decimal?)null, amount = p.FixedAmountOff, code = p.Code,
         start = p.StartDate.ToString("yyyy-MM-dd"), end = p.EndDate.ToString("yyyy-MM-dd"),
         scope = p.MenuItemId != null ? "item" : p.MenuCategoryId != null ? "category" : "storewide", item = p.MenuItemId, category = p.MenuCategoryId,
-        eligibility = p.IsEligibilityRestricted ? "specific" : "all", emails = p.EligibleEmailsRaw,
+        eligibility = p.IsTierRestricted ? "tier" : p.IsEligibilityRestricted ? "specific" : "all", emails = p.EligibleEmailsRaw, tiers = p.GetEligibleTierIds().ToArray(),
         days = p.AllowedDaysMask.HasValue ? Enumerable.Range(0, 7).Where(d => (p.AllowedDaysMask.Value & (1 << d)) != 0).ToArray() : Array.Empty<int>(),
         min = p.MinimumOrderAmount, total = p.MaxRedemptionsTotal, perGuest = p.MaxRedemptionsPerCustomer, active = p.IsActive
     });
@@ -64,7 +70,7 @@
     {
         id = inp.Id, title = inp.Title, description = inp.Description, kind = inp.Kind, percent = inp.DiscountPercent, amount = inp.FixedAmountOff, code = inp.Code,
         start = inp.StartDate?.ToString("yyyy-MM-dd"), end = inp.EndDate?.ToString("yyyy-MM-dd"),
-        scope = inp.Scope, item = inp.MenuItemId, category = inp.MenuCategoryId, eligibility = inp.Eligibility, emails = inp.EligibleEmails,
+        scope = inp.Scope, item = inp.MenuItemId, category = inp.MenuCategoryId, eligibility = inp.Eligibility, emails = inp.EligibleEmails, tiers = inp.EligibleTierIds ?? new List<int>(),
         days = inp.AllowedDays ?? new List<int>(), min = inp.MinimumOrderAmount, total = inp.MaxRedemptionsTotal, perGuest = inp.MaxRedemptionsPerCustomer,
         active = inp.IsActive, notify = inp.NotifyCustomers
     });
@@ -236,8 +242,18 @@
                 <fieldset class="field">
                     <legend class="lab">Who is eligible</legend>
                     <div class="stack-ck">
-                        <label class="ckb"><input type="radio" name="Input.Eligibility" value="all" id="promoDlg_elig_all" /><i>@Ui.Icon("check", 13, 3)</i> Everyone</label>
+                        <label class="ckb"><input type="radio" name="Input.Eligibility" value="all" id="promoDlg_elig_all" /><i>@Ui.Icon("check", 13, 3)</i> All guests</label>
+                        <label class="ckb"><input type="radio" name="Input.Eligibility" value="tier" id="promoDlg_elig_tier" /><i>@Ui.Icon("check", 13, 3)</i> Members of a rank</label>
                         <label class="ckb"><input type="radio" name="Input.Eligibility" value="specific" id="promoDlg_elig_specific" /><i>@Ui.Icon("check", 13, 3)</i> Specific guests, by email</label>
+                    </div>
+                    <div id="eligTiers" hidden>
+                        <div class="ck-row" role="group" aria-label="Membership ranks">
+                            @foreach (var t in Model.Tiers)
+                            {
+                                <label class="ckb"><input type="checkbox" name="Input.EligibleTierIds" value="@t.Id" data-tier /><i>@Ui.Icon("check", 13, 3)</i> @t.Name</label>
+                            }
+                        </div>
+                        <p class="hint">A guest's rank is worked out from their points when they order.</p>
                     </div>
                     <div id="eligEmails" hidden>
                         <label class="sr-only" for="promoDlg_emails">Guest emails</label>

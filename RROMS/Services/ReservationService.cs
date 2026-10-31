@@ -14,11 +14,14 @@ public record SlotInfo(string Time, bool Full);
 /// What a guest can book on one day: nothing when the restaurant is closed, otherwise the start times in order.
 public record DaySlots(bool Closed, IReadOnlyList<SlotInfo> Slots);
 
+/// A set menu chosen on the booking form, for this many of the party.
+public record SetMenuChoice(int SetMenuId, int Guests);
+
 /// Everything the booking form collects. Staff bookings leave the guest-only fields empty.
 public record ReservationRequest(
     string CustomerId, DateTime Date, TimeSpan Time, int PartySize,
     string? SpecialRequests = null, int? DiningAreaId = null, int? PreferredTableId = null,
-    string? Occasion = null, int? SetMenuId = null, string? ContactName = null, string? ContactPhone = null);
+    string? Occasion = null, IReadOnlyList<SetMenuChoice>? SetMenus = null, string? ContactName = null, string? ContactPhone = null);
 
 /// A booking or walk-in taken by a member of staff for a guest who has no account (or is on the phone).
 public record StaffBooking(string GuestName, string? Phone, DateTime Date, TimeSpan Time, int PartySize, int? TableId, string? Notes, string? Occasion, bool SeatNow);
@@ -57,11 +60,13 @@ public class ReservationService : IReservationService
 {
     private readonly ApplicationDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly IOrderService _orders;
 
-    public ReservationService(ApplicationDbContext context, INotificationService notificationService)
+    public ReservationService(ApplicationDbContext context, INotificationService notificationService, IOrderService orders)
     {
         _context = context;
         _notificationService = notificationService;
+        _orders = orders;
     }
 
     /// Slots start every half hour; the last one is this long before closing so the table can still enjoy a full meal.
@@ -270,9 +275,20 @@ public class ReservationService : IReservationService
         if (request.PartySize < 1 || request.PartySize > 30)
             return (false, "Party size must be between 1 and 30.", null);
 
-        if (request.SetMenuId.HasValue &&
-            !await _context.SetMenus.AnyAsync(m => m.Id == request.SetMenuId.Value && m.Status == SetMenuStatus.Active))
-            return (false, "That set menu is not on offer any more. Please choose another, or leave it for the night.", null);
+        // Several set menus may be booked, each for part of the table, but never for more guests than are coming.
+        var choices = (request.SetMenus ?? Array.Empty<SetMenuChoice>())
+            .Where(c => c.Guests > 0)
+            .GroupBy(c => c.SetMenuId)
+            .Select(g => new SetMenuChoice(g.Key, g.Sum(c => c.Guests)))
+            .ToList();
+        if (choices.Sum(c => c.Guests) > request.PartySize)
+            return (false, $"You chose set menus for {choices.Sum(c => c.Guests)} guests, but the table is for {request.PartySize}. Please lower the number on a set menu.", null);
+        var setIds = choices.Select(c => c.SetMenuId).ToList();
+        var setMenus = await _context.SetMenus.AsNoTracking()
+            .Where(m => setIds.Contains(m.Id) && m.Status == SetMenuStatus.Active)
+            .ToDictionaryAsync(m => m.Id);
+        if (setMenus.Count != choices.Count)
+            return (false, "One of those set menus is not on offer any more. Please choose another, or leave it for the night.", null);
 
         var availableTables = await GetAvailableTablesAsync(request.Date, request.Time, request.PartySize, request.DiningAreaId);
         if (availableTables.Count == 0)
@@ -297,7 +313,12 @@ public class ReservationService : IReservationService
             Status = needsTeam ? ReservationStatus.Pending : ReservationStatus.Confirmed,
             SpecialRequests = Trim(request.SpecialRequests, 400),
             Occasion = Trim(request.Occasion, 40),
-            SetMenuId = request.SetMenuId,
+            SetMenus = choices.Select(c => new ReservationSetMenu
+            {
+                SetMenuId = c.SetMenuId,
+                SetMenuName = setMenus[c.SetMenuId].Name,
+                Guests = c.Guests
+            }).ToList(),
             ContactName = Trim(request.ContactName, 80),
             ContactPhone = Trim(request.ContactPhone, 30),
             CreatedAt = DateTime.UtcNow,
@@ -329,7 +350,7 @@ public class ReservationService : IReservationService
     public async Task<(bool Success, string Message)> UpdateReservationAsync(
         int reservationId, string customerId, DateTime date, TimeSpan time, int partySize, string? specialRequests, bool isStaffOrAdmin)
     {
-        var reservation = await _context.Reservations.Include(r => r.Table).FirstOrDefaultAsync(r => r.Id == reservationId);
+        var reservation = await _context.Reservations.Include(r => r.Table).Include(r => r.SetMenus).FirstOrDefaultAsync(r => r.Id == reservationId);
         if (reservation == null)
             return (false, "Reservation not found.");
         if (!isStaffOrAdmin && reservation.CustomerId != customerId)
@@ -365,6 +386,7 @@ public class ReservationService : IReservationService
         reservation.ReservationDateTime = newStart;
         reservation.DurationMinutes = duration;
         reservation.PartySize = partySize;
+        var setsTrimmed = FitSetMenusToParty(reservation, partySize);
         reservation.SpecialRequests = Trim(specialRequests, 400);
         reservation.TableId = chosen.Id;
         reservation.Status = partySize >= ConfirmByTeamFromParty && !isStaffOrAdmin ? ReservationStatus.Pending : ReservationStatus.Confirmed;
@@ -375,12 +397,56 @@ public class ReservationService : IReservationService
         await _notificationService.NotifyAsync(
             reservation.CustomerId,
             "Reservation updated",
-            $"Your reservation is now for {newStart:dddd d MMMM} at {newStart:HH:mm}, {partySize} {(partySize == 1 ? "guest" : "guests")}.",
+            $"Your reservation is now for {newStart:dddd d MMMM} at {newStart:HH:mm}, {partySize} {(partySize == 1 ? "guest" : "guests")}."
+                + (setsTrimmed ? $" Set menus: {Presentation.SetMenuLabels.Booked(reservation.SetMenus)}." : ""),
             NotificationType.Reservation,
             "/Reservations/Index");
 
         if (oldStart != newStart) await NotifyWaitlistAsync(oldStart);
-        return (true, "Reservation updated.");
+        return (true, setsTrimmed ? $"Reservation updated. The set menus now cover {partySize} {(partySize == 1 ? "guest" : "guests")}." : "Reservation updated.");
+    }
+
+    /// 
+    /// A smaller party keeps set menus for no more guests than are coming: the latest choices give up guests first, and a
+    /// set menu left with none is dropped. Returns true when anything changed. Needs <see cref="Reservation.SetMenus"/> loaded.
+    /// 
+    private bool FitSetMenusToParty(Reservation reservation, int partySize)
+    {
+        var over = reservation.SetMenus.Sum(s => s.Guests) - partySize;
+        if (over <= 0) return false;
+        foreach (var s in reservation.SetMenus.OrderByDescending(s => s.Id).ToList())
+        {
+            var cut = Math.Min(over, s.Guests);
+            s.Guests -= cut;
+            over -= cut;
+            if (s.Guests == 0)
+            {
+                reservation.SetMenus.Remove(s);
+                _context.ReservationSetMenus.Remove(s);
+            }
+            if (over == 0) break;
+        }
+        return true;
+    }
+
+    /// 
+    /// Orders sent ahead for a booking that will not be served (cancelled, or the guest did not come) are cancelled with
+    /// it - any online payment goes back - so they never land on the kitchen board. Returns a note for the team when one
+    /// could not be cancelled (for example Stripe refused the refund), so it can be sorted out from Orders.
+    /// 
+    private async Task<string?> CancelOrdersAheadAsync(int reservationId, string byUserId, bool isStaffOrAdmin)
+    {
+        var ahead = await _context.Orders
+            .Where(o => o.ReservationId == reservationId && o.Status == OrderStatus.Placed)
+            .Select(o => o.Id).ToListAsync();
+        var stuck = new List<int>();
+        foreach (var id in ahead)
+        {
+            var (ok, _) = await _orders.CancelOrderAsync(id, byUserId, isStaffOrAdmin);
+            if (!ok) stuck.Add(id);
+        }
+        return stuck.Count == 0 ? null
+            : $"Order {string.Join(", ", stuck.Select(i => "#" + i))} for this booking could not be cancelled by itself. Please cancel it from Orders.";
     }
 
     public async Task<(bool Success, string Message)> CancelReservationAsync(int reservationId, string requestingUserId, bool isStaffOrAdmin, string? reason)
@@ -398,6 +464,7 @@ public class ReservationService : IReservationService
         reservation.Status = ReservationStatus.Cancelled;
         reservation.CancellationReason = reason;
         await _context.SaveChangesAsync();
+        var stuck = await CancelOrdersAheadAsync(reservation.Id, requestingUserId, isStaffOrAdmin);
 
         await _notificationService.NotifyAsync(
             reservation.CustomerId,
@@ -408,7 +475,7 @@ public class ReservationService : IReservationService
             "/Reservations/Index");
 
         await NotifyWaitlistAsync(reservation.ReservationDateTime);
-        return (true, "Reservation cancelled.");
+        return (true, stuck == null ? "Reservation cancelled." : "Reservation cancelled. " + stuck);
     }
 
     public async Task<(bool Success, string Message)> ConfirmReservationAsync(int reservationId, string staffId, int? tableId)
@@ -562,8 +629,19 @@ public class ReservationService : IReservationService
         await _context.SaveChangesAsync();
 
         // Seating a guest and closing the sitting are the team's own bookkeeping: the guest is already at the table.
-        if (status is ReservationStatus.Seated or ReservationStatus.Completed)
-            return (true, status == ReservationStatus.Seated ? "Seated." : "Finished.");
+        if (status == ReservationStatus.Seated)
+        {
+            // The set menus booked ahead now go to the kitchen. Anything the guest ordered ahead for this table is
+            // already waiting on it, and shows in the kitchen from this moment (see OrderView.IsWaitingForTable).
+            var (sent, problem) = await _orders.SendBookedSetMenusAsync(reservation.Id, staffId);
+            var said = "Seated.";
+            if (sent != null) said += $" Their set menu is with the kitchen (order #{sent.Id}).";
+            if (problem != null) said += " " + problem;
+            return (true, said);
+        }
+        if (status == ReservationStatus.Completed)
+            return (true, "Finished.");
+        var notServed = status == ReservationStatus.NoShow ? await CancelOrdersAheadAsync(reservation.Id, staffId, isStaffOrAdmin: true) : null;
 
         await _notificationService.NotifyAsync(
             reservation.CustomerId,
@@ -572,7 +650,7 @@ public class ReservationService : IReservationService
             NotificationType.Reservation,
             "/Reservations/Index");
 
-        return (true, "Status updated.");
+        return (true, notServed == null ? "Status updated." : "Status updated. " + notServed);
     }
 
     public async Task<List<Reservation>> GetCustomerReservationsAsync(string customerId)
@@ -592,7 +670,7 @@ public class ReservationService : IReservationService
             .Include(r => r.Customer)
             .Include(r => r.Table).ThenInclude(t => t!.DiningArea)
             .Include(r => r.Orders) // so staff can see which order(s) go with this reservation (brief 5.D)
-            .Include(r => r.SetMenu)
+            .Include(r => r.SetMenus)
             .Where(r => r.ReservationDateTime >= start && r.ReservationDateTime < end)
             .OrderBy(r => r.ReservationDateTime)
             .ToListAsync();

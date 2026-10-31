@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RROMS.Models;
+using RROMS.Presentation;
 using RROMS.Services;
 
 namespace RROMS.Pages.Staff;
@@ -26,7 +27,10 @@ public class OrdersModel : PageModel
     public List<Order> Orders { get; private set; } = new();
     public List<(int Id, string Number)> Tables { get; private set; } = new();
 
-    public IEnumerable<Order> In(OrderStatus s) => Orders.Where(o => o.Status == s);
+    /// Orders sent ahead for tables that have not been seated yet. They join the board when the table is seated.
+    public List<Order> Ahead { get; private set; } = new();
+
+    public IEnumerable<Order> In(OrderStatus s) => Orders.Where(o => o.Status == s && !OrderView.IsWaitingForTable(o));
 
     public async Task OnGetAsync()
     {
@@ -34,6 +38,7 @@ public class OrdersModel : PageModel
         Tables = all.Where(o => o.Table != null).Select(o => (o.Table!.Id, o.Table.TableNumber)).Distinct()
             .OrderBy(t => t.TableNumber.Length).ThenBy(t => t.TableNumber).ToList();
         Orders = TableId.HasValue ? all.Where(o => o.TableId == TableId).ToList() : all;
+        Ahead = Orders.Where(OrderView.IsWaitingForTable).ToList();
     }
 
     /// Only the next step is allowed from the board: Placed, then Preparing, Ready and Served. Nothing skips ahead.
@@ -41,6 +46,7 @@ public class OrdersModel : PageModel
     {
         var order = await _orders.GetByIdAsync(id);
         if (order == null) return Done(false, "Order not found.");
+        if (OrderView.IsWaitingForTable(order)) return Done(false, "That table has not been seated yet. Seat it first and the order comes onto the board.");
         var allowed = order.Status switch
         {
             OrderStatus.Placed => OrderStatus.Preparing,

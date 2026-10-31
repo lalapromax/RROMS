@@ -125,6 +125,35 @@
             </section>
         }
     </div>
+
+    @if (Model.Ahead.Count > 0)
+    {
+        <section class="ahead" aria-labelledby="aheadT" style="margin-top:36px">
+            <div class="sp-b" style="margin-bottom:12px">
+                <h2 id="aheadT" style="font-size:28px;font-weight:500">Ordered ahead</h2>
+                <span class="sample">@Model.Ahead.Count</span>
+            </div>
+            <p class="muted" style="margin-bottom:14px">Sent before the guests arrived. Each one moves to Placed when its table is seated.</p>
+            <div class="grid2 g3">
+                @foreach (var o in Model.Ahead)
+                {
+                    <article class="panel o-card" style="padding:18px 20px">
+                        <div class="sp-b">
+                            <h3 style="font-size:24px;font-weight:500">@Place(o)</h3>
+                            <span class="muted" style="font-size:13.5px">@o.Reservation!.ReservationDateTime.ToString("ddd d MMM, HH:mm")</span>
+                        </div>
+                        <p class="muted" style="font-size:13.5px">@o.Customer?.FullName</p>
+                        <ul style="margin-top:8px">
+                            @foreach (var l in OrderView.Lines(o))
+                            {
+                                <li class="o-line"><span>@l.Title</span><b>@l.Quantity</b></li>
+                            }
+                        </ul>
+                    </article>
+                }
+            </div>
+        </section>
+    }
 </div>
 
 @section Scripts {

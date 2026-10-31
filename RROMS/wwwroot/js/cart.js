@@ -54,7 +54,12 @@
   function mount() {
     if (!stripe || !elWrap) return;
     var m = method();
-    if (!isOnline(m)) { teardown(); showError(''); return; }
+    if (!isOnline(m)) {
+      // teardown() abandons a payment form still loading, so its own "switch the button back on" never runs: do it here.
+      teardown(); showError('');
+      if (placeBtn && !placeBtn.hasAttribute('data-blocked')) placeBtn.disabled = false;
+      return;
+    }
     var sig = signature();
     if (sig === mountedFor) return;
     teardown();

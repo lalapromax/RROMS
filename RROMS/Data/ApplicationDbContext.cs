@@ -37,6 +37,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SetMenu> SetMenus => Set<SetMenu>();
     public DbSet<SetMenuCourse> SetMenuCourses => Set<SetMenuCourse>();
     public DbSet<SetMenuDish> SetMenuDishes => Set<SetMenuDish>();
+    public DbSet<ReservationSetMenu> ReservationSetMenus => Set<ReservationSetMenu>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
     public DbSet<RankBand> RankBands => Set<RankBand>();
 
@@ -296,10 +297,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<SetMenu>().HasIndex(m => new { m.Status, m.SortOrder });
 
-        builder.Entity<Reservation>()
-            .HasOne(r => r.SetMenu)
+        builder.Entity<ReservationSetMenu>()
+            .HasOne(s => s.Reservation)
+            .WithMany(r => r.SetMenus)
+            .HasForeignKey(s => s.ReservationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ReservationSetMenu>()
+            .HasOne(s => s.SetMenu)
             .WithMany()
-            .HasForeignKey(r => r.SetMenuId)
+            .HasForeignKey(s => s.SetMenuId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // ---- Waiting list ----

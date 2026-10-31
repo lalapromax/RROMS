@@ -5,8 +5,9 @@ namespace RROMS.Services;
 /// 
 /// Thin wrapper around Stripe.net for the one thing this app needs: creating a
 /// PaymentIntent for "Online payment" checkouts and verifying the Payment Element
-/// result, plus verifying webhook signatures. Cash/Card stay staff-settled-later
-/// (brief 6.C) and never touch this service.
+/// result (and refunding it if the order is cancelled). Payment status is always
+/// confirmed by asking Stripe's API at checkout; no webhooks are used. Cash/Card
+/// stay staff-settled-later (brief 6.C) and never touch this service.
 ///
 /// Credentials come from configuration (StripeSettings:* in appsettings.json, which
 /// should be overridden with real TEST keys via environment variables or user-secrets
@@ -17,7 +18,6 @@ public interface IStripePaymentService
 {
     /// True only when a publishable key, secret key, and the feature flag are all set.
     bool IsConfigured { get; }
-    bool IsWebhookConfigured { get; }
     string PublishableKey { get; }
     string Currency { get; }
 
@@ -35,9 +35,6 @@ public interface IStripePaymentService
     /// Re-fetches a PaymentIntent from Stripe's API (never trusts a client-reported status).
     Task<PaymentIntent> GetPaymentIntentAsync(string paymentIntentId);
 
-    /// Verifies the Stripe-Signature header against the configured webhook secret and parses the event.
-    Event ConstructWebhookEvent(string requestBody, string signatureHeader);
-
     /// Sends the whole payment back to the guest. Already-refunded payments count as done, so a repeat is safe.
     Task<(bool Success, string Message)> RefundAsync(string paymentIntentId);
 }
@@ -53,7 +50,6 @@ public class StripePaymentService : IStripePaymentService
     }
 
     private string SecretKey => _config["StripeSettings:SecretKey"] ?? string.Empty;
-    private string WebhookSecret => _config["StripeSettings:WebhookSecret"] ?? string.Empty;
 
     /// On as soon as real keys are pasted in (placeholders such as pk_test_YOUR_PUBLISHABLE_KEY do not
     /// count). "StripeSettings:Enabled": false is an optional off-switch; leaving it out means on.
@@ -61,10 +57,6 @@ public class StripePaymentService : IStripePaymentService
         (_config.GetValue<bool?>("StripeSettings:Enabled") ?? true)
         && IntegrationSettings.IsReal(PublishableKey)
         && IntegrationSettings.IsReal(SecretKey);
-
-    /// False when no real webhook signing secret is set - payments still work at checkout, but Stripe's
-    /// background confirmation (the safety net if a customer closes the tab) cannot be verified.
-    public bool IsWebhookConfigured => IntegrationSettings.IsReal(WebhookSecret);
 
     public string PublishableKey => _config["StripeSettings:PublishableKey"] ?? string.Empty;
     public string Currency => string.IsNullOrWhiteSpace(_config["StripeSettings:Currency"]) ? "myr" : _config["StripeSettings:Currency"]!.ToLowerInvariant();
@@ -129,15 +121,5 @@ public class StripePaymentService : IStripePaymentService
         {
             return (false, string.IsNullOrWhiteSpace(ex.StripeError?.Message) ? "Stripe would not return the payment." : ex.StripeError!.Message!);
         }
-    }
-
-    public Event ConstructWebhookEvent(string requestBody, string signatureHeader)
-    {
-        // Throws StripeException if the signature doesn't match - callers must treat
-        // that as an unverified/untrusted request and reject it, never process it.
-        // throwOnApiVersionMismatch: false because this coursework build doesn't pin a
-        // specific Stripe API version - a differing api_version on the event is not a
-        // security concern the way a bad signature is.
-        return EventUtility.ConstructEvent(requestBody, signatureHeader, WebhookSecret, throwOnApiVersionMismatch: false);
     }
 }

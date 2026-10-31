@@ -968,6 +968,10 @@ namespace RROMS.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("EligibleTierIdsRaw")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -1117,9 +1121,6 @@ namespace RROMS.Migrations
                     b.Property<DateTime>("ReservationDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("SetMenuId")
-                        .HasColumnType("int");
-
                     b.Property<string>("SpecialRequests")
                         .HasMaxLength(400)
                         .HasColumnType("nvarchar(400)");
@@ -1138,11 +1139,43 @@ namespace RROMS.Migrations
 
                     b.HasIndex("ReservationDateTime");
 
-                    b.HasIndex("SetMenuId");
-
                     b.HasIndex("TableId");
 
                     b.ToTable("Reservations");
+                });
+
+            modelBuilder.Entity("RROMS.Models.ReservationSetMenu", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Guests")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReservationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SentToKitchenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SetMenuId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SetMenuName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationId");
+
+                    b.HasIndex("SetMenuId");
+
+                    b.ToTable("ReservationSetMenus");
                 });
 
             modelBuilder.Entity("RROMS.Models.RestaurantSetting", b =>
@@ -1330,6 +1363,9 @@ namespace RROMS.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("BirthdayOnly")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
@@ -1835,11 +1871,6 @@ namespace RROMS.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("RROMS.Models.SetMenu", "SetMenu")
-                        .WithMany()
-                        .HasForeignKey("SetMenuId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("RROMS.Models.RestaurantTable", "Table")
                         .WithMany("Reservations")
                         .HasForeignKey("TableId")
@@ -1849,9 +1880,25 @@ namespace RROMS.Migrations
 
                     b.Navigation("Customer");
 
-                    b.Navigation("SetMenu");
-
                     b.Navigation("Table");
+                });
+
+            modelBuilder.Entity("RROMS.Models.ReservationSetMenu", b =>
+                {
+                    b.HasOne("RROMS.Models.Reservation", "Reservation")
+                        .WithMany("SetMenus")
+                        .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RROMS.Models.SetMenu", "SetMenu")
+                        .WithMany()
+                        .HasForeignKey("SetMenuId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Reservation");
+
+                    b.Navigation("SetMenu");
                 });
 
             modelBuilder.Entity("RROMS.Models.RestaurantTable", b =>
@@ -2008,6 +2055,8 @@ namespace RROMS.Migrations
                     b.Navigation("Feedbacks");
 
                     b.Navigation("Orders");
+
+                    b.Navigation("SetMenus");
                 });
 
             modelBuilder.Entity("RROMS.Models.RestaurantTable", b =>

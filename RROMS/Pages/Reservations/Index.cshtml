@@ -28,7 +28,7 @@
             return "We are confirming your table and will message you within the day.";
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(r.Occasion)) parts.Add(r.Occasion.TrimEnd('.') + ".");
-        if (r.SetMenu != null) parts.Add("Set menu: " + r.SetMenu.Name + ".");
+        if (r.SetMenus.Count > 0) parts.Add((r.SetMenus.Count == 1 ? "Set menu: " : "Set menus: ") + SetMenuLabels.Booked(r.SetMenus) + ".");
         if (upcoming && !string.IsNullOrWhiteSpace(Model.AllergiesOnFile)) parts.Add("Allergies noted: " + Model.AllergiesOnFile + ".");
         if (!string.IsNullOrWhiteSpace(r.SpecialRequests)) parts.Add(r.SpecialRequests.Trim());
         return string.Join(" ", parts);

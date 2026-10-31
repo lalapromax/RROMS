@@ -13,7 +13,8 @@ public record PerkView(
     bool Unlocked,
     bool CanClaim,
     string? Note,
-    string State = "locked",       // locked, always, claim, waiting, done (claimed, honoured, not available again) or resting (available again later)
+    string State = "locked",       // locked, always, claim, waiting, done (claimed, honoured, not available again), resting (available again later)
+                                   // or held (the tier is reached but something else is missing first: a paid order, or the birthday month)
     DateTime? When = null,         // UTC: when the guest last claimed it
     DateTime? AvailableAgain = null);
 
@@ -32,8 +33,10 @@ public interface IRewardPerkService
 
 /// 
 /// The claimable part of the loyalty scheme (adapted from MEDonate's perks + claims queue). A customer may claim a
-/// perk when their lifetime-points tier is at or above the perk's tier; the claim then waits for a person at the
-/// restaurant to fulfil or decline it. All checks (tier, frequency, duplicate waiting claim) run here on the server.
+/// perk when their lifetime-points tier is at or above the perk's tier and they have earned points from at least one
+/// paid order (a brand-new account is Bronze but has not dined yet); birthday perks also wait for the birthday month.
+/// The claim then waits for a person at the restaurant to fulfil or decline it. All checks (tier, earned points,
+/// birthday, frequency, duplicate waiting claim) run here on the server.
 /// 
 public class RewardPerkService : IRewardPerkService
 {
@@ -61,6 +64,7 @@ public class RewardPerkService : IRewardPerkService
         var myClaims = await _context.RewardClaims.AsNoTracking()
             .Where(c => c.CustomerId == customerId && c.Status != RewardClaimStatus.Declined && c.RewardPerkId != null)
             .ToListAsync();
+        var birthMonth = await BirthMonthAsync(customerId);
 
         var now = DateTime.UtcNow;
         var views = new List<PerkView>();
@@ -80,6 +84,11 @@ public class RewardPerkService : IRewardPerkService
             else if (perk.Frequency == PerkFrequency.Always)
             {
                 state = "always"; // nothing to claim; it simply applies
+            }
+            else if (NotYet(perk, points, birthMonth) is string wait && !mine.Any(c => c.Status == RewardClaimStatus.Waiting))
+            {
+                state = "held";
+                note = wait;
             }
             else
             {
@@ -120,6 +129,8 @@ public class RewardPerkService : IRewardPerkService
             return (false, $"This perk unlocks at {perk.Tier.Name}.");
         if (perk.Frequency == PerkFrequency.Always)
             return (false, "There is nothing to claim here. This one is always on for you.");
+        if (NotYet(perk, points, await BirthMonthAsync(customerId)) is string wait)
+            return (false, wait);
 
         var myClaims = await _context.RewardClaims
             .Where(c => c.CustomerId == customerId && c.RewardPerkId == perkId && c.Status != RewardClaimStatus.Declined)
@@ -196,6 +207,25 @@ public class RewardPerkService : IRewardPerkService
         }
 
         return (true, newStatus == RewardClaimStatus.Fulfilled ? "Marked as fulfilled and the customer was notified." : "Declined and the customer was notified.");
+    }
+
+    private Task<int?> BirthMonthAsync(string customerId) =>
+        _context.Users.AsNoTracking().Where(u => u.Id == customerId).Select(u => u.BirthMonth).FirstOrDefaultAsync();
+
+    /// Why a perk the guest's tier unlocks still cannot be claimed today, or null when nothing stands in the way.
+    /// Points only come from paid, completed orders, so none means the guest has not dined with us yet.
+    private static string? NotYet(RewardPerk perk, int points, int? birthMonth)
+    {
+        if (points <= 0)
+            return "Opens after your first paid visit. Points from that order unlock your perks.";
+        if (perk.BirthdayOnly)
+        {
+            if (birthMonth is not (>= 1 and <= 12))
+                return "Add your birthday to your profile to claim this in your birthday month.";
+            if (DateTime.Today.Month != birthMonth)
+                return $"Claim it in your birthday month, {System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(birthMonth.Value)}.";
+        }
+        return null;
     }
 
     /// Applies the perk's frequency rule to a customer's earlier (non-declined) claims of the same perk.

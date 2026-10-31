@@ -52,7 +52,7 @@ public class IndexModel : PageModel
 
         var all = await _context.Reservations.AsNoTracking()
             .Include(r => r.Table)
-            .Include(r => r.SetMenu)
+            .Include(r => r.SetMenus)
             .Include(r => r.Orders)
             .Include(r => r.Feedbacks)
             .Where(r => r.CustomerId == userId)
@@ -81,7 +81,7 @@ public class IndexModel : PageModel
         AllergiesOnFile = string.Join(", ", names).ToLowerInvariant();
 
         var setting = await _context.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
-        Phone = setting?.Phone;
+        Phone = setting?.PublicPhone;
         var window = setting?.MaxAdvanceBookingDays ?? 60;
         var closed = (await _context.OperatingHours.AsNoTracking().Where(h => h.IsClosed).Select(h => h.DayOfWeek).ToListAsync()).ToHashSet();
         OpenDates = Enumerable.Range(0, window + 1).Select(i => DateTime.Today.AddDays(i)).Where(d => !closed.Contains(d.DayOfWeek)).ToList();

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using RROMS.Data;
 using RROMS.Models;
+using RROMS.Presentation;
 using RROMS.Services;
 
 namespace RROMS.Pages.Staff;
@@ -48,7 +49,7 @@ public class DashboardModel : PageModel
         var now = DateTime.Now;
         var start = DateTime.Today;
         var today = await _context.Reservations.AsNoTracking()
-            .Include(r => r.Customer).Include(r => r.Table).Include(r => r.SetMenu)
+            .Include(r => r.Customer).Include(r => r.Table).Include(r => r.SetMenus)
             .Where(r => r.ReservationDateTime >= start && r.ReservationDateTime < start.AddDays(1))
             .OrderBy(r => r.ReservationDateTime).ToListAsync();
         var live = today.Where(r => r.Status is not (ReservationStatus.Cancelled or ReservationStatus.NoShow)).ToList();
@@ -91,16 +92,17 @@ public class DashboardModel : PageModel
                 var needs = DietaryRules.ParsePreferences(r.Customer?.DietaryPreference).Select(DietaryRules.NeedLabel).Take(2).ToList();
                 var parts = new List<string>();
                 if (!string.IsNullOrWhiteSpace(r.Occasion)) parts.Add(r.Occasion!);
-                if (r.SetMenu != null) parts.Add("Set menu");
+                if (r.SetMenus.Count > 0) parts.Add(r.SetMenus.Count == 1 ? "Set menu" : r.SetMenus.Count + " set menus");
                 return new Arrival(r, r.ContactName?.Trim() is { Length: > 0 } cn ? cn : r.Customer?.FullName ?? "Guest", string.Join(", ", parts), allergies, needs,
                     r.ReservationDateTime <= now.AddMinutes(20));
             }).ToList();
 
         var open = await _context.Orders.AsNoTracking()
-            .Include(o => o.Table).Include(o => o.OrderItems).Include(o => o.Payment)
+            .Include(o => o.Table).Include(o => o.OrderItems).Include(o => o.Payment).Include(o => o.Reservation)
             .Where(o => o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Completed)
             .OrderBy(o => o.OrderDate).ToListAsync();
-        Kitchen = open.Where(o => o.Status is OrderStatus.Placed or OrderStatus.Preparing or OrderStatus.ReadyToServe).ToList();
+        // Orders sent ahead for a table still to arrive wait until it is seated; then they are in the kitchen.
+        Kitchen = open.Where(o => o.Status is OrderStatus.Placed or OrderStatus.Preparing or OrderStatus.ReadyToServe && !OrderView.IsWaitingForTable(o)).ToList();
         OpenOrders = Kitchen.Count;
         ReadyOrders = Kitchen.Count(o => o.Status == OrderStatus.ReadyToServe);
 

@@ -49,7 +49,6 @@
                     <p>Card and online banking at checkout</p>
                 </div>
                 @if (!Model.StripeOn) { <span class="st st-cancelled">Not set up</span> }
-                else if (!Model.StripeWebhookOn) { <span class="st st-pending">Needs webhook</span> }
                 else { <span class="st st-active">Ready</span> }
             </div>
             <div class="kvl">
@@ -61,15 +60,10 @@
                     <code>StripeSettings:SecretKey</code>
                     @if (Model.StripeSecretState == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.StripeSecretState</span> }
                 </div>
-                <div>
-                    <code>StripeSettings:WebhookSecret</code>
-                    @if (Model.StripeWebhookState == "not set") { <span class="miss">@Ui.Icon("warn", 14, 2.2) not set</span> } else { <span class="ok">@Ui.Icon("check", 14, 2.6) @Model.StripeWebhookState</span> }
-                </div>
                 <div><code>Mode</code><span>@Model.StripeMode</span></div>
                 <div><code>Currency</code><span>@Model.StripeCurrency.ToUpperInvariant()</span></div>
-                <div><code>Webhook address for Stripe</code><span class="wrap-any">@Model.WebhookUrl</span></div>
             </div>
-            <p class="f">Without the webhook secret, a card payment can start but the order is never marked paid by itself. For local testing run <code>stripe listen --forward-to @Model.WebhookUrl</code>.</p>
+            <p class="f">Each payment is checked with Stripe when the order is placed, so no webhook is needed.</p>
         </section>
 
         <section class="panel int" aria-labelledby="ig-mail">

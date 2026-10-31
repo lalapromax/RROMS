@@ -8,7 +8,16 @@
     string Cur(string path) => Context.Request.Path.StartsWithSegments(path) ? "page" : null!;
 }
 <div class="acct" data-menu>
-    <button type="button" class="icon-btn" aria-label="Your account" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu" data-menu-toggle>@Ui.Icon("user")</button>
+    <button type="button" class="icon-btn@(c.ImagePath != null ? " has-av" : "")" aria-label="Your account" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu" data-menu-toggle>
+        @if (c.ImagePath != null)
+        {
+            <img class="nav-av" src="@c.ImagePath" alt="" width="44" height="44" />
+        }
+        else
+        {
+            @Ui.Icon("user")
+        }
+    </button>
     <div class="pop" id="acctMenu" role="menu" aria-label="Account" hidden>
         <div class="who">
             <b>@(string.IsNullOrWhiteSpace(c.DisplayName) ? "Your account" : c.DisplayName)</b>

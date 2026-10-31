@@ -55,6 +55,77 @@
         apply();
     }
 
+    // ---------------------------------------------------------------- add to the cart without leaving the spot
+    // A dish, a glass or bottle from the cellar, or a set menu goes into the cart in the background: the button says
+    // "Added", the cart count in the bar goes up and a note with a link to the cart appears. The page does not reload,
+    // so the guest is not thrown back to the top or down to an anchor. Without scripts the forms post as before.
+    var toast = null, toastTimer = 0;
+    function say(message, ok, cartUrl) {
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.className = 'add-toast';
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+            document.body.appendChild(toast);
+        }
+        toast.className = 'add-toast' + (ok ? '' : ' bad');
+        toast.textContent = '';
+        var text = document.createElement('span');
+        text.textContent = message;
+        toast.appendChild(text);
+        if (ok && cartUrl) {
+            var link = document.createElement('a');
+            link.href = cartUrl;
+            link.textContent = 'View cart';
+            toast.appendChild(link);
+        }
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('show'); }, ok ? 4000 : 6000);
+    }
+    function setCartCount(n) {
+        document.querySelectorAll('.ib-cart').forEach(function (cart) {
+            var badge = cart.querySelector('.ib-count');
+            if (n > 0 && !badge) { badge = document.createElement('i'); badge.className = 'ib-count'; cart.appendChild(badge); }
+            if (badge) { if (n > 0) badge.textContent = n > 9 ? '9+' : String(n); else badge.remove(); }
+            cart.setAttribute('aria-label', n > 0 ? 'Your cart, ' + n + (n === 1 ? ' item' : ' items') : 'Your cart');
+        });
+    }
+    function added(button) {
+        if (!button) return;
+        var label = button.getAttribute('data-label') || button.textContent;
+        button.setAttribute('data-label', label);
+        button.style.minWidth = button.offsetWidth + 'px';   // the word "Added" must not make the row jump
+        button.classList.add('is-added');
+        button.textContent = 'Added';
+        clearTimeout(button._addedTimer);
+        button._addedTimer = setTimeout(function () {
+            button.classList.remove('is-added');
+            button.textContent = button.getAttribute('data-label');
+            button.style.minWidth = '';
+        }, 1800);
+    }
+
+    document.addEventListener('submit', function (e) {
+        var addForm = e.target.closest && e.target.closest('form[data-quick-add]');
+        if (!addForm || !window.fetch || !window.FormData) return;
+        e.preventDefault();
+        var button = e.submitter && addForm.contains(e.submitter) ? e.submitter : addForm.querySelector('button[type=submit],button:not([type])');
+        var data = new FormData(addForm);
+        if (button && button.name) data.append(button.name, button.value);
+        if (button) button.disabled = true;
+        fetch(addForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) {
+                return r.json().catch(function () { throw new Error('not json'); });
+            })
+            .then(function (res) {
+                say(res.message || (res.ok ? 'Added to your order.' : 'That could not be added.'), !!res.ok, res.cartUrl);
+                if (res.ok) { setCartCount(res.cartCount || 0); added(button); }
+            })
+            .catch(function () { say('We could not add that just now. Please try again.', false); })
+            .then(function () { if (button) button.disabled = false; });
+    });
+
     // ---------------------------------------------------------------- set menu total
     var form = document.querySelector('[data-setform]');
     if (form) {

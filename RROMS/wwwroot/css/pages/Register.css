@@ -23,3 +23,19 @@
 .meter-pw i{flex:1;height:6px;border-radius:99px;background:rgba(132,89,43,.22)}
 .meter-pw i.on{background:var(--olive-deep)}
 .alt{margin-top:22px;color:var(--ink2)}
+
+/* ---- tablet and phone: one column, the form first, what an account gives you after it ---- */
+@media (max-width:900px){
+  .auth{grid-template-columns:minmax(0,1fr)}
+  .auth-form{order:-1;padding:44px 32px}
+  .auth-art{padding:40px 32px}
+}
+@media (max-width:640px){
+  .auth-form{padding:28px 20px 40px}
+  .auth-card h1{font-size:40px}
+  .auth-card .lead-it{font-size:18px}
+  .auth-art{padding:32px 20px}
+  .auth-art h2{font-size:32px}
+  .rules{grid-template-columns:minmax(0,1fr)}
+  .sec-t{font-size:24px}
+}

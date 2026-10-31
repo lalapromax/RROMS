@@ -22,7 +22,7 @@
         string m(int i) => ((int)Math.Round(bg[i] * 0.84 + c(i) * 0.16)).ToString("X2").PadLeft(2, '0');
         return "#" + m(0) + m(1) + m(2);
     }
-    (string Sym, string Surf) Art(int i) => (i % 3) switch { 0 => ("d-tatin", "oak"), 1 => ("g-red", "olive"), _ => ("b-champ", "cocoa") };
+    string Surface(int i) => (i % 3) switch { 0 => "oak", 1 => "olive", _ => "cocoa" };
     string GroupIcon(string g) => g.Contains("every", StringComparison.OrdinalIgnoreCase) ? "star" : g.Contains("table", StringComparison.OrdinalIgnoreCase) ? "table" : "gift";
     string FreqText(PerkFrequency f) => f switch { PerkFrequency.Once => "One time", PerkFrequency.Monthly => "Once a month", PerkFrequency.Yearly => "Once a year", _ => "Always on" };
     string Pct(int pts, int top) => top <= 0 ? "2" : Math.Max(2, Math.Min(100, Math.Round(pts * 100.0 / top, 1))).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
@@ -79,7 +79,6 @@
         <div class="tier-grid" data-tier-grid>
             @foreach (var card in Model.Cards)
             {
-                var (sym, surf) = Art(card.Index);
                 <article class="tier @(card.State == "here" ? "here" : card.State == "locked" ? "locked" : "")" style="--acc:@SafeHex(card.Tier.ColorHex);--tint:@Tint(card.Tier.ColorHex)" data-here="@(card.State == "here" ? "true" : null)" aria-labelledby="tier-@card.Tier.Id">
                     <span class="t-flag @(card.State == "here" ? "" : "line")">
                         @Ui.Icon(card.State == "here" ? "star" : card.State == "locked" ? "lock" : "check", 14, 2)
@@ -88,7 +87,7 @@
                     <header class="t-head">
                         <h3 id="tier-@card.Tier.Id">@card.Tier.Name</h3>
                         <p>@card.Message</p>
-                        @Ui.Plate(sym, surf, "round")
+                        @Ui.Placeholder(Surface(card.Index), "round")
                     </header>
                     @if (card.Previous != null)
                     {
@@ -124,6 +123,9 @@
                                             case "done":
                                                 <p class="pk-s done">@Ui.Icon("check", 16, 2.2) Enjoyed @pv.When?.ToLocalTime().ToString("d MMM")</p>
                                                 break;
+                                            case "held":
+                                                <p class="pk-s lock">@Ui.Icon("lock", 15, 1.6) @pv.Note</p>
+                                                break;
                                             case "resting":
                                                 <p class="pk-s done">@Ui.Icon("check", 16, 2.2) Claimed @pv.When?.ToLocalTime().ToString("d MMM"). Back on @pv.AvailableAgain?.ToLocalTime().ToString("d MMM").</p>
                                                 break;
@@ -148,7 +150,6 @@
 </section>
 
 <section class="stand" id="where" aria-labelledby="stand-h">
-    <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
     <div class="wrap stand-in">
         <h2 id="stand-h">Where you stand</h2>
         <p class="lead-it">Ranked by lifetime points, the same total that sets your tier. Other guests see a shortened name only.</p>

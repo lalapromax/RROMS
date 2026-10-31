@@ -153,6 +153,13 @@ public class IndexModel : PageModel
 
     private IActionResult Back(string message, bool ok, string? fragment, int? set = null)
     {
+        // The page's script adds to the cart without reloading (so the guest stays where they were and sees it go in);
+        // it asks for JSON. Without scripts the form posts as usual and comes back to the same section.
+        if (Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var count = CartSession.Load(HttpContext.Session).Sum(c => c.Quantity);
+            return new JsonResult(new { ok, message, cartCount = count, cartUrl = Url.Page("/Orders/Cart") }) { StatusCode = ok ? 200 : 400 };
+        }
         TempData[ok ? "StatusMessage" : "ErrorMessage"] = message;
         return RedirectToPage(null, null, new { set = set ?? SetId }, string.IsNullOrWhiteSpace(fragment) ? "carte" : fragment);
     }
@@ -186,6 +193,6 @@ public class IndexModel : PageModel
 
         var viewerId = User.Identity?.IsAuthenticated == true ? _userManager.GetUserId(User) : null;
         var viewerEmail = viewerId != null ? await _context.Users.Where(u => u.Id == viewerId).Select(u => u.Email).FirstOrDefaultAsync() : null;
-        Discounts = await _promotions.GetDisplayDiscountsAsync(Dishes, viewerEmail);
+        Discounts = await _promotions.GetDisplayDiscountsAsync(Dishes, viewerId, viewerEmail);
     }
 }
