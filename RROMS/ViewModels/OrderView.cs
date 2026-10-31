@@ -12,6 +12,13 @@ public sealed record OrderLineView(string Title, string Sub, string? ImageUrl, s
 /// </summary>
 public static class OrderView
 {
+    /// <summary>
+    /// An order sent ahead for a booked table whose guests have not been seated yet. The kitchen does not start it until
+    /// the team presses Seat; from then it is on the board like any other. Needs <see cref="Order.Reservation"/> loaded.
+    /// </summary>
+    public static bool IsWaitingForTable(Order o) =>
+        o.Status == OrderStatus.Placed && o.Reservation is { Status: ReservationStatus.Pending or ReservationStatus.Confirmed };
+
     /// <summary>cancelled, paid or unpaid. A cancelled order is never "paid" even if it was refunded.</summary>
     public static string Pay(Order o) =>
         o.Status == OrderStatus.Cancelled ? "cancelled"

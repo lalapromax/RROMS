@@ -25,13 +25,16 @@ public class PromotionCalculationResult
 /// customer is actually charged), so the two can never drift apart. Every
 /// eligibility rule from the brief is enforced here, on the server, against
 /// real database state: scope (storewide / category / specific item),
-/// specific eligible customer emails, allowed days of week, a date range,
-/// a minimum order amount, and total/per-customer redemption caps.
+/// specific eligible customer emails or membership ranks, allowed days of week,
+/// a date range, a minimum order amount, and total/per-customer redemption caps.
+/// Dates and days are the restaurant's local calendar (the same clock bookings
+/// use), so a promotion starting today is live from the restaurant's midnight.
 /// 
 public interface IPromotionService
 {
-    Task<Dictionary<int, decimal>> GetDisplayDiscountsAsync(IEnumerable<MenuItem> menuItems, string? customerEmail);
+    Task<Dictionary<int, decimal>> GetDisplayDiscountsAsync(IEnumerable<MenuItem> menuItems, string? customerId, string? customerEmail);
 
+    /// <param name="when">The restaurant's local time (DateTime.Now): start and end dates are local calendar days.</param>
     /// <param name="cartSubtotal">The whole cart before discounts (set menus and wine by the glass included), used for "minimum order" rules.
     /// When null it is worked out from the lines passed in.</param>
     Task<PromotionCalculationResult> CalculateOrderDiscountsAsync(
@@ -50,22 +53,25 @@ public interface IPromotionService
 public class PromotionService : IPromotionService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IRewardService _rewards;
 
-    public PromotionService(ApplicationDbContext context)
+    public PromotionService(ApplicationDbContext context, IRewardService rewards)
     {
         _context = context;
+        _rewards = rewards;
     }
 
-    public async Task<Dictionary<int, decimal>> GetDisplayDiscountsAsync(IEnumerable<MenuItem> menuItems, string? customerEmail)
+    public async Task<Dictionary<int, decimal>> GetDisplayDiscountsAsync(IEnumerable<MenuItem> menuItems, string? customerId, string? customerEmail)
     {
         var items = menuItems.ToList();
         var result = new Dictionary<int, decimal>();
         if (items.Count == 0) return result;
 
-        var now = DateTime.UtcNow;
-        var candidates = (await GetCandidatePromotionsAsync(now))
-            .Where(p => p.IsDayAllowed(now.DayOfWeek))
-            .Where(p => IsEligibleForCustomer(p, customerEmail))
+        var now = DateTime.Now;
+        var running = (await GetCandidatePromotionsAsync(now)).Where(p => p.IsDayAllowed(now.DayOfWeek)).ToList();
+        var tierId = await TierIdIfNeededAsync(running, customerId);
+        var candidates = running
+            .Where(p => IsEligibleForCustomer(p, customerEmail, tierId))
             // A minimum-order-amount promotion depends on the whole cart, which isn't
             // known yet while just browsing - don't advertise a price the customer
             // might not end up qualifying for at checkout.
@@ -92,9 +98,10 @@ public class PromotionService : IPromotionService
 
         var wholeCart = cartSubtotal ?? lineList.Sum(l => l.Item.Price * l.Quantity);
 
-        var candidates = (await GetCandidatePromotionsAsync(when))
-            .Where(p => p.IsDayAllowed(when.DayOfWeek))
-            .Where(p => IsEligibleForCustomer(p, customerEmail))
+        var running = (await GetCandidatePromotionsAsync(when)).Where(p => p.IsDayAllowed(when.DayOfWeek)).ToList();
+        var tierId = await TierIdIfNeededAsync(running, customerId);
+        var candidates = running
+            .Where(p => IsEligibleForCustomer(p, customerEmail, tierId))
             .Where(p => p.MinimumOrderAmount == null || p.MinimumOrderAmount <= wholeCart)
             .ToList();
 
@@ -192,8 +199,10 @@ public class PromotionService : IPromotionService
             return new PromoCodeCheck(false, $"{promo.Code} starts on {promo.StartDate:d MMMM}.", promo, 0m);
         if (!promo.IsDayAllowed(when.DayOfWeek))
             return new PromoCodeCheck(false, $"{promo.Code} is not valid today.", promo, 0m);
-        if (!IsEligibleForCustomer(promo, customerEmail))
-            return new PromoCodeCheck(false, $"{promo.Code} is not available on your account.", promo, 0m);
+        if (!IsEligibleForCustomer(promo, customerEmail, await TierIdIfNeededAsync(new[] { promo }, customerId)))
+            return new PromoCodeCheck(false, promo.IsTierRestricted
+                ? $"{promo.Code} is for {await TierNamesAsync(promo)} members."
+                : $"{promo.Code} is not available on your account.", promo, 0m);
         if (promo.MinimumOrderAmount.HasValue && grossSubtotal < promo.MinimumOrderAmount.Value)
             return new PromoCodeCheck(false, $"{promo.Code} needs an order of {Ui.Rm(promo.MinimumOrderAmount.Value)} or more.", promo, 0m);
 
@@ -241,11 +250,28 @@ public class PromotionService : IPromotionService
         await _context.SaveChangesAsync();
     }
 
-    private static bool IsEligibleForCustomer(Promotion promo, string? customerEmail)
+    private static bool IsEligibleForCustomer(Promotion promo, string? customerEmail, int? tierId)
     {
+        if (promo.IsTierRestricted && (tierId == null || !promo.GetEligibleTierIds().Contains(tierId.Value))) return false;
         if (!promo.IsEligibilityRestricted) return true;
         if (string.IsNullOrWhiteSpace(customerEmail)) return false;
         return promo.GetEligibleEmails().Contains(customerEmail.Trim().ToLowerInvariant());
+    }
+
+    /// The guest's membership rank, looked up only when one of the promotions is limited by rank. Null for a visitor.
+    private async Task<int?> TierIdIfNeededAsync(IEnumerable<Promotion> promotions, string? customerId)
+    {
+        if (string.IsNullOrEmpty(customerId) || !promotions.Any(p => p.IsTierRestricted)) return null;
+        var points = await _rewards.GetPointsAsync(customerId);
+        return (await _rewards.GetTierForPointsAsync(points)).Id;
+    }
+
+    /// "Silver or Gold"
+    private async Task<string> TierNamesAsync(Promotion promo)
+    {
+        var ids = promo.GetEligibleTierIds();
+        var names = (await _rewards.GetTiersAsync()).Where(t => ids.Contains(t.Id)).Select(t => t.Name).ToList();
+        return names.Count <= 1 ? names.FirstOrDefault() ?? "selected" : string.Join(", ", names.Take(names.Count - 1)) + " or " + names[^1];
     }
 
     /// True if the promotion's scope (storewide / category / specific item)

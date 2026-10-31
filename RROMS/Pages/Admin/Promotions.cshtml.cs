@@ -30,6 +30,8 @@ public class PromotionsModel : PageModel
     public List<Promotion> Promotions { get; set; } = new();
     public List<MenuItem> MenuItems { get; set; } = new();
     public List<MenuCategory> MenuCategories { get; set; } = new();
+    /// <summary>The membership ranks (Bronze, Silver, Gold...) a promotion can be kept for.</summary>
+    public List<RewardTier> Tiers { get; set; } = new();
     /// <summary>How many orders have used each promotion.</summary>
     public Dictionary<int, int> Uses { get; set; } = new();
 
@@ -49,6 +51,7 @@ public class PromotionsModel : PageModel
             .ToListAsync();
         MenuItems = await _context.MenuItems.Where(m => m.MenuCategory != null && !m.MenuCategory.SetMenuOnly).OrderBy(m => m.Name).ToListAsync();
         MenuCategories = await _context.MenuCategories.Where(c => !c.SetMenuOnly).OrderBy(c => c.DisplayOrder).ToListAsync();
+        Tiers = await _context.RewardTiers.AsNoTracking().OrderBy(t => t.MinPoints).ToListAsync();
         Uses = await _context.PromotionRedemptions
             .GroupBy(r => r.PromotionId)
             .Select(g => new { g.Key, Count = g.Count() })
@@ -97,15 +100,16 @@ public class PromotionsModel : PageModel
         promo.IsActive = Input.IsActive;
         promo.AllowedDaysMask = check.AllowedDaysMask;
         promo.EligibleEmailsRaw = check.EligibleEmails;
+        promo.EligibleTierIdsRaw = check.EligibleTierIds;
         promo.MinimumOrderAmount = Input.MinimumOrderAmount is > 0 ? Input.MinimumOrderAmount : null;
         promo.MaxRedemptionsTotal = Input.MaxRedemptionsTotal;
         promo.MaxRedemptionsPerCustomer = Input.MaxRedemptionsPerCustomer;
         await _context.SaveChangesAsync();
 
         // Telling every guest only makes sense for an open promotion: a code is meant to stay with whoever was given it,
-        // and a promotion for named guests is not for everyone.
+        // and a promotion for named guests or for one membership rank is not for everyone.
         var told = false;
-        if (isNew && Input.NotifyCustomers && promo.IsActive && promo.Code == null && !promo.IsEligibilityRestricted)
+        if (isNew && Input.NotifyCustomers && promo.IsActive && promo.Code == null && !promo.IsEligibilityRestricted && !promo.IsTierRestricted)
         {
             await _notificationService.NotifyAllCustomersAsync(
                 "New promotion: " + promo.Title,
@@ -126,7 +130,7 @@ public class PromotionsModel : PageModel
         var promo = await _context.Promotions.FindAsync(id);
         if (promo == null) return RedirectToPage();
 
-        var yesterday = DateTime.UtcNow.Date.AddDays(-1);
+        var yesterday = DateTime.Today.AddDays(-1);   // promotion dates are the restaurant's local calendar days
         promo.EndDate = yesterday;
         if (promo.StartDate > yesterday) promo.StartDate = yesterday;
         await _context.SaveChangesAsync();

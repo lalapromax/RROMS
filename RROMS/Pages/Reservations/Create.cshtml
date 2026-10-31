@@ -29,12 +29,17 @@
         <p class="crumb"><a asp-page="/Index">Home</a> / Reserve</p>
         <h1>Book a table</h1>
         <p class="lead-it">Tell us when, and we will keep a table for you.</p>
+        @if (!string.IsNullOrEmpty(Model.ReturnUrl))
+        {
+            <p class="muted" style="margin-top:10px">Your cart is saved. Once the table is booked we will take you back to it to place your order.</p>
+        }
     </div>
 </section>
 
 <div class="wrap main">
     <form method="post" class="book" id="bookForm" data-book data-slots-url="@Url.Page("/Reservations/Create", "Slots")" data-hold="@Model.HoldMinutes" novalidate>
         <input type="hidden" asp-for="Form.Month" />
+        <input type="hidden" asp-for="ReturnUrl" />
 
         <div class="form">
             @if (errs.Count > 0)
@@ -177,29 +182,31 @@
             @if (Model.SetMenus.Count > 0)
             {
                 <section class="step" aria-labelledby="s5">
-                    <h2 id="s5"><span class="no">5</span> Add a set menu?</h2>
+                    <h2 id="s5"><span class="no">5</span> Add set menus?</h2>
                     <div class="body">
-                        <p class="muted" style="margin-bottom:16px">Optional. Choose one set menu for the whole table, or leave it and order from the menu on the night.</p>
-                        <div class="set-list" role="radiogroup" aria-label="Set menu">
-                            <label class="set-opt none">
-                                <input type="radio" name="Form.SetMenuId" value="" checked="@(f.SetMenuId == null)" data-sum="set" data-label="" />
-                                <div class="img s-linen r-sq">@Ui.Icon("book", 34, 1.2)</div>
-                                <div>
-                                    <h3>No set menu</h3>
-                                    <p>I will order from the menu on the night.</p>
-                                </div>
-                                <span class="ck"><i class="rad"></i><span class="ck-t"></span></span>
-                            </label>
+                        <p class="muted" style="margin-bottom:16px">Optional. Choose as many as you like and say how many of the table will have each. Anyone else orders from the menu on the night.</p>
+                        <div class="set-list" role="group" aria-label="Set menus">
                             @foreach (var m in Model.SetMenus)
                             {
+                                var on = f.SetMenuIds.Contains(m.Id);
+                                var n = Model.GuestsFor(m.Id);
                                 <label class="set-opt">
-                                    <input type="radio" name="Form.SetMenuId" value="@m.Id" checked="@(f.SetMenuId == m.Id)" data-sum="set" data-label="@m.Name" />
-                                    @Ui.SetCover(m, "width:96px;height:96px")
+                                    <input type="checkbox" name="Form.SetMenuIds" value="@m.Id" checked="@on" data-sum="set" data-label="@m.Name" />
+                                    @SetMenuLabels.Cover(m)
                                     <div>
                                         <h3>@m.Name</h3>
                                         <p>@(string.IsNullOrWhiteSpace(m.Tagline) ? "" : m.Tagline + ". ")@Ui.Rm(m.PricePerGuest) per guest.</p>
+                                        <span class="set-guests">
+                                            For
+                                            <select class="in" name="Form.SetGuests[@m.Id]" aria-label="How many guests have @m.Name" data-set-guests>
+                                                @for (var g = 1; g <= RROMS.Pages.Reservations.CreateModel.MaxParty; g++)
+                                                {
+                                                    <option value="@g" selected="@(g == n)" disabled="@(g > f.PartySize)">@g @(g == 1 ? "guest" : "guests")</option>
+                                                }
+                                            </select>
+                                        </span>
                                     </div>
-                                    <span class="ck"><i class="rad"></i><span class="ck-t"></span></span>
+                                    <span class="ck"><i>@Ui.Icon("check", 12, 3)</i><span class="ck-t"></span></span>
                                 </label>
                             }
                         </div>
@@ -210,7 +217,6 @@
 
         <aside class="sum" aria-label="Your booking">
             <div class="printed">
-                <svg class="grain" aria-hidden="true" focusable="false"><rect filter="url(#gn)"></rect></svg>
                 <h3>Your booking</h3>
                 <dl class="kv">
                     <dt>Date</dt>
@@ -221,8 +227,8 @@
                     <dd data-out="party">@f.PartySize</dd>
                     <dt data-row="occasion" hidden="@(string.IsNullOrEmpty(f.Occasion))">Occasion</dt>
                     <dd data-row="occasion" data-out="occasion" hidden="@(string.IsNullOrEmpty(f.Occasion))">@f.Occasion</dd>
-                    <dt data-row="set" hidden="@(Model.SelectedSetMenu == null)">Set menu</dt>
-                    <dd data-row="set" data-out="set" hidden="@(Model.SelectedSetMenu == null)">@Model.SelectedSetMenu?.Name</dd>
+                    <dt data-row="set" hidden="@(Model.ChosenSetMenus.Count == 0)">Set menus</dt>
+                    <dd data-row="set" data-out="set" hidden="@(Model.ChosenSetMenus.Count == 0)">@string.Join(", ", Model.ChosenSetMenus.Select(c => $"{c.Menu.Name} for {c.Guests}"))</dd>
                 </dl>
                 <p class="hold">
                     @Ui.Icon("clock", 18, 1.6)

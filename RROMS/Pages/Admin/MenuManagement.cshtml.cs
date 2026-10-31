@@ -139,6 +139,8 @@ public class MenuManagementModel : PageModel
         {
             ItemError = problem;
             OpenItem = true;
+            // Come back on the tab the item belongs to, so a wine opens again as a wine (and "Add" keeps meaning wine).
+            if (category != null) Tab = category.IsWine ? "wine" : "items";
             await LoadAsync();
             return Page();
         }

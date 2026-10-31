@@ -488,7 +488,7 @@ a:focus-visible .fl-t rect,.fl-t:hover rect{stroke:var(--cocoa);stroke-width:3}
 /* ---- selection controls inside .form .field keep their own look (the form rule makes every label a bold block) ---- */
 .form .field label.ckb{display:flex;font-weight:400;font-size:15px;margin-bottom:0}
 .form .field label.swx{display:inline-flex;font-weight:400;margin-bottom:0}
-.form .field label.chipx{display:inline-flex;margin-bottom:0}
+.form .field label.chipx{display:inline-flex;align-items:center;font-weight:500;font-size:14.5px;line-height:1;margin-bottom:0}
 .form .ckb{margin-bottom:0}
 /* a modal's fields never touch the dialog's edge on a phone */
 .modal-body .f-row{margin-bottom:0}
@@ -629,3 +629,6 @@ form.period .chip{text-decoration:none;display:inline-flex;align-items:center}
   .ck-m{display:inline;margin-right:10px;color:var(--ink2)}
   .hours-t .ckb-end{flex-direction:row-reverse}
 }
+
+/* text-style buttons in panel heads and table rows measured 21-23px tall; WCAG 2.5.8 asks for at least 24px */
+.panel-head .view-table,.c-acts button.link,.page-head .row-acts .link,.page-head form button.link{display:inline-flex;align-items:center;min-height:24px}

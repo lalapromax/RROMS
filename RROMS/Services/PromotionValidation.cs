@@ -21,9 +21,11 @@ public class PromotionForm
     public string Scope { get; set; } = "storewide";
     public int? MenuItemId { get; set; }
     public int? MenuCategoryId { get; set; }
-    /// "all" or "specific".
+    /// "all", "tier" (members of the chosen ranks) or "specific" (named guests, by email).
     public string Eligibility { get; set; } = "all";
     public string? EligibleEmails { get; set; }
+    /// The membership ranks (RewardTier ids) ticked when Eligibility is "tier".
+    public List<int> EligibleTierIds { get; set; } = new();
     public List<int> AllowedDays { get; set; } = new();
     public decimal? MinimumOrderAmount { get; set; }
     public int? MaxRedemptionsTotal { get; set; }
@@ -35,10 +37,10 @@ public class PromotionForm
 /// The cleaned-up values to store when <see cref="Valid"/> is true.
 public record PromotionValidationResult(
     bool Valid, string Error, string Title, string? Description, decimal DiscountPercent, decimal? FixedAmountOff, string? Code,
-    DateTime StartDate, DateTime EndDate, int? MenuItemId, int? MenuCategoryId, string? EligibleEmails, int? AllowedDaysMask)
+    DateTime StartDate, DateTime EndDate, int? MenuItemId, int? MenuCategoryId, string? EligibleEmails, string? EligibleTierIds, int? AllowedDaysMask)
 {
     public static PromotionValidationResult Fail(string error) =>
-        new(false, error, string.Empty, null, 0, null, null, default, default, null, null, null, null);
+        new(false, error, string.Empty, null, 0, null, null, default, default, null, null, null, null, null);
 }
 
 /// 
@@ -106,13 +108,20 @@ public static class PromotionValidation
                 break;
         }
 
-        string? emails = null;
-        if (string.Equals(f.Eligibility, "specific", StringComparison.OrdinalIgnoreCase))
+        string? emails = null, tierIds = null;
+        if (string.Equals(f.Eligibility, "tier", StringComparison.OrdinalIgnoreCase))
+        {
+            var wanted = (f.EligibleTierIds ?? new List<int>()).Distinct().ToList();
+            var known = await context.RewardTiers.Where(t => wanted.Contains(t.Id)).OrderBy(t => t.MinPoints).Select(t => t.Id).ToListAsync();
+            if (known.Count == 0) return PromotionValidationResult.Fail("Tick at least one membership rank, or choose All guests.");
+            tierIds = string.Join(",", known);
+        }
+        else if (string.Equals(f.Eligibility, "specific", StringComparison.OrdinalIgnoreCase))
         {
             var list = (f.EligibleEmails ?? string.Empty)
                 .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(e => e.Trim()).Where(e => e.Length > 0).ToList();
-            if (list.Count == 0) return PromotionValidationResult.Fail("Enter at least one guest email, or choose Everyone.");
+            if (list.Count == 0) return PromotionValidationResult.Fail("Enter at least one guest email, or choose All guests.");
             var bad = list.FirstOrDefault(e => !EmailShape.IsMatch(e));
             if (bad != null) return PromotionValidationResult.Fail($"\"{bad}\" does not look like an email address.");
             emails = string.Join(", ", list.Select(e => e.ToLowerInvariant()).Distinct());
@@ -125,6 +134,6 @@ public static class PromotionValidation
         if (days.Count > 0 && days.Count < 7) daysMask = days.Aggregate(0, (mask, d) => mask | (1 << d));
 
         return new PromotionValidationResult(true, string.Empty, title, description, percent, fixedAmount, code,
-            f.StartDate.Value.Date, f.EndDate.Value.Date, itemId, categoryId, emails, daysMask);
+            f.StartDate.Value.Date, f.EndDate.Value.Date, itemId, categoryId, emails, tierIds, daysMask);
     }
 }

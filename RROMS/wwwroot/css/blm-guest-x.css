@@ -10,6 +10,8 @@
 .chips{display:flex;flex-wrap:wrap;gap:10px}
 .g-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:52px;border-radius:999px;border:1px solid var(--caramel);background:#fff;color:var(--cocoa);font:600 15.5px/1 'Hanken Grotesk',sans-serif;text-decoration:none}
 .g-btn b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--cocoa);color:var(--paper);font:700 14px/1 'Hanken Grotesk',sans-serif}
+/* Google draws its own button and caps it at 400px, narrower than the form fields, so it sits centred under them */
+.google-btn-wrap{display:flex;justify-content:center}
 .or{display:flex;align-items:center;gap:16px;margin:22px 0;color:var(--ink2);font-size:14px}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .printed{position:relative;background:var(--card);box-shadow:var(--e2);outline:1px solid var(--line);outline-offset:-9px}

@@ -193,7 +193,7 @@ public class SetMenuService : ISetMenuService
         var menu = await _db.SetMenus.Include(s => s.Courses).ThenInclude(c => c.Dishes).FirstOrDefaultAsync(s => s.Id == id);
         if (menu == null) return (false, "That set menu no longer exists.");
         // Past orders and reservations keep their own copy of the name, so deleting never rewrites history.
-        var inUse = await _db.Reservations.Where(r => r.SetMenuId == id).ToListAsync();
+        var inUse = await _db.ReservationSetMenus.Where(r => r.SetMenuId == id).ToListAsync();
         foreach (var r in inUse) r.SetMenuId = null;
         _db.SetMenuDishes.RemoveRange(menu.Courses.SelectMany(c => c.Dishes));
         _db.SetMenuCourses.RemoveRange(menu.Courses);

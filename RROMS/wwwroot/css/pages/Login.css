@@ -14,3 +14,20 @@
 .alt{margin-top:26px;text-align:center;color:var(--ink2)}
 .banner{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-radius:10px;border:1px solid var(--wine);background:#FFF4E8;color:var(--cocoa);margin-top:22px;font-size:15px}
 .banner svg{flex:none;color:var(--wine);margin-top:2px}
+
+/* ---- tablet and phone: one column, the form first (it is why the guest is here), the picture panel after it ---- */
+@media (max-width:900px){
+  .auth{grid-template-columns:minmax(0,1fr);min-height:0}
+  .auth-form{order:-1;padding:44px 32px}
+  .auth-art{min-height:0;padding:40px 32px}
+  .auth-art .arch{display:none}
+}
+@media (max-width:640px){
+  .auth-form{padding:28px 20px 40px}
+  .auth-card h1{font-size:42px}
+  .auth-card .lead-it{font-size:18px}
+  .auth-art{padding:32px 20px}
+  .auth-art h2{font-size:32px}
+  .auth-art p{font-size:18px}
+  .row-sp{flex-wrap:wrap}
+}

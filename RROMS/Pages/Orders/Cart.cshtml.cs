@@ -35,6 +35,11 @@ public class CartModel : PageModel
     public Reservation? SelectedReservation { get; private set; }
     public OrderType OrderType => SelectedReservation != null ? OrderType.DineIn : OrderType.Takeaway;
 
+    /// Guests order for a table they have booked. Without one, "Place order" takes them to book first and then back here,
+    /// so nothing is paid for before there is a table to bring it to.
+    public bool NeedsBooking => SelectedReservation == null;
+    public string BookFirstUrl => Url.Page("/Reservations/Create", new { returnUrl = Url.Page("/Orders/Cart") })!;
+
     [BindProperty]
     public CheckoutVM Checkout { get; set; } = new();
 
@@ -85,6 +90,8 @@ public class CartModel : PageModel
     public async Task<IActionResult> OnPostCreatePaymentIntentAsync()
     {
         await LoadAsync();
+        if (NeedsBooking)
+            return new JsonResult(new { success = false, message = "Please book a table first. Your order is then sent with it." }) { StatusCode = 400 };
         var userId = _userManager.GetUserId(User)!;
         var (success, message, clientSecret, paymentIntentId) = await _orders.CreateOnlinePaymentIntentAsync(
             userId, CartItems, OrderType, Checkout.PromoCode, Checkout.PaymentMethod == PaymentMethod.OnlineBanking);
@@ -108,6 +115,8 @@ public class CartModel : PageModel
             ModelState.AddModelError(string.Empty, Quote.FirstProblem + " Please take it out of your cart and try again.");
             return Page();
         }
+        if (NeedsBooking)
+            return Redirect(BookFirstUrl);   // the cart stays in the session, so it is all here when they come back
         var online = Checkout.PaymentMethod is PaymentMethod.OnlinePayment or PaymentMethod.OnlineBanking;
         if (online && string.IsNullOrWhiteSpace(Checkout.StripePaymentIntentId))
         {

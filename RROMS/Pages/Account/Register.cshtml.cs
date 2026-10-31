@@ -31,13 +31,17 @@ public class RegisterModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? ReturnUrl { get; set; }
 
-    public void OnGet(string? returnUrl = null)
+    public IActionResult OnGet(string? returnUrl = null)
     {
+        // An account is only made while signed out; someone signed in goes back to their own start page.
+        if (User.Identity?.IsAuthenticated == true) return LocalRedirect(LoginModel.HomeFor(User, Url));
         ReturnUrl = returnUrl;
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
+        if (User.Identity?.IsAuthenticated == true) return LocalRedirect(LoginModel.HomeFor(User, Url));
         returnUrl = SafeReturnUrl(returnUrl);
 
         if (!ModelState.IsValid)
