@@ -31,8 +31,8 @@
     var cOrd = Change(d.OrdersChangePercent, "vs yesterday", "vs yesterday", "Same as yesterday", "No orders yesterday");
 
     var popularMax = d.PopularItems.Count == 0 ? 0 : d.PopularItems.Max(p => p.QuantitySold);
-    var tableMax = stats.ByTable.Count == 0 ? 0 : stats.ByTable.Max(t => t.BookingCount);
-    var seatedRes = Math.Max(0, stats.TotalReservations - stats.Completed - stats.Confirmed - stats.Pending - stats.Cancelled - stats.NoShow);
+    // The status panel counts every reservation except those still waiting for the team (Pending), so its percentages add up to 100.
+    var statusTotal = stats.StatusTotal;
     var topCustomers = d.CustomerActivity.Take(5).ToList();
     var peakDay = Model.Daily.OrderByDescending(x => x.Revenue).FirstOrDefault();
     var busiest = Model.Hours.Count == 0 ? null : Model.Hours.OrderByDescending(h => h.Count).First();
@@ -241,7 +241,7 @@
             </section>
         </div>
 
-        <div class="row3">
+        <div class="row3 two">
             <section class="panel" aria-labelledby="rh" data-chart-wrap>
                 <div class="panel-head">
                     <div>
@@ -279,42 +279,23 @@
                 <div class="panel-head">
                     <div>
                         <h3 id="rs">Reservation status</h3>
-                        <p class="panel-sub">@stats.TotalReservations in total</p>
+                        <p class="panel-sub">@statusTotal in total</p>
                     </div>
                 </div>
                 <div style="margin-top:6px;margin-bottom:24px">
-                    @foreach (var (label, n) in new[] { ("Completed", stats.Completed), ("Confirmed", stats.Confirmed), ("Seated", seatedRes), ("Pending", stats.Pending), ("Cancelled", stats.Cancelled), ("No-show", stats.NoShow) })
+                    @foreach (var (label, n) in new[] { ("Completed", stats.Completed), ("Confirmed", stats.Confirmed), ("Seated", stats.Seated), ("Cancelled", stats.Cancelled), ("No-show", stats.NoShow) })
                     {
                         if (label == "Seated" && n == 0) { continue; }
                         <div class="mrow">
                             <span>@label</span>
-                            <b>@n <span class="pct">(@Pct(n, stats.TotalReservations))</span></b>
-                            <i class="meter" role="presentation"><u style="width:@W(n, stats.TotalReservations)"></u></i>
+                            <b>@n <span class="pct">(@Pct(n, statusTotal))</span></b>
+                            <i class="meter" role="presentation"><u style="width:@W(n, statusTotal)"></u></i>
                         </div>
                     }
                 </div>
                 <div class="inline-stat">
                     <span>Average party size</span>
-                    <b>@(stats.TotalReservations == 0 ? "None" : stats.AveragePartySize.ToString("0.#") + " " + Plural((int)Math.Round(stats.AveragePartySize), "guest", "guests"))</b>
-                </div>
-            </section>
-
-            <section class="panel" aria-labelledby="rt">
-                <div class="panel-head">
-                    <div>
-                        <h3 id="rt">Table bookings</h3>
-                        <p class="panel-sub">Per table</p>
-                    </div>
-                </div>
-                @if (stats.ByTable.Count == 0)
-                {
-                    <p class="muted" style="margin-top:10px">No booking has a table yet in this period.</p>
-                }
-                <div style="margin-top:6px">
-                    @foreach (var t in stats.ByTable.OrderBy(x => x.TableNumber.Length).ThenBy(x => x.TableNumber))
-                    {
-                        <div class="mrow tight"><span>@t.TableNumber</span><b>@t.BookingCount</b><i class="meter" role="presentation"><u style="width:@W(t.BookingCount, tableMax)"></u></i></div>
-                    }
+                    <b>@(statusTotal == 0 ? "None" : stats.AveragePartySize.ToString("0.#") + " " + Plural((int)Math.Round(stats.AveragePartySize), "guest", "guests"))</b>
                 </div>
             </section>
         </div>

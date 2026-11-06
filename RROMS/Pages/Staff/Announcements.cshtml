@@ -83,6 +83,10 @@
                                             data-notify="@(r.State == "Draft" || a.NotifyPending ? "true" : "false")"
                                             data-live="@(live ? "true" : "false")"
                                             @Html.Raw(string.Concat(Model.Tiers.Select(t => $"data-t{t.Id}=\"{(tierSet.Contains(t.Id) ? "true" : "false")}\" ")))>Edit</button>
+                                    @if (r.State == "Published")
+                                    {
+                                        <button type="button" class="btn btn-line btn-sm2" data-dialog-open="notifyDlg" data-fields="id,name" data-id="@a.Id" data-name="@a.Title">Notify guests</button>
+                                    }
                                     <button type="button" class="btn btn-line btn-sm2" data-dialog-open="removeDlg" data-fields="id,name" data-id="@a.Id" data-name="@a.Title">Remove</button>
                                 </div>
                             </td>
@@ -168,12 +172,34 @@
                 <label class="ckb"><input type="checkbox" id="annDlg_notify" name="F.Notify" value="true" checked="@f.Notify" /><i>@Ui.Icon("check", 13, 3)</i> Also send each guest a notice when it goes live</label>
                 <p class="hint" style="margin-left:30px">Guests who turned announcements off in their Notices settings are left out.</p>
             </div>
+            <p class="hint" id="annNotifyLive" hidden>This one is already live. To send guests a notice now, use Notify guests on the list.</p>
         </div>
         <div class="modal-foot">
             <button type="button" class="btn btn-line" data-dialog-close>Close</button>
             <span class="sp"></span>
             <button type="submit" class="btn btn-line" name="F.Intent" value="draft">Save as draft</button>
             <button type="submit" class="btn btn-wine" name="F.Intent" value="publish" id="annPublish">Publish</button>
+        </div>
+    </form>
+</dialog>
+
+@* ---- tell the audience now ---- *@
+<dialog class="modal" id="notifyDlg" style="--w:480px" aria-labelledby="notT">
+    <form method="post" asp-page-handler="Notify" asp-route-tab="@Model.Tab" class="form" data-once>
+        <input type="hidden" id="notifyDlg_id" name="id" />
+        <div class="modal-head">
+            <div>
+                <h2 id="notT">Send a notice to your guests?</h2>
+                <p class="muted" id="notifyDlg_name" style="margin-top:2px"></p>
+            </div>
+            <button type="button" class="x-btn" data-dialog-close aria-label="Close">@Ui.Icon("x", 16, 2)</button>
+        </div>
+        <div class="modal-body">
+            <p>Each person in its audience gets the title and message in their Notices. Anyone who already had this notice, or who turned announcements off, is skipped, so pressing it again never sends a second copy.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-line" data-dialog-close>Not now</button>
+            <button type="submit" class="btn btn-wine">Send notice</button>
         </div>
     </form>
 </dialog>

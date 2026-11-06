@@ -73,9 +73,6 @@ public class ReservationService : IReservationService
     public const int SlotStepMinutes = 30;
     public const int LastSeatingBeforeCloseMinutes = 60;
 
-    /// Parties this large are placed on a table but wait for a person on the team to confirm them.
-    public const int ConfirmByTeamFromParty = 7;
-
     private async Task<int> GetDurationMinutesAsync()
     {
         var setting = await _context.RestaurantSettings.FirstOrDefaultAsync();
@@ -107,7 +104,9 @@ public class ReservationService : IReservationService
     {
         var query = _context.RestaurantTables
             .Include(t => t.DiningArea)
-            .Where(t => t.IsActive && t.Capacity >= partySize);
+            // A table can be booked only once it is set up: switched on, placed on its floor plan (it is still in the
+            // "Not on the plan yet" tray while PositionX / PositionY are empty), and in a dining area that is shown to guests.
+            .Where(t => t.IsActive && t.PositionX != null && t.PositionY != null && t.DiningArea!.IsActive && t.Capacity >= partySize);
         if (diningAreaId.HasValue)
             query = query.Where(t => t.DiningAreaId == diningAreaId.Value);
         return await query.OrderBy(t => t.Capacity).ThenBy(t => t.TableNumber).ToListAsync();
@@ -148,7 +147,10 @@ public class ReservationService : IReservationService
 
         var duration = await GetDurationMinutesAsync();
         var tables = await LoadCandidateTablesAsync(partySize, diningAreaId);
-        var reservations = tables.Count == 0 ? new List<Reservation>() : await LoadActiveReservationsAsync(date, tables.Select(t => t.Id));
+        // No table that is set up on the floor plan can take this party: offer no times (a waiting list would never clear).
+        if (tables.Count == 0)
+            return new DaySlots(false, Array.Empty<SlotInfo>());
+        var reservations = await LoadActiveReservationsAsync(date, tables.Select(t => t.Id));
 
         var last = hours.CloseTime - TimeSpan.FromMinutes(LastSeatingBeforeCloseMinutes);
         var slots = new List<SlotInfo>();
@@ -170,6 +172,11 @@ public class ReservationService : IReservationService
         if (partySize < 1 || partySize > 30)
             return (false, "Party size must be between 1 and 30.");
 
+        var sittingMinutes = await GetDurationMinutesAsync();
+        var clash = await FindOwnClashAsync(customerId, start, sittingMinutes);
+        if (clash != null)
+            return (false, ClashMessage(clash));
+
         var free = await GetAvailableTablesAsync(date, time, partySize);
         if (free.Count > 0)
             return (false, "A table has just come free at that time. Please book it now.");
@@ -184,28 +191,64 @@ public class ReservationService : IReservationService
         return (true, $"You are on the waiting list for {start:dddd d MMMM} at {start:HH:mm}. We will message you if a table opens.");
     }
 
-    /// After a booking is cancelled or moved, tell the people waiting for that time (oldest first, one per table that is now free).
-    private async Task NotifyWaitlistAsync(DateTime start)
+    /// A table has just come free for the sitting that began at <paramref name="freedStart"/>. Tell the people on the waiting list, oldest first:
+    /// anyone whose wanted time overlaps that sitting is checked against the tables that really are free for their own time and party size.
+    /// Each free table is offered to one guest only, each guest is told once, and a guest who already holds a booking then is left alone.
+    private async Task NotifyWaitlistAsync(DateTime freedStart, int freedMinutes)
     {
+        var sitting = await GetDurationMinutesAsync();
+        var now = DateTime.Now;
+        var from = freedStart.AddMinutes(-sitting);
+        var to = freedStart.AddMinutes(freedMinutes);
         var waiting = await _context.WaitlistEntries
-            .Where(w => w.WantedDateTime == start && w.NotifiedAt == null)
+            .Where(w => w.NotifiedAt == null && w.WantedDateTime > now && w.WantedDateTime > from && w.WantedDateTime < to)
             .OrderBy(w => w.CreatedAt)
             .ToListAsync();
         if (waiting.Count == 0) return;
 
+        var offered = new List<(int TableId, DateTime Start)>(); // tables already promised to someone in this round
+        var told = new HashSet<string>();
         foreach (var entry in waiting)
         {
-            var free = await GetAvailableTablesAsync(start.Date, start.TimeOfDay, entry.PartySize);
-            if (free.Count == 0) break;
-            entry.NotifiedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            if (told.Contains(entry.CustomerId)) continue;
+            var wanted = entry.WantedDateTime;
+
+            var free = await GetAvailableTablesAsync(wanted.Date, wanted.TimeOfDay, entry.PartySize);
+            var table = free.FirstOrDefault(t => !offered.Any(o => o.TableId == t.Id && o.Start < wanted.AddMinutes(sitting) && wanted < o.Start.AddMinutes(sitting)));
+            if (table == null) continue; // nothing suitable for this guest; the next one may be smaller
+
+            if (await FindOwnClashAsync(entry.CustomerId, wanted, sitting) != null) continue; // they already hold a booking then
+
+            // Claim the entry in one UPDATE: if two cancellations land together, only one of them gets to tell this guest.
+            var stamp = DateTime.UtcNow;
+            var claimed = await _context.WaitlistEntries
+                .Where(w => w.Id == entry.Id && w.NotifiedAt == null)
+                .ExecuteUpdateAsync(u => u.SetProperty(w => w.NotifiedAt, stamp));
+            if (claimed == 0) continue;
+
+            offered.Add((table.Id, wanted));
+            told.Add(entry.CustomerId);
             await _notificationService.NotifyAsync(
                 entry.CustomerId,
                 "A table has opened",
-                $"A table for {entry.PartySize} is free on {start:dddd d MMMM} at {start:HH:mm}. It is yours if you book soon.",
+                $"A table for {entry.PartySize} is free on {wanted:dddd d MMMM} at {wanted:HH:mm}. Tables go to whoever books first, so please book soon.",
                 NotificationType.Reservation,
-                "/Reservations/Create");
+                $"/Reservations/Create?party={entry.PartySize}&date={wanted:yyyy-MM-dd}");
         }
+    }
+
+    /// Once a guest has a table for a time they were waiting for, the waiting entries for that sitting are done with.
+    private async Task CloseWaitlistForAsync(string customerId, DateTime start, int minutes)
+    {
+        var sitting = await GetDurationMinutesAsync();
+        var from = start.AddMinutes(-sitting);
+        var to = start.AddMinutes(minutes);
+        var entries = await _context.WaitlistEntries
+            .Where(w => w.CustomerId == customerId && w.WantedDateTime > from && w.WantedDateTime < to)
+            .ToListAsync();
+        if (entries.Count == 0) return;
+        _context.WaitlistEntries.RemoveRange(entries);
+        await _context.SaveChangesAsync();
     }
 
     /// 
@@ -261,7 +304,45 @@ public class ReservationService : IReservationService
         string customerId, DateTime date, TimeSpan time, int partySize, string? specialRequests, int? diningAreaId, int? preferredTableId = null)
         => CreateReservationAsync(new ReservationRequest(customerId, date, time, partySize, specialRequests, diningAreaId, preferredTableId));
 
+    // One booking is made or changed at a time. The check for a clash, the choice of a table and the save then cannot be
+    // interleaved with another request, so two clicks (or two tabs) at the same moment cannot both get through.
+    private static readonly SemaphoreSlim BookingGate = new(1, 1);
+
+    /// The guest's own booking (still on, not cancelled or finished) that overlaps this sitting, if there is one.
+    private async Task<Reservation?> FindOwnClashAsync(string customerId, DateTime start, int durationMinutes, int? ignoreReservationId = null)
+    {
+        var shared = await _context.Users.AsNoTracking().AnyAsync(u => u.Id == customerId && u.Email != null && u.Email.EndsWith(".invalid"));
+        if (shared) return null; // the walk-in account stands for many different people
+
+        var end = start.AddMinutes(durationMinutes);
+        var from = start.Date.AddDays(-1);
+        var to = start.Date.AddDays(2);
+        var mine = await _context.Reservations.AsNoTracking()
+            .Where(r => r.CustomerId == customerId && r.Id != ignoreReservationId
+                        && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed || r.Status == ReservationStatus.Seated)
+                        && r.ReservationDateTime >= from && r.ReservationDateTime < to)
+            .ToListAsync();
+        return mine.FirstOrDefault(r => r.ReservationDateTime < end && start < r.ReservationDateTime.AddMinutes(r.DurationMinutes));
+    }
+
+    private static string ClashMessage(Reservation other) =>
+        $"You already have a reservation on {other.ReservationDateTime:dddd d MMMM} at {other.ReservationDateTime:HH:mm} that overlaps this time. " +
+        "Please change or cancel it under My reservations, or choose a different time.";
+
     public async Task<(bool Success, string Message, Reservation? Reservation)> CreateReservationAsync(ReservationRequest request)
+    {
+        await BookingGate.WaitAsync();
+        try
+        {
+            return await CreateReservationCoreAsync(request);
+        }
+        finally
+        {
+            BookingGate.Release();
+        }
+    }
+
+    private async Task<(bool Success, string Message, Reservation? Reservation)> CreateReservationCoreAsync(ReservationRequest request)
     {
         var setting = await _context.RestaurantSettings.FirstOrDefaultAsync();
         var duration = setting?.ReservationDurationMinutes ?? 90;
@@ -274,6 +355,10 @@ public class ReservationService : IReservationService
             return (false, $"Reservations can only be made up to {maxAdvanceDays} days in advance.", null);
         if (request.PartySize < 1 || request.PartySize > 30)
             return (false, "Party size must be between 1 and 30.", null);
+
+        var clash = await FindOwnClashAsync(request.CustomerId, requestedStart, duration);
+        if (clash != null)
+            return (false, ClashMessage(clash), null);
 
         // Several set menus may be booked, each for part of the table, but never for more guests than are coming.
         var choices = (request.SetMenus ?? Array.Empty<SetMenuChoice>())
@@ -301,7 +386,7 @@ public class ReservationService : IReservationService
         if (chosenTable == null)
             return (false, "The table you selected is no longer available. Please pick another one.", null);
 
-        var needsTeam = request.PartySize >= ConfirmByTeamFromParty;
+        // A booking made by a guest is a request: the table is held, and it becomes a confirmed booking only when a person on the team confirms it.
         var reservation = new Reservation
         {
             CustomerId = request.CustomerId,
@@ -310,7 +395,7 @@ public class ReservationService : IReservationService
             PartySize = request.PartySize,
             ReservationDateTime = requestedStart,
             DurationMinutes = duration,
-            Status = needsTeam ? ReservationStatus.Pending : ReservationStatus.Confirmed,
+            Status = ReservationStatus.Pending,
             SpecialRequests = Trim(request.SpecialRequests, 400),
             Occasion = Trim(request.Occasion, 40),
             SetMenus = choices.Select(c => new ReservationSetMenu
@@ -321,23 +406,21 @@ public class ReservationService : IReservationService
             }).ToList(),
             ContactName = Trim(request.ContactName, 80),
             ContactPhone = Trim(request.ContactPhone, 30),
-            CreatedAt = DateTime.UtcNow,
-            ConfirmedAt = needsTeam ? null : DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.Reservations.Add(reservation);
         await _context.SaveChangesAsync();
+        await CloseWaitlistForAsync(request.CustomerId, requestedStart, duration);
 
         await _notificationService.NotifyAsync(
             request.CustomerId,
-            needsTeam ? "Reservation received" : "Reservation confirmed",
-            needsTeam
-                ? $"We have your request for {request.PartySize} on {requestedStart:dddd d MMMM} at {requestedStart:HH:mm}. The team will confirm it within the day."
-                : $"Your table for {request.PartySize} on {requestedStart:dddd d MMMM} at {requestedStart:HH:mm} is confirmed.",
+            "Reservation received",
+            $"We have your request for {request.PartySize} on {requestedStart:dddd d MMMM} at {requestedStart:HH:mm}. The team will confirm it within the day.",
             NotificationType.Reservation,
             "/Reservations/Index");
 
-        return (true, needsTeam ? "Reservation received." : "Reservation confirmed.", reservation);
+        return (true, "Reservation received.", reservation);
     }
 
     private static string? Trim(string? value, int max)
@@ -348,6 +431,20 @@ public class ReservationService : IReservationService
     }
 
     public async Task<(bool Success, string Message)> UpdateReservationAsync(
+        int reservationId, string customerId, DateTime date, TimeSpan time, int partySize, string? specialRequests, bool isStaffOrAdmin)
+    {
+        await BookingGate.WaitAsync();
+        try
+        {
+            return await UpdateReservationCoreAsync(reservationId, customerId, date, time, partySize, specialRequests, isStaffOrAdmin);
+        }
+        finally
+        {
+            BookingGate.Release();
+        }
+    }
+
+    private async Task<(bool Success, string Message)> UpdateReservationCoreAsync(
         int reservationId, string customerId, DateTime date, TimeSpan time, int partySize, string? specialRequests, bool isStaffOrAdmin)
     {
         var reservation = await _context.Reservations.Include(r => r.Table).Include(r => r.SetMenus).FirstOrDefaultAsync(r => r.Id == reservationId);
@@ -373,6 +470,10 @@ public class ReservationService : IReservationService
         var setting = await _context.RestaurantSettings.FirstOrDefaultAsync();
         var duration = setting?.ReservationDurationMinutes ?? 90;
 
+        var clash = await FindOwnClashAsync(reservation.CustomerId, newStart, duration, reservation.Id);
+        if (clash != null)
+            return (false, ClashMessage(clash));
+
         // The booking's own table counts as free for itself, so keeping the same table is possible.
         var tables = await LoadCandidateTablesAsync(partySize, null);
         var reservations = tables.Count == 0 ? new List<Reservation>() : await LoadActiveReservationsAsync(date, tables.Select(t => t.Id));
@@ -383,14 +484,21 @@ public class ReservationService : IReservationService
             return (false, "No table is free for that time and party size. Please try another time.");
 
         var oldStart = reservation.ReservationDateTime;
+        var oldMinutes = reservation.DurationMinutes;
+        var oldTableId = reservation.TableId;
         reservation.ReservationDateTime = newStart;
         reservation.DurationMinutes = duration;
         reservation.PartySize = partySize;
         var setsTrimmed = FitSetMenusToParty(reservation, partySize);
         reservation.SpecialRequests = Trim(specialRequests, 400);
         reservation.TableId = chosen.Id;
-        reservation.Status = partySize >= ConfirmByTeamFromParty && !isStaffOrAdmin ? ReservationStatus.Pending : ReservationStatus.Confirmed;
-        if (reservation.Status == ReservationStatus.Confirmed) reservation.ConfirmedAt ??= DateTime.UtcNow;
+        if (!isStaffOrAdmin)
+        {
+            // A change made by the guest is a new request: the team confirms it again.
+            reservation.Status = ReservationStatus.Pending;
+            reservation.ConfirmedAt = null;
+            reservation.ConfirmedByStaffId = null;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -398,11 +506,12 @@ public class ReservationService : IReservationService
             reservation.CustomerId,
             "Reservation updated",
             $"Your reservation is now for {newStart:dddd d MMMM} at {newStart:HH:mm}, {partySize} {(partySize == 1 ? "guest" : "guests")}."
-                + (setsTrimmed ? $" Set menus: {Presentation.SetMenuLabels.Booked(reservation.SetMenus)}." : ""),
+                + (setsTrimmed ? $" Set menus: {Presentation.SetMenuLabels.Booked(reservation.SetMenus)}." : "")
+                + (reservation.Status == ReservationStatus.Pending ? " The team will confirm the change within the day." : ""),
             NotificationType.Reservation,
             "/Reservations/Index");
 
-        if (oldStart != newStart) await NotifyWaitlistAsync(oldStart);
+        if (oldStart != newStart || oldTableId != chosen.Id) await NotifyWaitlistAsync(oldStart, oldMinutes);
         return (true, setsTrimmed ? $"Reservation updated. The set menus now cover {partySize} {(partySize == 1 ? "guest" : "guests")}." : "Reservation updated.");
     }
 
@@ -474,7 +583,7 @@ public class ReservationService : IReservationService
             NotificationType.Reservation,
             "/Reservations/Index");
 
-        await NotifyWaitlistAsync(reservation.ReservationDateTime);
+        await NotifyWaitlistAsync(reservation.ReservationDateTime, reservation.DurationMinutes);
         return (true, stuck == null ? "Reservation cancelled." : "Reservation cancelled. " + stuck);
     }
 
@@ -484,8 +593,13 @@ public class ReservationService : IReservationService
         if (reservation == null)
             return (false, "Reservation not found.");
 
-        if (tableId.HasValue)
-            reservation.TableId = tableId.Value;
+        if (tableId.HasValue && tableId.Value != reservation.TableId)
+        {
+            var free = await GetTablesForMoveAsync(reservationId);
+            var table = free.FirstOrDefault(t => t.Id == tableId.Value);
+            if (table == null) return (false, "That table is not set up on the floor plan, is too small, or is taken for this sitting.");
+            reservation.TableId = table.Id;
+        }
 
         reservation.Status = ReservationStatus.Confirmed;
         reservation.ConfirmedAt = DateTime.UtcNow;
@@ -583,6 +697,7 @@ public class ReservationService : IReservationService
 
         r.TableId = table.Id;
         await _context.SaveChangesAsync();
+        await NotifyWaitlistAsync(r.ReservationDateTime, r.DurationMinutes); // the table it left is free for this sitting
         return (true, $"Moved to {table.TableNumber}.");
     }
 
@@ -627,6 +742,10 @@ public class ReservationService : IReservationService
             reservation.ConfirmedByStaffId = staffId;
         }
         await _context.SaveChangesAsync();
+
+        // A table that is no longer held (cancelled, no-show, or the guests left early) may suit someone on the waiting list.
+        if (status is ReservationStatus.Cancelled or ReservationStatus.NoShow or ReservationStatus.Completed)
+            await NotifyWaitlistAsync(reservation.ReservationDateTime, reservation.DurationMinutes);
 
         // Seating a guest and closing the sitting are the team's own bookkeeping: the guest is already at the table.
         if (status == ReservationStatus.Seated)

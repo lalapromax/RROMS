@@ -11,7 +11,7 @@ namespace RROMS.Pages.Admin;
 
 /// 
 /// The administrator's Overview: what is happening today (always today, whatever period is chosen below), then a period report
-/// (sales, popular items, reservations, tables, guest feedback, best customers) with the same downloads the old Reports page had.
+/// (sales, popular items, reservations, guest feedback, best customers) with the same downloads the old Reports page had.
 /// 
 public class DashboardModel : PageModel
 {

@@ -10,6 +10,9 @@ public record AudienceInput(bool Public, bool AllCustomers, bool AllStaff, List<
 /// A person the audience picker can show (customer or staff member).
 public record PersonOption(string Id, string Name, string Email, string Role, string? TierName);
 
+/// How a "notify guests" press went: how many got a new notice, how many had one already, and how many people the audience holds.
+public record NotifyOutcome(int Sent, int AlreadyTold, int Audience);
+
 public interface IAnnouncementService
 {
     /// Checks the audience against what the author's role may target, then writes it onto the announcement.
@@ -21,6 +24,9 @@ public interface IAnnouncementService
 
     /// Creates in-app notifications for everyone the announcement is addressed to. Returns how many were sent.
     Task<int> NotifyAudienceAsync(Announcement announcement);
+
+    /// Sends the notice to everyone in the audience who has not had it yet. Safe to call again: nobody is told twice.
+    Task<NotifyOutcome> NotifyAudienceOnceAsync(Announcement announcement);
 
     /// Announcements this particular person is allowed to see, newest first. userId null = a visitor who is not signed in.
     Task<List<Announcement>> GetVisibleToAsync(string? userId, bool isCustomer, bool isStaff, int? take = null);
@@ -158,10 +164,34 @@ public class AnnouncementService : IAnnouncementService
         return ids.ToList();
     }
 
-    public async Task<int> NotifyAudienceAsync(Announcement announcement)
+    public async Task<int> NotifyAudienceAsync(Announcement announcement) => (await NotifyAudienceOnceAsync(announcement)).Sent;
+
+    // One gate per announcement: two presses at the same moment queue up, so the second one finds everybody already told.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, SemaphoreSlim> Gates = new();
+
+    public async Task<NotifyOutcome> NotifyAudienceOnceAsync(Announcement announcement)
     {
-        var recipients = await ResolveRecipientIdsAsync(announcement);
-        return await _notifications.NotifyUsersAsync(recipients, announcement.Title, announcement.Content, NotificationType.Announcement, "/Notifications/Index#a" + announcement.Id);
+        var gate = Gates.GetOrAdd(announcement.Id, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            var link = "/Notifications/Index#a" + announcement.Id;
+            var audience = await ResolveRecipientIdsAsync(announcement);
+            var alreadyTold = await _context.Notifications.AsNoTracking()
+                .Where(n => n.LinkUrl == link && n.Type == NotificationType.Announcement)
+                .Select(n => n.UserId)
+                .Distinct()
+                .ToListAsync();
+            var toTell = audience.Except(alreadyTold).ToList();
+            var sent = toTell.Count == 0
+                ? 0
+                : await _notifications.NotifyUsersAsync(toTell, announcement.Title, announcement.Content, NotificationType.Announcement, link);
+            return new NotifyOutcome(sent, alreadyTold.Intersect(audience).Count(), audience.Count);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public async Task<List<Announcement>> GetVisibleToAsync(string? userId, bool isCustomer, bool isStaff, int? take = null)

@@ -89,7 +89,6 @@ public class ReportService : IReportService
     {
         var endExclusive = end.Date.AddDays(1);
         var reservations = await _context.Reservations
-            .Include(r => r.Table)
             .Where(r => r.ReservationDateTime >= start.Date && r.ReservationDateTime < endExclusive)
             .ToListAsync();
 
@@ -100,23 +99,19 @@ public class ReportService : IReportService
             TotalReservations = reservations.Count,
             Pending = reservations.Count(r => r.Status == ReservationStatus.Pending),
             Confirmed = reservations.Count(r => r.Status == ReservationStatus.Confirmed),
+            Seated = reservations.Count(r => r.Status == ReservationStatus.Seated),
             Completed = reservations.Count(r => r.Status == ReservationStatus.Completed),
             Cancelled = reservations.Count(r => r.Status == ReservationStatus.Cancelled),
             NoShow = reservations.Count(r => r.Status == ReservationStatus.NoShow),
-            AveragePartySize = reservations.Count > 0 ? Math.Round(reservations.Average(r => r.PartySize), 1) : 0
+            AveragePartySize = reservations.Any(r => r.Status != ReservationStatus.Pending)
+                ? Math.Round(reservations.Where(r => r.Status != ReservationStatus.Pending).Average(r => r.PartySize), 1)
+                : 0
         };
 
         vm.ByHour = reservations
             .GroupBy(r => r.ReservationDateTime.Hour)
             .OrderBy(g => g.Key)
             .Select(g => new HourCountVM { Hour = g.Key, Count = g.Count() })
-            .ToList();
-
-        vm.ByTable = reservations
-            .Where(r => r.Table != null)
-            .GroupBy(r => r.Table!.TableNumber)
-            .OrderByDescending(g => g.Count())
-            .Select(g => new TableUtilizationVM { TableNumber = g.Key, BookingCount = g.Count() })
             .ToList();
 
         return vm;

@@ -7,13 +7,15 @@
 
   var slotBox = document.getElementById('slotBox');
   var note = document.getElementById('slotNote');
-  var bigNote = form.querySelector('[data-big-note]');
   var confirmBtn = document.getElementById('confirmBtn');
   var waitBtn = document.getElementById('waitBtn');
   var fine = document.getElementById('fineText');
+  var dupNote = document.getElementById('dupNote');
+  var mineList = [];
+  try { mineList = JSON.parse(form.getAttribute('data-mine') || '[]'); } catch (e) { mineList = []; }
+  var sittingMinutes = parseInt(form.getAttribute('data-duration'), 10) || 90;
   var url = form.getAttribute('data-slots-url');
   var cutoff = 4;
-  var big = 7;
   var request = 0;
 
   var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -53,13 +55,43 @@
       return box.getAttribute('data-label') + ' for ' + (count ? count.value : party());
     });
     out('set', sets.join(', ')); row('set', sets.length > 0);
-    if (bigNote) bigNote.hidden = party() < big;
     syncButtons();
+  }
+
+  // The guest's own booking that overlaps the day and time now chosen, or null. The server checks this again on posting.
+  function ownClash() {
+    var d = val('Form.Date');
+    var t = form.querySelector('input[name="Form.Time"]:checked');
+    if (!d || !t || !mineList.length) return null;
+    var start = new Date(d + 'T' + t.value + ':00');
+    if (isNaN(start.getTime())) return null;
+    var end = new Date(start.getTime() + sittingMinutes * 60000);
+    for (var i = 0; i < mineList.length; i++) {
+      var bs = new Date(mineList[i].s + ':00'), be = new Date(mineList[i].e + ':00');
+      if (bs < end && start < be) return bs;
+    }
+    return null;
   }
 
   function syncButtons() {
     var el = form.querySelector('input[name="Form.Time"]:checked');
     var full = !!el && el.getAttribute('data-full') === '1';
+    var clash = ownClash();
+    if (dupNote) {
+      dupNote.hidden = !clash;
+      if (clash) {
+        var p = dupNote.querySelector('p');
+        p.textContent = 'You already have a reservation on ' + days[clash.getDay()] + ' ' + clash.getDate() + ' ' + months[clash.getMonth()] + ' at ' +
+          ('0' + clash.getHours()).slice(-2) + ':' + ('0' + clash.getMinutes()).slice(-2) + ' that overlaps this time. ';
+        var a = document.createElement('a');
+        a.href = form.getAttribute('data-mine-url') || '#';
+        a.textContent = 'Change or cancel it';
+        p.appendChild(a);
+        p.appendChild(document.createTextNode(', or choose a different time.'));
+      }
+    }
+    confirmBtn.disabled = !!clash;
+    waitBtn.disabled = !!clash;
     confirmBtn.hidden = full;
     waitBtn.hidden = !full;
     fine.textContent = full
@@ -80,7 +112,7 @@
   function render(data, keep) {
     var html;
     if (data.closed) html = '<p class="slots-empty">We are closed that day. Please choose another.</p>';
-    else if (!data.slots.length) html = '<p class="slots-empty">There are no more tables today. Please choose another day.</p>';
+    else if (!data.slots.length) html = '<p class="slots-empty">There are no times left to book for this day and party size. Please choose another day, or call us.</p>';
     else {
       var lunch = data.slots.filter(function (s) { return s.time < '17:00'; });
       var dinner = data.slots.filter(function (s) { return s.time >= '17:00'; });

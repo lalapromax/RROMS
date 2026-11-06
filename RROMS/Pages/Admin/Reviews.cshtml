@@ -84,6 +84,7 @@
             <label for="dt">To</label>
             <input class="in" id="dt" name="EndDate" type="date" value="@Model.EndDate.ToString(iso)" max="@DateTime.Today.ToString(iso)" style="width:160px" />
         </div>
+        <button type="submit" class="@(Model.Low ? "btn btn-wine" : "btn btn-line")" id="revLow" name="Low" value="@(Model.Low ? "false" : "true")" aria-pressed="@(Model.Low ? "true" : "false")">Below 3 stars</button>
         <button type="submit" class="btn btn-line">Apply</button>
         <span class="sp"></span>
         <label class="swx">
@@ -94,7 +95,12 @@
     </form>
 
     <div class="grid2 g75">
-        <div class="stack">
+        <div class="stack" id="revResults" aria-live="polite">
+            @if (Model.Low)
+            {
+                var all = new Dictionary<string, string>(keep); all.Remove("Low"); all.Remove("PageNo");
+                <p class="muted" style="margin:0 0 4px">Showing 1 and 2 star reviews only: @Model.Matching found. <a asp-page="/Admin/Reviews" asp-all-route-data="all" data-rev-clear>Show all reviews</a></p>
+            }
             @if (Model.Items.Count == 0)
             {
                 <div class="empty-card"><p>No reviews match. Widen the dates or clear a filter.</p><a class="btn btn-line" asp-page="/Admin/Reviews">Clear filters</a></div>
@@ -205,3 +211,7 @@
 </aside>
 </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/admin-reviews.js" asp-append-version="true"></script>
+}

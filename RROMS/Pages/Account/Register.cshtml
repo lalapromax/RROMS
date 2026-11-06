@@ -87,7 +87,7 @@
                 <partial name="_DietaryChips" model="@(new DietaryChipsVM("Input.DietaryNeeds", "Input.AllergyChips", "Input.AllergyOther", Model.Input.DietaryNeeds, Model.Input.AllergyChips, Model.Input.AllergyOther, "reg"))" />
 
                 <div style="margin-top:28px">
-                    <label class="ckb"><input asp-for="Input.AgreeToTerms" type="checkbox" /><i>@Ui.Icon("check", 13, 3)</i> I agree to the terms of use and the privacy notice</label>
+                    <label class="ckb"><input asp-for="Input.AgreeToTerms" type="checkbox" /><i>@Ui.Icon("check", 13, 3)</i> I agree to the <a class="link" asp-page="/Terms" target="_blank" rel="noopener">Terms of Service</a> and the <a class="link" asp-page="/Terms" asp-fragment="privacy" target="_blank" rel="noopener">privacy notice</a></label>
                     <span asp-validation-for="Input.AgreeToTerms" class="err-msg"></span>
                 </div>
                 <div style="margin-top:12px">
