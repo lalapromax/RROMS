@@ -96,7 +96,7 @@ public class ReservationsModel : PageModel
         var day = Day;
         var all = await _reservations.GetReservationsForDateAsync(day);
         AllTables = await _context.RestaurantTables.AsNoTracking().Include(t => t.DiningArea)
-            .Where(t => t.IsActive).OrderBy(t => t.TableNumber.Length).ThenBy(t => t.TableNumber).ToListAsync();
+            .Where(t => t.IsActive && t.PositionX != null && t.PositionY != null && t.DiningArea!.IsActive).OrderBy(t => t.TableNumber.Length).ThenBy(t => t.TableNumber).ToListAsync();
 
         var open = all.Where(r => r.Status is ReservationStatus.Pending or ReservationStatus.Confirmed or ReservationStatus.Seated).ToList();
         IEnumerable<Reservation> shown = all;

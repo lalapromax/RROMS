@@ -32,8 +32,10 @@ public class ReviewsModel : PageModel
 
     [BindProperty(SupportsGet = true)] public DateTime StartDate { get; set; } = DateTime.Today.AddDays(-29);
     [BindProperty(SupportsGet = true)] public DateTime EndDate { get; set; } = DateTime.Today;
-    /// 0 = all, 1-5 = exactly that many, 3 with Low = "3 and below" is not offered: keep it simple, one value.
+    /// 0 = all, 1-5 = exactly that many.
     [BindProperty(SupportsGet = true)] public int Stars { get; set; }
+    /// The "Below 3 stars" button: only 1 and 2 star reviews. It takes the place of a single-star choice.
+    [BindProperty(SupportsGet = true)] public bool Low { get; set; }
     [BindProperty(SupportsGet = true)] public string? Issue { get; set; }
     /// "waiting" or "replied"; anything else shows both.
     [BindProperty(SupportsGet = true)] public string? Reply { get; set; }
@@ -45,6 +47,8 @@ public class ReviewsModel : PageModel
     public List<Item> Items { get; private set; } = new();
     public FeedbackSummaryVM Summary { get; private set; } = new();
     public int Total { get; private set; }
+    /// How many reviews match every filter that is switched on (all pages together).
+    public int Matching { get; private set; }
     public int WithComments { get; private set; }
     public int Waiting { get; private set; }
     public int Pages { get; private set; } = 1;
@@ -53,6 +57,7 @@ public class ReviewsModel : PageModel
         ["StartDate"] = StartDate.ToString("yyyy-MM-dd"),
         ["EndDate"] = EndDate.ToString("yyyy-MM-dd"),
         ["Stars"] = Stars == 0 ? null : Stars.ToString(),
+        ["Low"] = Low ? "true" : null,
         ["Issue"] = Issue,
         ["Reply"] = Reply,
         ["OnlyComments"] = OnlyComments ? "true" : null,
@@ -68,6 +73,7 @@ public class ReviewsModel : PageModel
         if (StartDate > EndDate) StartDate = EndDate;
         if ((EndDate - StartDate).TotalDays > 730) StartDate = EndDate.AddDays(-730);
         if (Stars < 0 || Stars > 5) Stars = 0;
+        if (Low) Stars = 0;
         if (!string.IsNullOrWhiteSpace(Issue) && !ReviewOptions.IssueTags.Contains(Issue)) Issue = null;
 
         Summary = await _reports.GetFeedbackSummaryAsync(StartDate, EndDate);
@@ -80,13 +86,15 @@ public class ReviewsModel : PageModel
         Waiting = await period.CountAsync(f => f.Comments != null && f.Comments != "" && f.StaffResponse == null);
 
         var q = period;
-        if (Stars > 0) q = q.Where(f => f.Rating == Stars);
+        if (Low) q = q.Where(f => f.Rating < 3);
+        else if (Stars > 0) q = q.Where(f => f.Rating == Stars);
         if (!string.IsNullOrWhiteSpace(Issue)) q = q.Where(f => f.IssueTags != null && f.IssueTags.Contains(Issue));
         if (OnlyComments) q = q.Where(f => f.Comments != null && f.Comments != "");
         if (Reply == "waiting") q = q.Where(f => f.StaffResponse == null);
         else if (Reply == "replied") q = q.Where(f => f.StaffResponse != null);
 
         var count = await q.CountAsync();
+        Matching = count;
         Pages = Math.Max(1, (count + PageSize - 1) / PageSize);
         PageNo = Math.Clamp(PageNo, 1, Pages);
 

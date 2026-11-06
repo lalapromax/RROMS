@@ -165,6 +165,53 @@ public class AnnouncementsModel : PageModel
         return RedirectToPage(new { tab = Tab });
     }
 
+    /// Tell the audience of a live announcement about it now. Nobody is told twice, so pressing it again is harmless.
+    public async Task<IActionResult> OnPostNotifyAsync(int id)
+    {
+        var me = _userManager.GetUserId(User);
+        var a = await _context.Announcements.FirstOrDefaultAsync(x => x.Id == id && x.CreatedByAdminId == me);
+        if (a == null)
+        {
+            TempData["ErrorMessage"] = "You can only send notices for announcements you posted.";
+            return RedirectToPage(new { tab = Tab });
+        }
+
+        var state = AnnouncementLabels.State(a, DateTime.UtcNow);
+        if (state != "Published")
+        {
+            TempData["ErrorMessage"] = state switch
+            {
+                "Draft" => "Publish it first: nobody can be told about a draft.",
+                "Scheduled" => "It is scheduled, and the notice goes out by itself when it goes live if that was ticked.",
+                _ => "This announcement has ended, so there is nothing to send."
+            };
+            return RedirectToPage(new { tab = Tab });
+        }
+
+        try
+        {
+            var result = await _announcements.NotifyAudienceOnceAsync(a);
+            if (a.NotifyPending)
+            {
+                a.NotifyPending = false;
+                await _context.SaveChangesAsync();
+            }
+
+            if (result.Sent > 0)
+                TempData["StatusMessage"] = $"{result.Sent} {(result.Sent == 1 ? "person was" : "people were")} told."
+                    + (result.AlreadyTold > 0 ? $" {result.AlreadyTold} had been told before." : "");
+            else if (result.Audience == 0)
+                TempData["StatusMessage"] = "Nobody is in this audience yet, so no notice was sent.";
+            else
+                TempData["StatusMessage"] = "Nobody new to tell: everyone in the audience has either had this notice already or turned announcements off.";
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "The notice could not be sent just now. Nothing was lost; please try again.";
+        }
+        return RedirectToPage(new { tab = Tab });
+    }
+
     public async Task<IActionResult> OnPostRemoveAsync(int id)
     {
         var me = _userManager.GetUserId(User);

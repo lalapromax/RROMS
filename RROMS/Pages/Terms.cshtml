@@ -1,0 +1,58 @@
+@page
+@using RROMS.Presentation
+@{
+    ViewData["Title"] = "Terms of Service";
+}
+
+<main class="wrap main legal" id="main">
+    <h1>Terms of Service</h1>
+    <p class="lede">The rules for using the @Brand.Name website: booking a table, ordering, earning rewards and writing reviews. Last updated 11 November 2026.</p>
+
+    <h2>Your account</h2>
+    <p>Give us true details and keep your password to yourself. You are responsible for what happens under your account. We may close an account that is used to cheat, to harass our team or other guests, or to break these terms.</p>
+
+    <h2>Reservations</h2>
+    <ul>
+        <li>A booking made on the website is a request until a member of our team confirms it, usually within the day. You will get a notice when it is confirmed.</li>
+        <li>You can change or cancel online until @Reservation.GuestChangeCutoffHours hours before your table. After that, please phone us and we will do what we can.</li>
+        <li>We hold your table for a short time after the booking hour. If you are running late, call us; a table not claimed may be given to guests who are waiting.</li>
+        <li>The website books tables for 1 to 8 guests. For larger parties please phone us.</li>
+        <li>If we must move or cancel a booking, we will tell you as early as we can.</li>
+    </ul>
+
+    <h2>Orders and payment</h2>
+    <p>Prices are in Malaysian ringgit (RM). Service charge and tax are added at checkout where they apply. You can pay by card or online banking through Stripe, or at the restaurant. Card details go to Stripe; we never see or keep your card number. An order counts as paid only once the payment is confirmed.</p>
+
+    <h2>Allergies and dietary needs</h2>
+    <p>The dietary details in your profile help us show you suitable dishes, but they are a guide, not a promise. Our kitchen handles nuts, gluten, shellfish and other allergens, so please always tell your server about an allergy before you order. The website and its chat cannot guarantee that a dish is free of an allergen.</p>
+
+    <h2>Rewards</h2>
+    <p>Points are earned on orders that are completed and paid, and they count once. Tiers and perks may change; if they do, points you have already earned stay with you. Points have no cash value and cannot be sold or passed on.</p>
+
+    <h2>Reviews</h2>
+    <p>Write what you honestly experienced. We may remove a review that is abusive, unrelated to your visit or order, or shares someone else's private details. Your first name is shown only if you choose to show it.</p>
+
+    <h2 id="privacy">Privacy notice</h2>
+    <p>We keep the details you give us (name, email, phone, dietary details), your bookings, orders, rewards and reviews, and your notice settings. We use them to run your bookings and orders, to send you notices about them, and to improve the restaurant. We send news and offers only if you opted in, and you can change that in your profile at any time.</p>
+    <p>Card payments are handled by Stripe, and Google sign-in is used only if you choose it. We do not sell your details. To correct or delete your details, contact us using the address or email at the bottom of any page; order records may be kept where we are required to keep them.</p>
+
+    <h2>Changes to these terms</h2>
+    <p>We may update these terms. The date at the top shows when they last changed, and using the website after a change means you accept it.</p>
+
+    <p class="back"><a class="link" asp-page="/Account/Register">Back to creating an account</a></p>
+</main>
+
+@section Styles {
+    <style>
+        .legal { padding-top: 64px; padding-bottom: 96px; }
+        .legal > * { max-width: 760px; }
+        .legal h1 { font-size: clamp(38px, 5vw, 58px); margin-bottom: 14px; }
+        .legal .lede { color: var(--ink2); font-size: 19px; margin-bottom: 8px; }
+        .legal h2 { font-size: 30px; margin: 44px 0 10px; }
+        .legal p + p { margin-top: 12px; }
+        .legal ul { list-style: disc; padding-left: 22px; }
+        .legal li { margin: 8px 0; padding-left: 4px; }
+        .legal .back { margin-top: 48px; }
+        @@media (max-width: 640px) { .legal { padding-top: 36px; padding-bottom: 64px; } .legal h2 { font-size: 26px; margin-top: 34px; } }
+    </style>
+}

@@ -13,7 +13,6 @@
         : "Closed on " + (closedNames.Count == 1 ? closedNames[0] : string.Join(", ", closedNames.Take(closedNames.Count - 1)) + " and " + closedNames.Last());
     var selectedSlot = f.Time == null ? null : slots.FirstOrDefault(s => s.Time == f.Time);
     var guestsWord = f.PartySize == 1 ? "guest" : "guests";
-    var big = f.PartySize >= RROMS.Services.ReservationService.ConfirmByTeamFromParty;
 
     void SlotButton(RROMS.Services.SlotInfo s)
     {
@@ -37,7 +36,7 @@
 </section>
 
 <div class="wrap main">
-    <form method="post" class="book" id="bookForm" data-book data-slots-url="@Url.Page("/Reservations/Create", "Slots")" data-hold="@Model.HoldMinutes" novalidate>
+    <form method="post" class="book" id="bookForm" data-book data-slots-url="@Url.Page("/Reservations/Create", "Slots")" data-hold="@Model.HoldMinutes" data-duration="@Model.DurationMinutes" data-mine="@Model.MineJson" data-mine-url="@Url.Page("/Reservations/Index")" novalidate>
         <input type="hidden" asp-for="Form.Month" />
         <input type="hidden" asp-for="ReturnUrl" />
 
@@ -59,7 +58,7 @@
                             <label><input type="radio" name="Form.PartySize" value="@n" checked="@(f.PartySize == n)" aria-label="@n @(n == 1 ? "guest" : "guests")" /><span>@n</span></label>
                         }
                     </div>
-                    <p class="slots-note" data-big-note hidden="@(!big)">A party this size is placed on a table straight away, and a person on the team confirms it within the day.</p>
+                    <p class="slots-note">Every booking is a request until a person on the team confirms it, usually within the day. You will get a notice when it is confirmed.</p>
                     <p class="slots-note">For nine or more, please call us and we will arrange a long table.</p>
                     <span asp-validation-for="Form.PartySize" class="err-msg"></span>
                 </div>
@@ -102,7 +101,7 @@
                         }
                         else if (slots.Count == 0)
                         {
-                            <p class="slots-empty">There are no more tables today. Please choose another day.</p>
+                            <p class="slots-empty">There are no times left to book for this day and party size. Please choose another day, or call us.</p>
                         }
                         else
                         {
@@ -234,6 +233,7 @@
                     @Ui.Icon("clock", 18, 1.6)
                     <span>We hold the table for @Model.HoldMinutes minutes after your time.</span>
                 </p>
+                <div class="form-alert" role="alert" id="dupNote" hidden>@Ui.Icon("warn", 18, 2)<div><p></p></div></div>
                 <button type="submit" class="btn btn-wine btn-lg" id="confirmBtn" asp-page-handler="Book" hidden="@Model.SelectedSlotIsFull">Confirm booking</button>
                 <button type="submit" class="btn btn-wine btn-lg" id="waitBtn" asp-page-handler="Waitlist" formnovalidate hidden="@(!Model.SelectedSlotIsFull)">Join the waiting list</button>
                 <p class="fine" id="fineText">@(Model.SelectedSlotIsFull ? "We will message you if a table opens. Nothing is charged." : $"You can change or cancel up to {Reservation.GuestChangeCutoffHours} hours before.")</p>

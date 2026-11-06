@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -86,6 +87,9 @@ public class CreateModel : PageModel
     public List<string> AllergiesOnFile { get; private set; } = new();
     public List<DayOfWeek> ClosedDays { get; private set; } = new();
     public int HoldMinutes { get; private set; } = 15;
+    public int DurationMinutes { get; private set; } = 90;
+    /// The guest's own bookings that are still on, as start and end times; the page uses them to warn about a clash before posting.
+    public string MineJson { get; private set; } = "[]";
     public string? Phone { get; private set; }
     public string? SelectedSlotNote { get; private set; }
 
@@ -155,9 +159,7 @@ public class CreateModel : PageModel
                 }
 
                 var when = reservation!.ReservationDateTime;
-                TempData["StatusMessage"] = reservation.Status == ReservationStatus.Pending
-                    ? $"We have your request for {when:dddd d MMMM} at {when:HH:mm}. The team will confirm it within the day."
-                    : $"Your table is booked for {when:dddd d MMMM} at {when:HH:mm}.";
+                TempData["StatusMessage"] = $"We have your request for {when:dddd d MMMM} at {when:HH:mm}. The team will confirm it within the day.";
                 if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
                     return LocalRedirect(WithReservation(ReturnUrl, reservation.Id));
                 return RedirectToPage("/Reservations/Index");
@@ -218,7 +220,21 @@ public class CreateModel : PageModel
     {
         var setting = await _context.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
         HoldMinutes = setting?.HoldMinutes ?? 15;
+        DurationMinutes = setting?.ReservationDurationMinutes ?? 90;
         Phone = setting?.PublicPhone;
+        if (user != null)
+        {
+            var since = DateTime.Now.AddDays(-1);
+            var mine = await _context.Reservations.AsNoTracking()
+                .Where(r => r.CustomerId == user.Id && r.ReservationDateTime > since
+                            && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed || r.Status == ReservationStatus.Seated))
+                .ToListAsync();
+            MineJson = JsonSerializer.Serialize(mine.Select(r => new
+            {
+                s = r.ReservationDateTime.ToString("yyyy-MM-dd'T'HH:mm", CultureInfo.InvariantCulture),
+                e = r.ReservationDateTime.AddMinutes(r.DurationMinutes).ToString("yyyy-MM-dd'T'HH:mm", CultureInfo.InvariantCulture)
+            }));
+        }
         var maxAdvance = setting?.MaxAdvanceBookingDays ?? 60;
 
         var hours = await _context.OperatingHours.AsNoTracking().ToListAsync();

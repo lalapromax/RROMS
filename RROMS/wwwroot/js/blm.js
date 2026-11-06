@@ -205,6 +205,16 @@
         var msg = f.getAttribute && f.getAttribute('data-confirm');
         if (msg && !window.confirm(msg)) e.preventDefault();
     });
+    // <form data-once> can be posted once per page view: a second click does nothing while the first one is on its way
+    document.addEventListener('submit', function (e) {
+        var f = e.target;
+        if (!f.hasAttribute || !f.hasAttribute('data-once') || e.defaultPrevented) return;
+        if (f.getAttribute('data-sent') === '1') { e.preventDefault(); return; }
+        f.setAttribute('data-sent', '1');
+        setTimeout(function () {
+            Array.prototype.forEach.call(f.querySelectorAll('button[type="submit"]'), function (b) { b.disabled = true; });
+        }, 0);
+    });
     // <form data-autosubmit> saves as soon as a switch is flipped; its [data-no-js-only] save button is then not needed
     document.addEventListener('change', function (e) {
         var f = e.target.closest && e.target.closest('form[data-autosubmit]');

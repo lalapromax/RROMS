@@ -36,12 +36,17 @@ public class ReservationStatsVM
     public int TotalReservations { get; set; }
     public int Pending { get; set; }
     public int Confirmed { get; set; }
+    public int Seated { get; set; }
     public int Completed { get; set; }
     public int Cancelled { get; set; }
     public int NoShow { get; set; }
+
+    /// The reservations the status panel shows: everything except Pending. Its percentages are worked out against this.
+    public int StatusTotal => Confirmed + Seated + Completed + Cancelled + NoShow;
+
+    /// Average party size of those same reservations.
     public double AveragePartySize { get; set; }
     public List<HourCountVM> ByHour { get; set; } = new();
-    public List<TableUtilizationVM> ByTable { get; set; } = new();
 }
 
 /// Aggregated customer feedback for the admin dashboard - section 6.H of the
@@ -141,12 +146,6 @@ public class HourCountVM
 {
     public int Hour { get; set; }
     public int Count { get; set; }
-}
-
-public class TableUtilizationVM
-{
-    public string TableNumber { get; set; } = string.Empty;
-    public int BookingCount { get; set; }
 }
 
 public class CustomerActivityVM

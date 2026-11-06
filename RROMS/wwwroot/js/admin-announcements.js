@@ -100,6 +100,8 @@
         if (draftBtn) draftBtn.hidden = isLive;
         // A notice goes out once, when something first goes live. For something already live there is nothing to send.
         if (notifyRow) notifyRow.hidden = isLive;
+        var liveHint = document.getElementById('annNotifyLive');
+        if (liveHint) liveHint.hidden = !isLive;
         Array.prototype.forEach.call(form.querySelectorAll('[data-count-for]'), function (c) {
             var src = document.getElementById(c.getAttribute('data-count-for'));
             if (!src) return;
