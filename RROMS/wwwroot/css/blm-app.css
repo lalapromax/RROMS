@@ -586,6 +586,7 @@ form.period .chip{text-decoration:none;display:inline-flex;align-items:center}
 .reviews-head form{margin:0}
 .period input[type=date].in{width:160px}
 .period .dl-group{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-left:auto}
+.period .field .lab{display:block;font-weight:600;font-size:13.5px;margin-bottom:5px}
 @media (max-width:1100px){.row4{grid-template-columns:1fr}.period .dl-group{margin-left:0;width:100%}}
 @media (max-width:640px){.period input[type=date].in{width:100%}.period .field{flex:1 1 140px}}
 .chip{white-space:nowrap}

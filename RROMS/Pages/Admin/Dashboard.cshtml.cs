@@ -5,6 +5,7 @@ using RROMS.Data;
 using RROMS.Models;
 using RROMS.Presentation;
 using RROMS.Services;
+using RROMS.Services.Reporting;
 using RROMS.ViewModels;
 
 namespace RROMS.Pages.Admin;
@@ -61,7 +62,7 @@ public class DashboardModel : PageModel
         if (StartDate > EndDate) StartDate = EndDate;
         if ((EndDate - StartDate).TotalDays >= MaxDays) StartDate = EndDate.AddDays(-(MaxDays - 1));
 
-        if (!string.IsNullOrEmpty(format)) return await ExportAsync(report ?? "sales", format);
+        if (!string.IsNullOrEmpty(format)) return await ExportAsync(report ?? "full", format);
 
         Data = await _reportService.GetDashboardDataAsync(StartDate, EndDate);
         RecentReviews = await _reportService.GetRecentReviewsAsync(StartDate, EndDate, LowOnly ? 3 : null, 6);
@@ -135,11 +136,21 @@ public class DashboardModel : PageModel
 
     /// 
     /// One place serves every download button on the page (they are part of the period form, so a download always
-    /// matches the period on screen): /Admin/Dashboard?report=sales&amp;format=csv&amp;StartDate=...&amp;EndDate=...
-    /// report: sales | popular | reservations | customers    format: csv | pdf | excel
+    /// matches the period on screen): /Admin/Dashboard?format=pdf&amp;StartDate=...&amp;EndDate=...    format: csv | pdf | excel
+    /// By default the download is the whole Overview report (every panel, in all three formats). report=sales | popular |
+    /// reservations | customers still gives one plain table, which the "Download customers" link uses.
     /// 
     private async Task<IActionResult> ExportAsync(string report, string format)
     {
+        if (report == "full")
+        {
+            var overview = await _reportService.GetDashboardDataAsync(StartDate, EndDate);
+            var popularAll = await _reportService.GetPopularItemsAsync(StartDate, EndDate, 200);
+            var reviews = await _reportService.GetRecentReviewsAsync(StartDate, EndDate, null, 50);
+            var file = ReportExporter.Export(format, overview, popularAll, overview.CustomerActivity, reviews, DateTime.Now);
+            return File(file.Bytes, file.ContentType, $"overview-report-{StartDate:yyyyMMdd}-{EndDate:yyyyMMdd}.{file.Extension}");
+        }
+
         List<string> headers;
         List<List<string>> rows;
         string title;

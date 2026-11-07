@@ -139,18 +139,12 @@
         </div>
         <div class="dl-group">
             <div class="field">
-                <label for="rep">Download report</label>
-                <select class="in" id="rep" name="report">
-                    <option value="sales">Sales</option>
-                    <option value="popular">Popular items</option>
-                    <option value="reservations">Reservations</option>
-                    <option value="customers">Customers</option>
-                </select>
-            </div>
-            <div class="dl">
-                <button class="btn btn-line" type="submit" name="format" value="csv">CSV</button>
-                <button class="btn btn-line" type="submit" name="format" value="pdf">PDF</button>
-                <button class="btn btn-line" type="submit" name="format" value="excel">Excel</button>
+                <span class="lab" id="dl-l">Download this report</span>
+                <div class="dl" role="group" aria-labelledby="dl-l">
+                    <button class="btn btn-line" type="submit" name="format" value="csv">CSV</button>
+                    <button class="btn btn-line" type="submit" name="format" value="pdf">PDF</button>
+                    <button class="btn btn-line" type="submit" name="format" value="excel">Excel</button>
+                </div>
             </div>
         </div>
     </form>
